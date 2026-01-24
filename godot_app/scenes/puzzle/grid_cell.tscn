@@ -1,0 +1,7 @@
+[gd_scene load_steps=2 format=3 uid="uid://cell001"]
+
+[ext_resource type="Script" path="res://scenes/puzzle/grid_cell.gd" id="1_cell"]
+
+[node name="GridCell" type="Button"]
+custom_minimum_size = Vector2(64, 64)
+script = ExtResource("1_cell")
