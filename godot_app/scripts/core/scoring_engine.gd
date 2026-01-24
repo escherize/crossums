@@ -1,6 +1,7 @@
 class_name ScoringEngine
 extends RefCounted
 ## Calculates puzzle scores with Balatro-inspired breakdown.
+## All tunable constants are in GameConfig for easy modification by operators.
 
 # =============================================================================
 # SCORE BREAKDOWN
@@ -16,56 +17,74 @@ class ScoreBreakdown:
 	var total_lines: int = 0
 	var line_multiplier: float = 1.0
 	var subtotal: int = 0  # Before multiplier
+	var line_score: int = 0  # After line multiplier, before time/precision
+	var time_multiplier: float = 1.0
+	var precision_multiplier: float = 1.0
+	var restore_count: int = 0
 	var final_score: int = 0
 
 	func get_summary() -> String:
-		return "Kept %d/%d | Base %d + Kept %d = %d × %.1fx" % [
-			kept_count, total_cells, base_points, kept_bonus, subtotal, line_multiplier
-		]
+		var parts: Array[String] = []
+		parts.append("Kept %d/%d" % [kept_count, total_cells])
+		parts.append("%.1fx line" % line_multiplier)
+		if time_multiplier != 1.0:
+			parts.append("%.1fx time" % time_multiplier)
+		if precision_multiplier != 1.0:
+			parts.append("%.1fx precision" % precision_multiplier)
+		return " | ".join(parts)
 
 # =============================================================================
-# CONSTANTS
+# CONSTANTS (all values come from GameConfig for easy tuning)
 # =============================================================================
-
-const BASE_POINTS := {
-	3: 100,
-	4: 200,
-	5: 350,
-	6: 500,
-}
-
-const KEPT_BONUS_PER_CELL := 25
-const LINE_MULT_PER_VALID := 0.2
 
 # =============================================================================
 # SCORING
 # =============================================================================
 
-static func calculate_score(puzzle: PuzzleState) -> ScoreBreakdown:
+static func calculate_score(
+	puzzle: PuzzleState,
+	time_mult: float = 1.0,
+	restore_count: int = 0
+) -> ScoreBreakdown:
 	var breakdown = ScoreBreakdown.new()
 	var grid_size = puzzle.grid_size.x
 
 	# Base points by grid size
-	breakdown.base_points = BASE_POINTS.get(grid_size, 100)
+	breakdown.base_points = GameConfig.BASE_POINTS.get(grid_size, 100)
 
 	# Cell counts
 	breakdown.total_cells = puzzle.grid_size.x * puzzle.grid_size.y
 	breakdown.kept_count = puzzle.get_kept_count()
 	breakdown.deleted_count = breakdown.total_cells - breakdown.kept_count
 
-	# Kept bonus: +25 per kept number (rewards optimization)
-	breakdown.kept_bonus = breakdown.kept_count * KEPT_BONUS_PER_CELL
+	# Kept bonus: per kept number (rewards optimization)
+	breakdown.kept_bonus = breakdown.kept_count * GameConfig.KEPT_BONUS_PER_CELL
 
 	# Count valid lines (rows + columns)
 	breakdown.total_lines = puzzle.grid_size.x + puzzle.grid_size.y
 	breakdown.valid_lines = _count_valid_lines(puzzle)
 
-	# Line multiplier: 1.0 + 0.2 per valid line
-	breakdown.line_multiplier = 1.0 + (breakdown.valid_lines * LINE_MULT_PER_VALID)
+	# Line multiplier: 1.0 + X per valid line
+	breakdown.line_multiplier = 1.0 + (breakdown.valid_lines * GameConfig.LINE_MULT_PER_VALID)
 
-	# Calculate final
+	# Calculate score after line multiplier
 	breakdown.subtotal = breakdown.base_points + breakdown.kept_bonus
-	breakdown.final_score = int(breakdown.subtotal * breakdown.line_multiplier)
+	breakdown.line_score = int(breakdown.subtotal * breakdown.line_multiplier)
+
+	# Time multiplier (passed in from timer)
+	breakdown.time_multiplier = time_mult
+
+	# Precision multiplier based on restore count
+	breakdown.restore_count = restore_count
+	if restore_count == 0:
+		breakdown.precision_multiplier = GameConfig.PRECISION_PERFECT
+	elif restore_count <= GameConfig.PRECISION_GOOD_THRESHOLD:
+		breakdown.precision_multiplier = GameConfig.PRECISION_GOOD
+	else:
+		breakdown.precision_multiplier = GameConfig.PRECISION_BASE
+
+	# Final score with all multipliers
+	breakdown.final_score = int(breakdown.line_score * breakdown.time_multiplier * breakdown.precision_multiplier)
 
 	return breakdown
 

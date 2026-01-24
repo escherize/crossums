@@ -19,9 +19,28 @@ const ScoringEngineScript = preload("res://scripts/core/scoring_engine.gd")
 @onready var new_puzzle_button: Button = %NewPuzzleButton
 @onready var undo_button: Button = %UndoButton
 @onready var grid_size_option: OptionButton = %GridSizeOption
+@onready var timer_label: Label = %TimerLabel
+@onready var timer_bar: ProgressBar = %TimerBar
+
+# Owned StyleBox for runtime color changes (avoid modifying shared resources)
+var _timer_fill_style: StyleBoxFlat
 
 var puzzle_grid: PuzzleGrid = null
 var current_puzzle: PuzzleState = null
+var puzzle_solved: bool = false
+
+# =============================================================================
+# TIME MULTIPLIER (values from GameConfig)
+# =============================================================================
+
+var puzzle_start_time: int = 0
+var time_multiplier: float = GameConfig.TIME_MULT_START
+
+# =============================================================================
+# PRECISION TRACKING
+# =============================================================================
+
+var restore_count: int = 0
 
 # =============================================================================
 # LIFECYCLE
@@ -41,6 +60,15 @@ func _setup_ui() -> void:
 	grid_size_option.add_item("6x6", 6)
 	grid_size_option.select(0)
 
+	# Create owned StyleBox for timer bar (best practice: don't modify shared resources)
+	_timer_fill_style = StyleBoxFlat.new()
+	_timer_fill_style.bg_color = Color(0.4, 0.8, 0.9, 1.0)  # Cyan
+	_timer_fill_style.corner_radius_top_left = 4
+	_timer_fill_style.corner_radius_top_right = 4
+	_timer_fill_style.corner_radius_bottom_left = 4
+	_timer_fill_style.corner_radius_bottom_right = 4
+	timer_bar.add_theme_stylebox_override("fill", _timer_fill_style)
+
 
 func _connect_signals() -> void:
 	submit_button.pressed.connect(_on_submit_pressed)
@@ -51,6 +79,35 @@ func _connect_signals() -> void:
 	# EventBus connections
 	EventBus.cell_deleted.connect(_on_cell_deleted)
 	EventBus.cell_restored.connect(_on_cell_restored)
+
+
+func _process(_delta: float) -> void:
+	if current_puzzle and not puzzle_solved:
+		_update_time_multiplier()
+		_update_timer_display()
+
+
+func _update_time_multiplier() -> void:
+	var elapsed_sec := (Time.get_ticks_msec() - puzzle_start_time) / 1000.0
+	var decay_progress := clampf(elapsed_sec / GameConfig.TIME_MULT_DECAY_SECONDS, 0.0, 1.0)
+	time_multiplier = lerpf(GameConfig.TIME_MULT_START, GameConfig.TIME_MULT_FLOOR, decay_progress)
+
+
+func _update_timer_display() -> void:
+	# Calculate progress (1.0 = full bonus, 0.0 = no bonus)
+	var mult_range := GameConfig.TIME_MULT_START - GameConfig.TIME_MULT_FLOOR
+	var progress := (time_multiplier - GameConfig.TIME_MULT_FLOOR) / mult_range if mult_range > 0 else 0.0
+
+	# Update bar value
+	timer_bar.value = progress
+
+	# Update bar fill color: cyan (full) → white (empty)
+	var cyan := Color(0.4, 0.8, 0.9, 1.0)
+	var fill_color := cyan.lerp(Color.WHITE, 1.0 - progress)
+	_timer_fill_style.bg_color = fill_color
+
+	# Update label
+	timer_label.text = "%.1fx" % time_multiplier
 
 # =============================================================================
 # PUZZLE MANAGEMENT
@@ -76,6 +133,13 @@ func _generate_new_puzzle(grid_size: int) -> void:
 	await get_tree().process_frame
 	puzzle_grid.load_puzzle(current_puzzle)
 
+	# Reset timer and precision tracking
+	puzzle_start_time = Time.get_ticks_msec()
+	time_multiplier = GameConfig.TIME_MULT_START
+	restore_count = 0
+	puzzle_solved = false
+	_update_timer_display()
+
 	_update_status("Click numbers to delete them. Make all rows and columns sum to targets.")
 
 
@@ -93,7 +157,8 @@ func _on_submit_pressed() -> void:
 	var result = PuzzleLogic.validate(current_puzzle)
 
 	if result.is_valid:
-		var breakdown = ScoringEngineScript.calculate_score(current_puzzle)
+		puzzle_solved = true
+		var breakdown = ScoringEngineScript.calculate_score(current_puzzle, time_multiplier, restore_count)
 		_update_status("🎉 SCORE: %d  |  %s" % [breakdown.final_score, breakdown.get_summary()])
 	else:
 		# Show which rows/columns are wrong
@@ -143,6 +208,7 @@ func _on_cell_deleted(row: int, col: int, value: int) -> void:
 
 
 func _on_cell_restored(row: int, col: int, value: int) -> void:
+	restore_count += 1
 	_update_status("Restored %d at row %d, col %d" % [value, row + 1, col + 1])
 	_check_auto_win()
 
@@ -153,5 +219,6 @@ func _check_auto_win() -> void:
 
 	var result = PuzzleLogic.validate(current_puzzle)
 	if result.is_valid:
-		var breakdown = ScoringEngineScript.calculate_score(current_puzzle)
+		puzzle_solved = true
+		var breakdown = ScoringEngineScript.calculate_score(current_puzzle, time_multiplier, restore_count)
 		_update_status("🎉 WIN! Score: %d  |  %s" % [breakdown.final_score, breakdown.get_summary()])
