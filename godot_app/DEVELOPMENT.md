@@ -148,6 +148,18 @@ Defined but not yet used (for future phases):
 
 ---
 
+## Git Workflow
+
+**Commit after completing each major feature or phase.** Don't let work pile up uncommitted.
+
+Examples of commit points:
+- Completed a phase (e.g., "Phase 3: Scoring System")
+- Fixed a batch of related bugs
+- Added a new system (operators, shop, etc.)
+- Before starting risky refactors
+
+---
+
 ## Next Implementation Steps
 
 See plan file for details. Summary:
