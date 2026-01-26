@@ -115,6 +115,9 @@ func _handle_message(json_str: String) -> void:
 
 func _handle_query(id: String, msg: Dictionary) -> void:
 	var query: String = str(msg.get("query", ""))
+	var params: Dictionary = msg.get("params", {})
+	if typeof(params) != TYPE_DICTIONARY:
+		params = {}
 
 	match query:
 		"get_state":
@@ -126,6 +129,16 @@ func _handle_query(id: String, msg: Dictionary) -> void:
 				"api_version": API_VERSION,
 				"game_version": ProjectSettings.get_setting("application/config/version", "0.1.0")
 			})
+		"get_cell":
+			_send_response(id, _query_get_cell(params))
+		"get_grid":
+			_send_response(id, _query_get_grid())
+		"get_targets":
+			_send_response(id, _query_get_targets())
+		"get_history":
+			_send_response(id, _query_get_history())
+		"get_config":
+			_send_response(id, _query_get_config())
 		_:
 			_send_error("unknown_query", "Unknown query: %s" % query, id)
 
@@ -684,6 +697,94 @@ func _action_clear_all_marks(_params: Dictionary) -> Dictionary:
 	return {
 		"cells_cleared": cells_cleared,
 		"message": "All marks cleared"
+	}
+
+
+# =============================================================================
+# QUERY HANDLERS
+# =============================================================================
+
+func _query_get_cell(params: Dictionary) -> Dictionary:
+	var main_scene := _get_main_scene()
+	if main_scene == null:
+		return {"error": "no_game", "message": "Game not running"}
+
+	var puzzle_state: PuzzleState = main_scene.get("current_puzzle")
+	if puzzle_state == null:
+		return {"error": "no_puzzle", "message": "No active puzzle"}
+
+	var row := int(params.get("row", -1))
+	var col := int(params.get("col", -1))
+
+	if not _is_valid_cell(puzzle_state, row, col):
+		return {"error": "invalid_cell", "message": "Invalid cell position: (%d, %d)" % [row, col]}
+
+	var cell_data := puzzle_state.get_cell(row, col)
+	return {
+		"row": row,
+		"col": col,
+		"value": cell_data.value,
+		"state": _cell_state_to_string(cell_data.state),
+		"is_solution": cell_data.is_solution
+	}
+
+
+func _query_get_grid() -> Dictionary:
+	var main_scene := _get_main_scene()
+	if main_scene == null:
+		return {"error": "no_game", "message": "Game not running"}
+
+	var puzzle_state: PuzzleState = main_scene.get("current_puzzle")
+	if puzzle_state == null:
+		return {"error": "no_puzzle", "message": "No active puzzle"}
+
+	return _serialize_grid(puzzle_state)
+
+
+func _query_get_targets() -> Dictionary:
+	var main_scene := _get_main_scene()
+	if main_scene == null:
+		return {"error": "no_game", "message": "Game not running"}
+
+	var puzzle_state: PuzzleState = main_scene.get("current_puzzle")
+	if puzzle_state == null:
+		return {"error": "no_puzzle", "message": "No active puzzle"}
+
+	return {
+		"rows": Array(puzzle_state.row_targets),
+		"cols": Array(puzzle_state.col_targets),
+		"current_row_sums": _get_current_row_sums(puzzle_state),
+		"current_col_sums": _get_current_col_sums(puzzle_state)
+	}
+
+
+func _query_get_history() -> Dictionary:
+	var main_scene := _get_main_scene()
+	if main_scene == null:
+		return {"error": "no_game", "message": "Game not running"}
+
+	var puzzle_state: PuzzleState = main_scene.get("current_puzzle")
+	if puzzle_state == null:
+		return {"error": "no_puzzle", "message": "No active puzzle"}
+
+	return {
+		"deletion_count": puzzle_state.deletion_history.size(),
+		"deletions": _serialize_positions(puzzle_state.deletion_history),
+		"can_undo": not puzzle_state.deletion_history.is_empty()
+	}
+
+
+func _query_get_config() -> Dictionary:
+	var main_scene := _get_main_scene()
+	if main_scene == null:
+		return {"error": "no_game", "message": "Game not running"}
+
+	var puzzle_state: PuzzleState = main_scene.get("current_puzzle")
+
+	return {
+		"grid_size": puzzle_state.grid_size.x if puzzle_state else 3,
+		"api_version": API_VERSION,
+		"debug_build": OS.is_debug_build()
 	}
 
 
