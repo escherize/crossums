@@ -182,6 +182,16 @@ func _execute_action(action: String, params: Dictionary) -> Dictionary:
 		"restart_puzzle":
 			return _action_restart_puzzle(params)
 
+		# Testing state manipulation
+		"set_cell_state":
+			return _action_set_cell_state(params)
+		"set_grid_state":
+			return _action_set_grid_state(params)
+		"apply_solution":
+			return _action_apply_solution(params)
+		"clear_all_marks":
+			return _action_clear_all_marks(params)
+
 		_:
 			return {"error": "not_implemented", "message": "Action '%s' not yet implemented" % action}
 
@@ -528,6 +538,152 @@ func _action_restart_puzzle(_params: Dictionary) -> Dictionary:
 		"seed": puzzle_state.puzzle_seed,
 		"size": puzzle_state.grid_size.x,
 		"message": "Puzzle reset to initial state"
+	}
+
+
+# =============================================================================
+# TESTING STATE MANIPULATION
+# =============================================================================
+
+func _action_set_cell_state(params: Dictionary) -> Dictionary:
+	## Directly set a cell's state (for test setup)
+	var main_scene := _get_main_scene()
+	if main_scene == null:
+		return {"error": "no_game", "message": "Game not running"}
+
+	var puzzle_state: PuzzleState = main_scene.get("current_puzzle")
+	if puzzle_state == null:
+		return {"error": "no_puzzle", "message": "No active puzzle"}
+
+	var row := int(params.get("row", -1))
+	var col := int(params.get("col", -1))
+	var state_str: String = str(params.get("state", "active"))
+
+	if not _is_valid_cell(puzzle_state, row, col):
+		return {"error": "invalid_cell", "message": "Invalid cell position: (%d, %d)" % [row, col]}
+
+	var cell_data := puzzle_state.get_cell(row, col)
+	var new_state := _string_to_cell_state(state_str)
+
+	# Track in deletion history if changing to deleted
+	if new_state == PuzzleState.CellState.DELETED and cell_data.state != PuzzleState.CellState.DELETED:
+		puzzle_state.deletion_history.append(Vector2i(col, row))
+	elif new_state != PuzzleState.CellState.DELETED and cell_data.state == PuzzleState.CellState.DELETED:
+		# Remove from deletion history if restoring
+		var pos := Vector2i(col, row)
+		var idx := puzzle_state.deletion_history.rfind(pos)
+		if idx >= 0:
+			puzzle_state.deletion_history.remove_at(idx)
+
+	cell_data.state = new_state
+	_refresh_puzzle_grid(main_scene)
+
+	return {
+		"cell": {"row": row, "col": col, "value": cell_data.value, "state": _cell_state_to_string(new_state)}
+	}
+
+
+func _action_set_grid_state(params: Dictionary) -> Dictionary:
+	## Set entire grid state at once (for test setup)
+	## Expects params.cells as 2D array of state strings: [["active", "deleted"], ["kept", "active"]]
+	var main_scene := _get_main_scene()
+	if main_scene == null:
+		return {"error": "no_game", "message": "Game not running"}
+
+	var puzzle_state: PuzzleState = main_scene.get("current_puzzle")
+	if puzzle_state == null:
+		return {"error": "no_puzzle", "message": "No active puzzle"}
+
+	var cells_param = params.get("cells", [])
+	if typeof(cells_param) != TYPE_ARRAY:
+		return {"error": "invalid_params", "message": "cells must be a 2D array of state strings"}
+
+	# Clear deletion history
+	puzzle_state.deletion_history.clear()
+
+	var rows_set := 0
+	var cols_set := 0
+
+	for row in range(mini(cells_param.size(), puzzle_state.grid_size.y)):
+		var row_data = cells_param[row]
+		if typeof(row_data) != TYPE_ARRAY:
+			continue
+
+		for col in range(mini(row_data.size(), puzzle_state.grid_size.x)):
+			var state_str: String = str(row_data[col])
+			var new_state := _string_to_cell_state(state_str)
+			var cell_data := puzzle_state.get_cell(row, col)
+			cell_data.state = new_state
+
+			if new_state == PuzzleState.CellState.DELETED:
+				puzzle_state.deletion_history.append(Vector2i(col, row))
+
+			cols_set = maxi(cols_set, col + 1)
+		rows_set = maxi(rows_set, row + 1)
+
+	_refresh_puzzle_grid(main_scene)
+
+	return {
+		"rows_set": rows_set,
+		"cols_set": cols_set,
+		"message": "Grid state updated"
+	}
+
+
+func _action_apply_solution(_params: Dictionary) -> Dictionary:
+	## Apply the known solution to the grid (delete all non-solution cells)
+	var main_scene := _get_main_scene()
+	if main_scene == null:
+		return {"error": "no_game", "message": "Game not running"}
+
+	var puzzle_state: PuzzleState = main_scene.get("current_puzzle")
+	if puzzle_state == null:
+		return {"error": "no_puzzle", "message": "No active puzzle"}
+
+	var cells_deleted := 0
+
+	for row in range(puzzle_state.grid_size.y):
+		for col in range(puzzle_state.grid_size.x):
+			var cell_data := puzzle_state.get_cell(row, col)
+			if not cell_data.is_solution and cell_data.state == PuzzleState.CellState.ACTIVE:
+				cell_data.state = PuzzleState.CellState.DELETED
+				puzzle_state.deletion_history.append(Vector2i(col, row))
+				cells_deleted += 1
+
+	_refresh_puzzle_grid(main_scene)
+
+	return {
+		"cells_deleted": cells_deleted,
+		"is_solved": puzzle_state.is_solved(),
+		"message": "Solution applied"
+	}
+
+
+func _action_clear_all_marks(_params: Dictionary) -> Dictionary:
+	## Reset all cells to active state
+	var main_scene := _get_main_scene()
+	if main_scene == null:
+		return {"error": "no_game", "message": "Game not running"}
+
+	var puzzle_state: PuzzleState = main_scene.get("current_puzzle")
+	if puzzle_state == null:
+		return {"error": "no_puzzle", "message": "No active puzzle"}
+
+	var cells_cleared := 0
+
+	for row in range(puzzle_state.grid_size.y):
+		for col in range(puzzle_state.grid_size.x):
+			var cell_data := puzzle_state.get_cell(row, col)
+			if cell_data.state != PuzzleState.CellState.ACTIVE:
+				cell_data.state = PuzzleState.CellState.ACTIVE
+				cells_cleared += 1
+
+	puzzle_state.deletion_history.clear()
+	_refresh_puzzle_grid(main_scene)
+
+	return {
+		"cells_cleared": cells_cleared,
+		"message": "All marks cleared"
 	}
 
 
