@@ -18,6 +18,7 @@ run/main_scene="res://scenes/main.tscn"
 [autoload]
 
 EventBus="*res://autoload/event_bus.gd"
+DebugServer="*res://autoload/debug_server.gd"
 
 [rendering]
 
