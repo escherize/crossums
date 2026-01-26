@@ -513,13 +513,30 @@ godot_app/
 
 ---
 
-## Open Questions
+## Decisions Made
 
-1. **Retry on fail?** Lose life and retry same puzzle, or move on?
-2. **Operator slots limit?** Start with 5, upgradeable?
-3. **Function (consumable) design?** What are the first 3?
-4. **Boss modifiers?** What's the first boss type?
-5. **Save/load runs?** Or just single-session?
+1. **Retry on fail?** → **Forced to move on** (lose life, next puzzle)
+2. **Operator slots limit?** → **Yes, start with 5**, upgradeable
+3. **First Functions (consumables)?**
+   - Delete a target (remove one row/col constraint)
+   - Solve a row (auto-solve one row)
+   - Solve a col (auto-solve one column)
+   - Auto-mark cell (show if cell is needed or not)
+4. **Boss puzzles?** → **Skip for now**, add after playtesting
+5. **Save/load?** → **Single-session for now**
+
+---
+
+## Simplified Stage Structure (No Bosses)
+
+```
+Stage 1: [Puzzle] → [Puzzle] → [Puzzle] → Shop
+Stage 2: [Puzzle] → [Puzzle] → [Puzzle] → Shop
+...
+Stage 8: [Puzzle] → [Puzzle] → [Puzzle] → WIN
+```
+
+3 puzzles per stage, shop after each stage. No boss variants yet.
 
 ---
 
