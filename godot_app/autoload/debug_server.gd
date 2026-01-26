@@ -150,7 +150,7 @@ func _handle_action(id: String, msg: Dictionary) -> void:
 	if typeof(params) != TYPE_DICTIONARY:
 		params = {}
 
-	var result := _execute_action(action, params)
+	var result = await _execute_action(action, params)
 
 	if result.has("error"):
 		_send_error(result.get("error", "unknown"), result.get("message", ""), id)
@@ -158,7 +158,7 @@ func _handle_action(id: String, msg: Dictionary) -> void:
 		_send_response(id, result)
 
 
-func _execute_action(action: String, params: Dictionary) -> Dictionary:
+func _execute_action(action: String, params: Dictionary):
 	match action:
 		"ping":
 			return {}
@@ -204,6 +204,26 @@ func _execute_action(action: String, params: Dictionary) -> Dictionary:
 			return _action_apply_solution(params)
 		"clear_all_marks":
 			return _action_clear_all_marks(params)
+
+		# Assertion helpers
+		"assert_cell_state":
+			return _action_assert_cell_state(params)
+		"assert_row_sum":
+			return _action_assert_row_sum(params)
+		"assert_col_sum":
+			return _action_assert_col_sum(params)
+		"assert_valid":
+			return _action_assert_valid(params)
+		"assert_invalid":
+			return _action_assert_invalid(params)
+
+		# Screenshot and utilities
+		"screenshot":
+			return await _action_screenshot(params)
+		"wait_frames":
+			return await _action_wait_frames(params)
+		"wait_idle":
+			return await _action_wait_idle(params)
 
 		_:
 			return {"error": "not_implemented", "message": "Action '%s' not yet implemented" % action}
@@ -786,6 +806,160 @@ func _query_get_config() -> Dictionary:
 		"api_version": API_VERSION,
 		"debug_build": OS.is_debug_build()
 	}
+
+
+# =============================================================================
+# ASSERTION HELPERS
+# =============================================================================
+
+func _action_assert_cell_state(params: Dictionary) -> Dictionary:
+	var main_scene := _get_main_scene()
+	if main_scene == null:
+		return {"pass": false, "message": "Game not running"}
+
+	var puzzle_state: PuzzleState = main_scene.get("current_puzzle")
+	if puzzle_state == null:
+		return {"pass": false, "message": "No active puzzle"}
+
+	var row := int(params.get("row", -1))
+	var col := int(params.get("col", -1))
+	var expected_state: String = str(params.get("state", ""))
+
+	if not _is_valid_cell(puzzle_state, row, col):
+		return {"pass": false, "message": "Invalid cell position: (%d, %d)" % [row, col]}
+
+	var cell_data := puzzle_state.get_cell(row, col)
+	var actual_state := _cell_state_to_string(cell_data.state)
+
+	var passed := actual_state == expected_state.to_lower()
+	return {
+		"pass": passed,
+		"expected": expected_state,
+		"actual": actual_state,
+		"message": "Cell (%d,%d) state: expected '%s', got '%s'" % [row, col, expected_state, actual_state] if not passed else "OK"
+	}
+
+
+func _action_assert_row_sum(params: Dictionary) -> Dictionary:
+	var main_scene := _get_main_scene()
+	if main_scene == null:
+		return {"pass": false, "message": "Game not running"}
+
+	var puzzle_state: PuzzleState = main_scene.get("current_puzzle")
+	if puzzle_state == null:
+		return {"pass": false, "message": "No active puzzle"}
+
+	var row := int(params.get("row", -1))
+	var expected := int(params.get("expected", -1))
+
+	if row < 0 or row >= puzzle_state.grid_size.y:
+		return {"pass": false, "message": "Invalid row index: %d" % row}
+
+	var actual := puzzle_state.get_current_row_sum(row)
+	var passed := actual == expected
+
+	return {
+		"pass": passed,
+		"expected": expected,
+		"actual": actual,
+		"message": "Row %d sum: expected %d, got %d" % [row, expected, actual] if not passed else "OK"
+	}
+
+
+func _action_assert_col_sum(params: Dictionary) -> Dictionary:
+	var main_scene := _get_main_scene()
+	if main_scene == null:
+		return {"pass": false, "message": "Game not running"}
+
+	var puzzle_state: PuzzleState = main_scene.get("current_puzzle")
+	if puzzle_state == null:
+		return {"pass": false, "message": "No active puzzle"}
+
+	var col := int(params.get("col", -1))
+	var expected := int(params.get("expected", -1))
+
+	if col < 0 or col >= puzzle_state.grid_size.x:
+		return {"pass": false, "message": "Invalid column index: %d" % col}
+
+	var actual := puzzle_state.get_current_col_sum(col)
+	var passed := actual == expected
+
+	return {
+		"pass": passed,
+		"expected": expected,
+		"actual": actual,
+		"message": "Column %d sum: expected %d, got %d" % [col, expected, actual] if not passed else "OK"
+	}
+
+
+func _action_assert_valid(_params: Dictionary) -> Dictionary:
+	var main_scene := _get_main_scene()
+	if main_scene == null:
+		return {"pass": false, "message": "Game not running"}
+
+	var puzzle_state: PuzzleState = main_scene.get("current_puzzle")
+	if puzzle_state == null:
+		return {"pass": false, "message": "No active puzzle"}
+
+	var is_valid := puzzle_state.is_solved()
+	return {
+		"pass": is_valid,
+		"message": "Puzzle is valid" if is_valid else "Puzzle is not valid"
+	}
+
+
+func _action_assert_invalid(_params: Dictionary) -> Dictionary:
+	var main_scene := _get_main_scene()
+	if main_scene == null:
+		return {"pass": false, "message": "Game not running"}
+
+	var puzzle_state: PuzzleState = main_scene.get("current_puzzle")
+	if puzzle_state == null:
+		return {"pass": false, "message": "No active puzzle"}
+
+	var is_valid := puzzle_state.is_solved()
+	return {
+		"pass": not is_valid,
+		"message": "Puzzle is invalid (as expected)" if not is_valid else "Puzzle is unexpectedly valid"
+	}
+
+
+# =============================================================================
+# SCREENSHOT AND UTILITIES
+# =============================================================================
+
+func _action_screenshot(params: Dictionary) -> Dictionary:
+	var path: String = str(params.get("path", "/tmp/crossums_capture.png"))
+
+	# Wait for the frame to be drawn
+	await RenderingServer.frame_post_draw
+
+	var viewport := get_viewport()
+	var img := viewport.get_texture().get_image()
+
+	var err := img.save_png(path)
+	if err == OK:
+		return {"path": path, "width": img.get_width(), "height": img.get_height()}
+	else:
+		return {"error": "save_failed", "message": "Failed to save screenshot: %s" % error_string(err)}
+
+
+func _action_wait_frames(params: Dictionary) -> Dictionary:
+	var count := int(params.get("count", 1))
+	count = clampi(count, 1, 300)  # Max 5 seconds at 60fps
+
+	for i in range(count):
+		await get_tree().process_frame
+
+	return {"frames_waited": count}
+
+
+func _action_wait_idle(_params: Dictionary) -> Dictionary:
+	# Wait for any animations/tweens to complete
+	await get_tree().process_frame
+	await get_tree().create_timer(0.1).timeout  # Brief pause for animations
+
+	return {"message": "Idle"}
 
 
 # =============================================================================
