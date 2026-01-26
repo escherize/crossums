@@ -225,6 +225,10 @@ func _execute_action(action: String, params: Dictionary):
 		"wait_idle":
 			return await _action_wait_idle(params)
 
+		# Test recording
+		"dump_test":
+			return _action_dump_test(params)
+
 		_:
 			return {"error": "not_implemented", "message": "Action '%s' not yet implemented" % action}
 
@@ -960,6 +964,47 @@ func _action_wait_idle(_params: Dictionary) -> Dictionary:
 	await get_tree().create_timer(0.1).timeout  # Brief pause for animations
 
 	return {"message": "Idle"}
+
+
+func _action_dump_test(params: Dictionary) -> Dictionary:
+	## Dump current game state as a test case JSON
+	var main_scene := _get_main_scene()
+	if main_scene == null:
+		return {"error": "no_game", "message": "Game not running"}
+
+	var puzzle_state: PuzzleState = main_scene.get("current_puzzle")
+	if puzzle_state == null:
+		return {"error": "no_puzzle", "message": "No active puzzle"}
+
+	var test_name: String = str(params.get("name", "recorded_%d" % Time.get_unix_time_from_system()))
+	var include_final_assert: bool = params.get("include_assert", true)
+
+	# Build steps from deletion history
+	var steps: Array = []
+	for pos in puzzle_state.deletion_history:
+		steps.append({
+			"action": "delete_cell",
+			"params": {"row": pos.y, "col": pos.x}
+		})
+
+	# Optionally add final assertion
+	if include_final_assert:
+		if puzzle_state.is_solved():
+			steps.append({"assert": "assert_valid"})
+		else:
+			steps.append({"assert": "assert_invalid"})
+
+	var test_case := {
+		"name": test_name,
+		"description": "Recorded from gameplay",
+		"setup": {
+			"size": puzzle_state.grid_size.x,
+			"seed": puzzle_state.puzzle_seed
+		},
+		"steps": steps
+	}
+
+	return {"test": test_case}
 
 
 # =============================================================================

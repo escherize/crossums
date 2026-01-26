@@ -19,6 +19,7 @@ Commands:
   action <name> [params_json]   Send an action
   state                         Shorthand for 'query get_state'
   screenshot [path]             Take screenshot (default: /tmp/crossums_screenshot.png)
+  dump [name]                   Dump current game as test case JSON
   ping                          Check connection
 
 Examples:
@@ -27,6 +28,7 @@ Examples:
   game-cli action delete_cell '{"row": 0, "col": 1}'
   game-cli action new_puzzle '{"size": 4}'
   game-cli screenshot /tmp/test.png
+  game-cli dump my_test > tests/corpus/my_test.json
 `);
 }
 
@@ -74,6 +76,12 @@ async function main() {
       case "screenshot": {
         const path = args[1] || "/tmp/crossums_screenshot.png";
         response = await action("screenshot", { path });
+        break;
+      }
+
+      case "dump": {
+        const name = args[1] || undefined;
+        response = await action("dump_test", { name, include_assert: true });
         break;
       }
 

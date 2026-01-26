@@ -31,6 +31,7 @@ bun game-cli.ts screenshot /tmp/game.png
 | `ping` | Check if game is running |
 | `state` | Get full game state |
 | `screenshot [path]` | Capture screenshot (default: `/tmp/crossums_screenshot.png`) |
+| `dump [name]` | Export current game as test case JSON |
 
 ### Query Commands
 
@@ -107,6 +108,7 @@ bun game-cli.ts action <action_name> [params_json]
 | `screenshot` | `{"path": "..."}` | Capture viewport to PNG |
 | `wait_frames` | `{"count": N}` | Wait N frames (max 300) |
 | `wait_idle` | - | Wait for animations |
+| `dump_test` | `{"name": "...", "include_assert": bool}` | Export as test case |
 
 ## Examples
 
@@ -190,6 +192,56 @@ Error responses:
 
 - `0` - Success (`ok: true`)
 - `1` - Error (`ok: false` or connection failed)
+
+## Test Framework
+
+### Running Tests
+
+```bash
+bun tests/run-tests.ts              # Run all tests
+bun tests/run-tests.ts basic_solve  # Run tests matching "basic_solve"
+```
+
+### Recording Tests from Gameplay
+
+Play the game normally, then dump your moves as a test case:
+
+```bash
+# Play the game, make some moves...
+
+# Dump current state as test JSON
+bun game-cli.ts dump my_test_name > tests/corpus/my_test.json
+
+# Or via action for more control
+bun game-cli.ts action dump_test '{"name": "my_test", "include_assert": true}'
+```
+
+The dump captures:
+- Puzzle setup (size, seed)
+- All delete_cell actions from history
+- Final assertion (assert_valid or assert_invalid)
+
+### Test File Format
+
+```json
+{
+  "name": "test_name",
+  "description": "What this tests",
+  "setup": {
+    "size": 3,
+    "seed": 12345
+  },
+  "steps": [
+    {"action": "delete_cell", "params": {"row": 0, "col": 1}},
+    {"assert": "assert_cell_state", "params": {"row": 0, "col": 1, "state": "deleted"}},
+    {"assert": "assert_valid"}
+  ]
+}
+```
+
+Step types:
+- `action` - Runs action, expects `ok: true`
+- `assert` - Runs assertion action, expects `pass: true`
 
 ## Troubleshooting
 
