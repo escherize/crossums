@@ -1,0 +1,17 @@
+{
+  "name": "clear_marks",
+  "description": "Test that clear_all_marks resets the grid",
+  "setup": {
+    "size": 3,
+    "seed": 12345
+  },
+  "steps": [
+    {"action": "delete_cell", "params": {"row": 0, "col": 0}},
+    {"action": "delete_cell", "params": {"row": 1, "col": 1}},
+    {"assert": "assert_cell_state", "params": {"row": 0, "col": 0, "state": "deleted"}},
+    {"assert": "assert_cell_state", "params": {"row": 1, "col": 1, "state": "deleted"}},
+    {"action": "clear_all_marks"},
+    {"assert": "assert_cell_state", "params": {"row": 0, "col": 0, "state": "active"}},
+    {"assert": "assert_cell_state", "params": {"row": 1, "col": 1, "state": "active"}}
+  ]
+}

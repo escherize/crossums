@@ -1,0 +1,13 @@
+{
+  "name": "basic_solve",
+  "description": "Apply solution automatically and verify puzzle is solved",
+  "setup": {
+    "size": 3,
+    "seed": 12345
+  },
+  "steps": [
+    {"assert": "assert_invalid"},
+    {"action": "apply_solution"},
+    {"assert": "assert_valid"}
+  ]
+}

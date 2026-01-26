@@ -1,0 +1,14 @@
+{
+  "name": "undo_restore",
+  "description": "Test that undo restores deleted cells",
+  "setup": {
+    "size": 3,
+    "seed": 12345
+  },
+  "steps": [
+    {"action": "delete_cell", "params": {"row": 0, "col": 0}},
+    {"assert": "assert_cell_state", "params": {"row": 0, "col": 0, "state": "deleted"}},
+    {"action": "undo"},
+    {"assert": "assert_cell_state", "params": {"row": 0, "col": 0, "state": "active"}}
+  ]
+}
