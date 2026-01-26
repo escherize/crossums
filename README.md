@@ -24,9 +24,24 @@ Delete numbers from a grid so each row and column sums to its target. Keep more 
 3. Click numbers to delete them
 4. Make all targets turn green
 
+## Development Tools
+
+### Game CLI
+
+Control the running game via command line (requires [Bun](https://bun.sh/)):
+
+```bash
+bun game-cli.ts state              # Get game state
+bun game-cli.ts action delete_cell '{"row": 0, "col": 1}'
+bun game-cli.ts screenshot /tmp/shot.png
+```
+
+See `GAME_CLI.md` for full documentation.
+
 ## Documentation
 
 - `godot_app/DEVELOPMENT.md` - Architecture, code guide, data flow
+- `GAME_CLI.md` - CLI tool reference
 - `crosssums-design-doc.md` - Full game design document
 - `worklog.md` - Daily development log
 
