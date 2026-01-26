@@ -164,6 +164,24 @@ func _execute_action(action: String, params: Dictionary) -> Dictionary:
 		"redo":
 			return _action_redo(params)
 
+		# Validation actions
+		"validate":
+			return _action_validate(params)
+		"submit":
+			return _action_submit(params)
+		"get_row_sum":
+			return _action_get_row_sum(params)
+		"get_col_sum":
+			return _action_get_col_sum(params)
+		"check_complete":
+			return _action_check_complete(params)
+
+		# Puzzle management actions
+		"new_puzzle":
+			return _action_new_puzzle(params)
+		"restart_puzzle":
+			return _action_restart_puzzle(params)
+
 		_:
 			return {"error": "not_implemented", "message": "Action '%s' not yet implemented" % action}
 
@@ -285,6 +303,232 @@ func _action_redo(_params: Dictionary) -> Dictionary:
 	# Note: Current implementation doesn't support redo
 	# The PuzzleState only tracks deletion history, not a full undo/redo stack
 	return {"error": "not_supported", "message": "Redo is not yet implemented in the game"}
+
+
+# =============================================================================
+# VALIDATION ACTIONS
+# =============================================================================
+
+func _action_validate(_params: Dictionary) -> Dictionary:
+	## Check if puzzle is solved without any side effects
+	var main_scene := _get_main_scene()
+	if main_scene == null:
+		return {"error": "no_game", "message": "Game not running"}
+
+	var puzzle_state: PuzzleState = main_scene.get("current_puzzle")
+	if puzzle_state == null:
+		return {"error": "no_puzzle", "message": "No active puzzle"}
+
+	var result := PuzzleLogic.validate(puzzle_state)
+
+	return {
+		"valid": result.is_valid,
+		"row_results": _serialize_validation_results(result.row_results),
+		"col_results": _serialize_validation_results(result.col_results),
+		"valid_rows": result.get_valid_row_count(),
+		"valid_cols": result.get_valid_col_count(),
+		"total_rows": puzzle_state.grid_size.y,
+		"total_cols": puzzle_state.grid_size.x
+	}
+
+
+func _action_submit(_params: Dictionary) -> Dictionary:
+	## Submit puzzle for validation (triggers game logic)
+	var main_scene := _get_main_scene()
+	if main_scene == null:
+		return {"error": "no_game", "message": "Game not running"}
+
+	var puzzle_state: PuzzleState = main_scene.get("current_puzzle")
+	if puzzle_state == null:
+		return {"error": "no_puzzle", "message": "No active puzzle"}
+
+	# Check if already solved
+	if main_scene.get("puzzle_solved"):
+		return {"error": "already_solved", "message": "Puzzle has already been solved"}
+
+	var result := PuzzleLogic.validate(puzzle_state)
+
+	if result.is_valid:
+		# Mark puzzle as solved in main scene
+		main_scene.set("puzzle_solved", true)
+		EventBus.puzzle_submitted.emit()
+		EventBus.puzzle_validated.emit(true, result.row_results, result.col_results)
+
+		return {
+			"success": true,
+			"valid": true,
+			"message": "Puzzle solved!"
+		}
+	else:
+		EventBus.puzzle_submitted.emit()
+		EventBus.puzzle_validated.emit(false, result.row_results, result.col_results)
+
+		return {
+			"success": false,
+			"valid": false,
+			"row_results": _serialize_validation_results(result.row_results),
+			"col_results": _serialize_validation_results(result.col_results),
+			"message": "Puzzle not solved"
+		}
+
+
+func _action_get_row_sum(params: Dictionary) -> Dictionary:
+	var main_scene := _get_main_scene()
+	if main_scene == null:
+		return {"error": "no_game", "message": "Game not running"}
+
+	var puzzle_state: PuzzleState = main_scene.get("current_puzzle")
+	if puzzle_state == null:
+		return {"error": "no_puzzle", "message": "No active puzzle"}
+
+	var row := int(params.get("row", -1))
+	if row < 0 or row >= puzzle_state.grid_size.y:
+		return {"error": "invalid_row", "message": "Invalid row index: %d" % row}
+
+	var current_sum := puzzle_state.get_current_row_sum(row)
+	var target: int = puzzle_state.row_targets[row]
+
+	return {
+		"row": row,
+		"current": current_sum,
+		"target": target,
+		"delta": current_sum - target,
+		"valid": current_sum == target
+	}
+
+
+func _action_get_col_sum(params: Dictionary) -> Dictionary:
+	var main_scene := _get_main_scene()
+	if main_scene == null:
+		return {"error": "no_game", "message": "Game not running"}
+
+	var puzzle_state: PuzzleState = main_scene.get("current_puzzle")
+	if puzzle_state == null:
+		return {"error": "no_puzzle", "message": "No active puzzle"}
+
+	var col := int(params.get("col", -1))
+	if col < 0 or col >= puzzle_state.grid_size.x:
+		return {"error": "invalid_col", "message": "Invalid column index: %d" % col}
+
+	var current_sum := puzzle_state.get_current_col_sum(col)
+	var target: int = puzzle_state.col_targets[col]
+
+	return {
+		"col": col,
+		"current": current_sum,
+		"target": target,
+		"delta": current_sum - target,
+		"valid": current_sum == target
+	}
+
+
+func _action_check_complete(_params: Dictionary) -> Dictionary:
+	## Quick check if puzzle is in a solved state
+	var main_scene := _get_main_scene()
+	if main_scene == null:
+		return {"error": "no_game", "message": "Game not running"}
+
+	var puzzle_state: PuzzleState = main_scene.get("current_puzzle")
+	if puzzle_state == null:
+		return {"error": "no_puzzle", "message": "No active puzzle"}
+
+	return {
+		"complete": puzzle_state.is_solved(),
+		"already_submitted": main_scene.get("puzzle_solved") == true
+	}
+
+
+func _serialize_validation_results(results: Array) -> Array:
+	var serialized := []
+	for r in results:
+		serialized.append({
+			"index": r.index,
+			"target": r.target,
+			"actual": r.actual,
+			"valid": r.valid
+		})
+	return serialized
+
+
+# =============================================================================
+# PUZZLE MANAGEMENT ACTIONS
+# =============================================================================
+
+func _action_new_puzzle(params: Dictionary) -> Dictionary:
+	var main_scene := _get_main_scene()
+	if main_scene == null:
+		return {"error": "no_game", "message": "Game not running"}
+
+	# Get parameters
+	var grid_size := int(params.get("size", params.get("grid_size", 3)))
+	var seed_val := int(params.get("seed", 0))
+
+	# Validate grid size
+	if grid_size < 2 or grid_size > 9:
+		return {"error": "invalid_size", "message": "Grid size must be between 2 and 9"}
+
+	# Create puzzle config
+	var config := PuzzleLogic.PuzzleConfig.new()
+	config.grid_size = Vector2i(grid_size, grid_size)
+	config.cells_to_delete_ratio = 0.5
+	if seed_val != 0:
+		config.puzzle_seed = seed_val
+
+	# Generate new puzzle
+	var new_puzzle := PuzzleLogic.generate_puzzle(config)
+
+	# Update main scene
+	main_scene.set("current_puzzle", new_puzzle)
+	main_scene.set("puzzle_solved", false)
+
+	# Reset timer tracking if available
+	if main_scene.has_method("get") and main_scene.get("puzzle_start_time") != null:
+		main_scene.set("puzzle_start_time", Time.get_ticks_msec())
+		main_scene.set("restore_count", 0)
+
+	# Reload grid visually
+	var puzzle_grid = main_scene.get("puzzle_grid")
+	if puzzle_grid and puzzle_grid.has_method("load_puzzle"):
+		puzzle_grid.load_puzzle(new_puzzle)
+
+	return {
+		"seed": new_puzzle.puzzle_seed,
+		"size": grid_size,
+		"targets": {
+			"rows": Array(new_puzzle.row_targets),
+			"cols": Array(new_puzzle.col_targets)
+		}
+	}
+
+
+func _action_restart_puzzle(_params: Dictionary) -> Dictionary:
+	var main_scene := _get_main_scene()
+	if main_scene == null:
+		return {"error": "no_game", "message": "Game not running"}
+
+	var puzzle_state: PuzzleState = main_scene.get("current_puzzle")
+	if puzzle_state == null:
+		return {"error": "no_puzzle", "message": "No active puzzle"}
+
+	# Reset the puzzle state
+	puzzle_state.reset()
+
+	# Reset game flags
+	main_scene.set("puzzle_solved", false)
+
+	# Reset timer tracking if available
+	if main_scene.get("puzzle_start_time") != null:
+		main_scene.set("puzzle_start_time", Time.get_ticks_msec())
+		main_scene.set("restore_count", 0)
+
+	# Refresh visual grid
+	_refresh_puzzle_grid(main_scene)
+
+	return {
+		"seed": puzzle_state.puzzle_seed,
+		"size": puzzle_state.grid_size.x,
+		"message": "Puzzle reset to initial state"
+	}
 
 
 # =============================================================================
