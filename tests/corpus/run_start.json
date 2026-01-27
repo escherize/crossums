@@ -1,0 +1,26 @@
+{
+  "name": "run_start",
+  "description": "Test starting a new run initializes state correctly",
+  "setup": {
+    "action": "start_run"
+  },
+  "steps": [
+    {"action": "get_run_info", "expect": {
+      "active": true,
+      "state": "PUZZLE_ACTIVE"
+    }},
+    {"action": "get_run_info", "expect_nested": {
+      "run.stage": 1,
+      "run.puzzle_index": 0,
+      "run.lives": 5,
+      "run.money": 0,
+      "run.total_score": 0
+    }},
+    {"action": "get_run_info", "expect_nested": {
+      "stage_config.stage": 1,
+      "stage_config.grid_size": 3,
+      "stage_config.score_target": 300,
+      "stage_config.money_reward": 4
+    }}
+  ]
+}

@@ -192,6 +192,8 @@ func _execute_action(action: String, params: Dictionary):
 		# Puzzle management actions
 		"new_puzzle":
 			return await _action_new_puzzle(params)
+		"load_board":
+			return await _action_load_board(params)
 		"restart_puzzle":
 			return _action_restart_puzzle(params)
 
@@ -602,6 +604,76 @@ func _action_new_puzzle(params: Dictionary):
 		"targets": {
 			"rows": Array(GameState.puzzle.row_targets),
 			"cols": Array(GameState.puzzle.col_targets)
+		}
+	}
+
+
+func _action_load_board(params: Dictionary):
+	## Load a puzzle from a predefined board state (for deterministic tests)
+	## Expects: size, row_targets, col_targets, cells (2D array with value/is_solution)
+	var main_scene := _get_main_scene()
+	if main_scene == null:
+		# Start a run and transition to main scene
+		RunManager.start_run()
+		var main_scene_packed = load("res://scenes/main.tscn")
+		get_tree().change_scene_to_packed(main_scene_packed)
+		for i in range(20):
+			await get_tree().process_frame
+			main_scene = _get_main_scene()
+			if main_scene != null:
+				break
+		if main_scene == null:
+			return {"error": "no_game", "message": "Failed to start game"}
+
+	var grid_size: int = params.get("size", 3)
+	var row_targets: Array = params.get("row_targets", [])
+	var col_targets: Array = params.get("col_targets", [])
+	var cells: Array = params.get("cells", [])
+	var seed_val: int = params.get("seed", 0)
+
+	if row_targets.size() != grid_size or col_targets.size() != grid_size:
+		return {"error": "invalid_targets", "message": "Target arrays must match grid size"}
+
+	if cells.size() != grid_size:
+		return {"error": "invalid_cells", "message": "Cells array must match grid size"}
+
+	# Create puzzle state manually
+	var puzzle_state = PuzzleState.new(Vector2i(grid_size, grid_size))
+	puzzle_state.puzzle_seed = seed_val
+
+	# Set targets
+	puzzle_state.row_targets.clear()
+	puzzle_state.col_targets.clear()
+	for t in row_targets:
+		puzzle_state.row_targets.append(int(t))
+	for t in col_targets:
+		puzzle_state.col_targets.append(int(t))
+
+	# Set cells
+	for row in range(grid_size):
+		var row_data: Array = cells[row] if row < cells.size() else []
+		for col in range(grid_size):
+			var cell_data = row_data[col] if col < row_data.size() else {}
+			var cell = puzzle_state.get_cell(row, col)
+			cell.value = int(cell_data.get("value", 0))
+			cell.is_solution = bool(cell_data.get("is_solution", false))
+			cell.state = PuzzleState.CellState.ACTIVE
+
+	# Set as current puzzle
+	GameState.puzzle = puzzle_state
+	main_scene.set("puzzle_solved", false)
+
+	# Reload grid visually
+	var puzzle_grid = main_scene.get("puzzle_grid")
+	if puzzle_grid and puzzle_grid.has_method("load_puzzle"):
+		puzzle_grid.load_puzzle(GameState.puzzle)
+
+	return {
+		"seed": seed_val,
+		"size": grid_size,
+		"targets": {
+			"rows": Array(puzzle_state.row_targets),
+			"cols": Array(puzzle_state.col_targets)
 		}
 	}
 

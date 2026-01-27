@@ -3,11 +3,74 @@
   "description": "Apply solution automatically and verify puzzle is solved",
   "setup": {
     "size": 3,
-    "seed": 12345
+    "start_board": {
+      "size": 3,
+      "seed": 12345,
+      "row_targets": [
+        7,
+        5,
+        5
+      ],
+      "col_targets": [
+        5,
+        4,
+        8
+      ],
+      "cells": [
+        [
+          {
+            "value": 1,
+            "is_solution": false
+          },
+          {
+            "value": 2,
+            "is_solution": true
+          },
+          {
+            "value": 5,
+            "is_solution": true
+          }
+        ],
+        [
+          {
+            "value": 4,
+            "is_solution": false
+          },
+          {
+            "value": 2,
+            "is_solution": true
+          },
+          {
+            "value": 3,
+            "is_solution": true
+          }
+        ],
+        [
+          {
+            "value": 5,
+            "is_solution": true
+          },
+          {
+            "value": 6,
+            "is_solution": false
+          },
+          {
+            "value": 6,
+            "is_solution": false
+          }
+        ]
+      ]
+    }
   },
   "steps": [
-    {"assert": "assert_invalid"},
-    {"action": "apply_solution"},
-    {"assert": "assert_valid"}
+    {
+      "assert": "assert_invalid"
+    },
+    {
+      "action": "apply_solution"
+    },
+    {
+      "assert": "assert_valid"
+    }
   ]
 }

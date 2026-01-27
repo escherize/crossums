@@ -1,0 +1,109 @@
+{
+  "name": "operator_affects_score",
+  "description": "Verify that operators actually affect the score calculation",
+  "setup": {
+    "size": 3,
+    "start_board": {
+      "size": 3,
+      "seed": 12345,
+      "row_targets": [
+        7,
+        5,
+        5
+      ],
+      "col_targets": [
+        5,
+        4,
+        8
+      ],
+      "cells": [
+        [
+          {
+            "value": 1,
+            "is_solution": false
+          },
+          {
+            "value": 2,
+            "is_solution": true
+          },
+          {
+            "value": 5,
+            "is_solution": true
+          }
+        ],
+        [
+          {
+            "value": 4,
+            "is_solution": false
+          },
+          {
+            "value": 2,
+            "is_solution": true
+          },
+          {
+            "value": 3,
+            "is_solution": true
+          }
+        ],
+        [
+          {
+            "value": 5,
+            "is_solution": true
+          },
+          {
+            "value": 6,
+            "is_solution": false
+          },
+          {
+            "value": 6,
+            "is_solution": false
+          }
+        ]
+      ]
+    }
+  },
+  "steps": [
+    {
+      "action": "clear_operators"
+    },
+    {
+      "action": "apply_solution"
+    },
+    {
+      "action": "get_score",
+      "params": {
+        "time_mult": 1,
+        "restore_count": 0
+      },
+      "expect": {
+        "operator_bonus": 0,
+        "operator_mult": 1
+      }
+    },
+    {
+      "action": "restart_puzzle"
+    },
+    {
+      "action": "add_operator",
+      "params": {
+        "id": "counter"
+      }
+    },
+    {
+      "action": "apply_solution"
+    },
+    {
+      "action": "get_score",
+      "params": {
+        "time_mult": 1,
+        "restore_count": 0
+      },
+      "expect_gt": {
+        "operator_bonus": 0
+      }
+    },
+    {
+      "action": "clear_operators"
+    }
+  ]
+}

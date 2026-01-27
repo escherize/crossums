@@ -17,14 +17,28 @@ interface TestStep {
   action?: string;
   assert?: string;
   params?: Record<string, unknown>;
+  expect?: Record<string, unknown>;  // Expected fields in response (exact match)
+  expect_nested?: Record<string, unknown>;  // Expected nested fields (dot notation: "run.stage")
+  expect_gt?: Record<string, number>;  // Expected fields greater than value
+  expect_error?: string;  // Expected error code (action should fail)
+}
+
+interface BoardState {
+  size: number;
+  seed: number;
+  row_targets: number[];
+  col_targets: number[];
+  cells: { value: number; is_solution: boolean }[][];
 }
 
 interface TestCase {
   name: string;
   description?: string;
   setup: {
+    action?: string;  // "new_puzzle" (default) or "start_run"
     size?: number;
     seed?: number;
+    start_board?: BoardState;  // Deterministic board state (overrides seed)
   };
   steps: TestStep[];
 }
@@ -38,6 +52,17 @@ interface TestResult {
 
 const CORPUS_DIR = join(import.meta.dir, "corpus");
 const GODOT_PROJECT = join(import.meta.dir, "..", "godot_app");
+
+// Helper to get nested value using dot notation (e.g., "run.stage")
+function getNestedValue(obj: unknown, path: string): unknown {
+  const parts = path.split(".");
+  let current: unknown = obj;
+  for (const part of parts) {
+    if (current === null || current === undefined) return undefined;
+    current = (current as Record<string, unknown>)[part];
+  }
+  return current;
+}
 
 let godotProcess: Subprocess | null = null;
 
@@ -71,12 +96,20 @@ async function runTest(test: TestCase): Promise<TestResult> {
   const result: TestResult = { name: test.name, passed: true };
 
   try {
-    // Setup: create new puzzle
-    const setupParams: Record<string, unknown> = {};
-    if (test.setup.size) setupParams.size = test.setup.size;
-    if (test.setup.seed) setupParams.seed = test.setup.seed;
+    // Setup: create new puzzle or start run
+    const setupAction = test.setup.action || "new_puzzle";
+    let setupResponse: Response;
 
-    const setupResponse = await action("new_puzzle", setupParams);
+    // Use start_board for deterministic setup if available
+    if (test.setup.start_board && setupAction === "new_puzzle") {
+      setupResponse = await action("load_board", test.setup.start_board);
+    } else {
+      const setupParams: Record<string, unknown> = {};
+      if (test.setup.size) setupParams.size = test.setup.size;
+      if (test.setup.seed) setupParams.seed = test.setup.seed;
+      setupResponse = await action(setupAction, setupParams);
+    }
+
     if (!setupResponse.ok) {
       result.passed = false;
       result.error = `Setup failed: ${setupResponse.message || "unknown error"}`;
@@ -90,11 +123,69 @@ async function runTest(test: TestCase): Promise<TestResult> {
 
       if (step.action) {
         response = await action(step.action, step.params);
+
+        // Check for expected error
+        if (step.expect_error) {
+          if (response.ok) {
+            result.passed = false;
+            result.error = `Action '${step.action}' should have failed with '${step.expect_error}' but succeeded`;
+            result.failedStep = i;
+            return result;
+          }
+          if (response.error !== step.expect_error) {
+            result.passed = false;
+            result.error = `Action '${step.action}' failed with '${response.error}' but expected '${step.expect_error}'`;
+            result.failedStep = i;
+            return result;
+          }
+          // Expected error occurred, continue
+          continue;
+        }
+
         if (!response.ok) {
           result.passed = false;
           result.error = `Action '${step.action}' failed: ${response.message || response.error || "unknown"}`;
           result.failedStep = i;
           return result;
+        }
+
+        // Check expected fields (exact match)
+        if (step.expect) {
+          for (const [key, expectedValue] of Object.entries(step.expect)) {
+            const actualValue = (response as Record<string, unknown>)[key];
+            if (actualValue !== expectedValue) {
+              result.passed = false;
+              result.error = `Action '${step.action}' returned ${key}=${JSON.stringify(actualValue)}, expected ${JSON.stringify(expectedValue)}`;
+              result.failedStep = i;
+              return result;
+            }
+          }
+        }
+
+        // Check expected fields (greater than)
+        if (step.expect_gt) {
+          for (const [key, minValue] of Object.entries(step.expect_gt)) {
+            const actualValue = (response as Record<string, unknown>)[key] as number;
+            if (typeof actualValue !== 'number' || actualValue <= minValue) {
+              result.passed = false;
+              result.error = `Action '${step.action}' returned ${key}=${actualValue}, expected > ${minValue}`;
+              result.failedStep = i;
+              return result;
+            }
+          }
+        }
+
+        // Check nested expected fields (dot notation: "run.stage")
+        if (step.expect_nested) {
+          for (const [path, expectedValue] of Object.entries(step.expect_nested)) {
+            const actualValue = getNestedValue(response, path);
+            if (actualValue !== expectedValue) {
+              result.passed = false;
+              result.error = `Action '${step.action}' returned ${path}=${JSON.stringify(actualValue)}, expected ${JSON.stringify(expectedValue)}`;
+              result.failedStep = i;
+              return result;
+            }
+          }
         }
       } else if (step.assert) {
         response = await action(step.assert, step.params);

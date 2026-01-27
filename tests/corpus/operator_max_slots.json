@@ -1,0 +1,122 @@
+{
+  "name": "operator_max_slots",
+  "description": "Test that operator slots are limited to 5",
+  "setup": {
+    "size": 3,
+    "start_board": {
+      "size": 3,
+      "seed": 12345,
+      "row_targets": [
+        7,
+        5,
+        5
+      ],
+      "col_targets": [
+        5,
+        4,
+        8
+      ],
+      "cells": [
+        [
+          {
+            "value": 1,
+            "is_solution": false
+          },
+          {
+            "value": 2,
+            "is_solution": true
+          },
+          {
+            "value": 5,
+            "is_solution": true
+          }
+        ],
+        [
+          {
+            "value": 4,
+            "is_solution": false
+          },
+          {
+            "value": 2,
+            "is_solution": true
+          },
+          {
+            "value": 3,
+            "is_solution": true
+          }
+        ],
+        [
+          {
+            "value": 5,
+            "is_solution": true
+          },
+          {
+            "value": 6,
+            "is_solution": false
+          },
+          {
+            "value": 6,
+            "is_solution": false
+          }
+        ]
+      ]
+    }
+  },
+  "steps": [
+    {
+      "action": "clear_operators"
+    },
+    {
+      "action": "add_operator",
+      "params": {
+        "id": "counter"
+      }
+    },
+    {
+      "action": "add_operator",
+      "params": {
+        "id": "lucky_seven"
+      }
+    },
+    {
+      "action": "add_operator",
+      "params": {
+        "id": "prime_time"
+      }
+    },
+    {
+      "action": "add_operator",
+      "params": {
+        "id": "row_master"
+      }
+    },
+    {
+      "action": "add_operator",
+      "params": {
+        "id": "corner_keeper"
+      }
+    },
+    {
+      "action": "list_operators",
+      "expect": {
+        "count": 5
+      }
+    },
+    {
+      "action": "add_operator",
+      "params": {
+        "id": "counter"
+      },
+      "expect_error": "slots_full"
+    },
+    {
+      "action": "list_operators",
+      "expect": {
+        "count": 5
+      }
+    },
+    {
+      "action": "clear_operators"
+    }
+  ]
+}
