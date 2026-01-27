@@ -11,10 +11,9 @@ const GridCellScene = preload("res://scenes/puzzle/grid_cell.tscn")
 const TargetDisplayScene = preload("res://scenes/puzzle/target_display.tscn")
 
 const MIN_CELL_SIZE := 80
-const MAX_CELL_SIZE := 200
+const MAX_CELL_SIZE := 250
 const CELL_GAP := 8
 const GRID_PADDING := 16
-const GRID_SCREEN_FRACTION := 0.55  # Grid should fill ~55% of smallest screen dimension
 
 # Dynamic sizing based on grid dimensions and screen size
 var cell_size: int = MAX_CELL_SIZE
@@ -135,19 +134,13 @@ func _clear_grid() -> void:
 
 
 func _calculate_cell_size(grid_dim: int) -> void:
-	## Calculate optimal cell size based on grid dimensions and screen size
-	## Scales to fill a good portion of the screen while respecting min/max limits
+	## Calculate cell size based on smallest viewport dimension
 	var viewport_size := get_viewport().get_visible_rect().size
 
-	# Fallback if viewport not ready
-	if viewport_size.x < 100 or viewport_size.y < 100:
-		viewport_size = DisplayServer.window_get_size()
-
-	var available_space := minf(viewport_size.x, viewport_size.y) * GRID_SCREEN_FRACTION
+	# Use 55% of smallest dimension (conservative to fit with side panels)
+	var available_space := minf(viewport_size.x, viewport_size.y) * 0.55
 
 	# Account for target row/column and gaps
-	# Total grid needs: target_size + gap + (cell_size * grid_dim) + (gaps * (grid_dim - 1))
-	# Simplified: we need space for (grid_dim + 1) cells and grid_dim gaps
 	var total_cells := grid_dim + 1  # +1 for target column/row
 	var total_gaps := grid_dim * CELL_GAP
 	var available_for_cells := available_space - total_gaps
@@ -155,7 +148,7 @@ func _calculate_cell_size(grid_dim: int) -> void:
 
 	# Clamp to reasonable bounds
 	cell_size = clampi(calculated_size, MIN_CELL_SIZE, MAX_CELL_SIZE)
-	target_size = cell_size  # Keep targets same size as cells
+	target_size = cell_size
 
 
 func _build_grid() -> void:
@@ -205,7 +198,7 @@ func _build_grid() -> void:
 
 		grid_cells.append(row_cells)
 
-	# Calculate and set our minimum size so CenterContainer can center us
+	# Set minimum size so CenterContainer can center us
 	var total_width = target_size + CELL_GAP + (cell_size * grid_size_vec.x) + (CELL_GAP * (grid_size_vec.x - 1))
 	var total_height = target_size + CELL_GAP + (cell_size * grid_size_vec.y) + (CELL_GAP * (grid_size_vec.y - 1))
 	custom_minimum_size = Vector2(total_width, total_height)

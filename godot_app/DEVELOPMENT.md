@@ -94,7 +94,7 @@ LineMultiplier = 1.0 + (valid_lines × 0.2)
   where valid_lines = rows matching target + cols matching target
 ```
 
-## Known Workarounds
+## Known Workarounds & Godot Gotchas
 
 1. **ScoringEngine class not recognized globally** - Use `preload()`:
    ```gdscript
@@ -111,6 +111,41 @@ LineMultiplier = 1.0 + (valid_lines × 0.2)
 3. **Node paths** - Use unique names:
    ```gdscript
    @onready var label: Label = %StatusLabel  # not $StatusLabel
+   ```
+
+4. **Scene transitions fail when returning to starting scene** - `change_scene_to_packed()`
+   silently fails with ERR_CANT_CREATE when switching back to the scene you started in.
+   Use `change_scene_to_file()` instead:
+   ```gdscript
+   # BAD - fails when returning to title from main
+   const TitleScene = preload("res://scenes/title/title_screen.tscn")
+   get_tree().change_scene_to_packed(TitleScene)
+
+   # GOOD - always works
+   get_tree().change_scene_to_file("res://scenes/title/title_screen.tscn")
+   ```
+   Source: https://github.com/godotengine/godot/issues/72921
+
+5. **Control mouse_filter doesn't affect children** - A parent's `mouse_filter` setting
+   does NOT block input to its children. Input goes to the topmost visible control at the
+   click position first (based on draw order), then `mouse_filter` determines propagation:
+   - `MOUSE_FILTER_STOP` (0) = consume event, don't pass to parent
+   - `MOUSE_FILTER_PASS` (1) = consume, but also pass to parent
+   - `MOUSE_FILTER_IGNORE` (2) = don't receive event at all
+
+   To block input to an area, place a Control with STOP that **spatially covers**
+   the controls you want to block.
+   Sources:
+   - https://docs.godotengine.org/en/stable/classes/class_control.html
+   - https://godotforums.org/d/37631-the-mouse-filters-are-driving-me-crazy
+
+6. **Don't override custom_minimum_size in _ready()** - If you set `custom_minimum_size`
+   in a component's `_ready()`, it will override any size set by the parent before
+   instantiation. Check if already set:
+   ```gdscript
+   func _ready() -> void:
+       if custom_minimum_size == Vector2.ZERO:
+           custom_minimum_size = DEFAULT_SIZE
    ```
 
 ## Testing Checklist

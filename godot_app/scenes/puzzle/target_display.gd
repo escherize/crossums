@@ -30,7 +30,7 @@ const COLOR_WRONG := Color(0.7, 0.25, 0.25)     # Red (doesn't match)
 const COLOR_EXACT := Color(0.2, 0.6, 0.3)       # Green (matches!)
 
 const TEXT_COLOR := Color(0.95, 0.95, 0.95)
-const TARGET_SIZE := Vector2(96, 96)  # Match cell size for alignment
+const DEFAULT_SIZE := Vector2(96, 96)  # Default, can be overridden
 const FONT_SIZE := 32
 
 # =============================================================================
@@ -44,10 +44,13 @@ var label: Label
 # =============================================================================
 
 func _ready() -> void:
-	custom_minimum_size = TARGET_SIZE
+	# Don't override custom_minimum_size - let puzzle_grid set it dynamically
+	# Only set default if not already specified
+	if custom_minimum_size == Vector2.ZERO:
+		custom_minimum_size = DEFAULT_SIZE
 
-	# Set pivot to center for scale animations
-	pivot_offset = TARGET_SIZE / 2
+	# Set pivot to center for scale animations (use actual size)
+	pivot_offset = custom_minimum_size / 2
 
 	# Create label
 	label = Label.new()

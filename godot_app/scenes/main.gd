@@ -1,6 +1,6 @@
 extends Control
-## Main scene - Entry point for Crosssums.
-## Currently set up as a test scene for the puzzle grid.
+## Main game scene - puzzle solving with run progression.
+## Controlled by RunManager for run flow.
 
 # =============================================================================
 # SCENE REFERENCES
@@ -8,6 +8,11 @@ extends Control
 
 const PuzzleGridScene = preload("res://scenes/puzzle/puzzle_grid.tscn")
 const ScoringEngineScript = preload("res://scripts/core/scoring_engine.gd")
+const RunHUDScene = preload("res://scenes/ui/run_hud.tscn")
+const ResultPopupScene = preload("res://scenes/ui/result_popup.tscn")
+const ShopPlaceholderScene = preload("res://scenes/ui/shop_placeholder.tscn")
+const GameOverScene = preload("res://scenes/ui/game_over.tscn")
+const VictoryScene = preload("res://scenes/ui/victory.tscn")
 
 # =============================================================================
 # NODE REFERENCES
@@ -15,19 +20,22 @@ const ScoringEngineScript = preload("res://scripts/core/scoring_engine.gd")
 
 @onready var puzzle_container: CenterContainer = %PuzzleContainer
 @onready var status_label: Label = %StatusLabel
-@onready var submit_button: Button = %SubmitButton
-@onready var new_puzzle_button: Button = %NewPuzzleButton
 @onready var undo_button: Button = %UndoButton
-@onready var grid_size_option: OptionButton = %GridSizeOption
 @onready var timer_label: Label = %TimerLabel
 @onready var timer_bar: ProgressBar = %TimerBar
+@onready var overlay_container: CanvasLayer = %OverlayContainer
+@onready var hud_container: Control = %HUDContainer
+@onready var title_label: Label = %Title
 
 # Owned StyleBox for runtime color changes (avoid modifying shared resources)
 var _timer_fill_style: StyleBoxFlat
 
 var puzzle_grid: PuzzleGrid = null
-var current_puzzle: PuzzleState = null
 var puzzle_solved: bool = false
+
+# Overlay instances
+var _run_hud: Control = null
+var _current_overlay: Control = null
 
 # =============================================================================
 # TIME MULTIPLIER (values from GameConfig)
@@ -49,17 +57,17 @@ var restore_count: int = 0
 func _ready() -> void:
 	_setup_ui()
 	_connect_signals()
-	_generate_new_puzzle(3)
+	_setup_hud()
+	title_label.text = "CROSSSUMS v%s" % GameConfig.VERSION
+
+	# Start first puzzle if run is active (coming from title screen)
+	if RunManager.is_run_active() or GameState.run != null:
+		# RunManager.start_run() was already called, just need to trigger puzzle
+		await get_tree().process_frame
+		RunManager._start_next_puzzle()
 
 
 func _setup_ui() -> void:
-	# Grid size options
-	grid_size_option.add_item("3x3", 3)
-	grid_size_option.add_item("4x4", 4)
-	grid_size_option.add_item("5x5", 5)
-	grid_size_option.add_item("6x6", 6)
-	grid_size_option.select(0)
-
 	# Create owned StyleBox for timer bar (best practice: don't modify shared resources)
 	_timer_fill_style = StyleBoxFlat.new()
 	_timer_fill_style.bg_color = Color(0.4, 0.8, 0.9, 1.0)  # Cyan
@@ -70,19 +78,29 @@ func _setup_ui() -> void:
 	timer_bar.add_theme_stylebox_override("fill", _timer_fill_style)
 
 
+func _setup_hud() -> void:
+	_run_hud = RunHUDScene.instantiate()
+	hud_container.add_child(_run_hud)
+
+
 func _connect_signals() -> void:
-	submit_button.pressed.connect(_on_submit_pressed)
-	new_puzzle_button.pressed.connect(_on_new_puzzle_pressed)
 	undo_button.pressed.connect(_on_undo_pressed)
-	grid_size_option.item_selected.connect(_on_grid_size_changed)
 
 	# EventBus connections
 	EventBus.cell_deleted.connect(_on_cell_deleted)
 	EventBus.cell_restored.connect(_on_cell_restored)
+	EventBus.mistake_made.connect(_on_mistake_made)
+
+	# RunManager connections
+	RunManager.puzzle_ready.connect(_on_puzzle_ready)
+	RunManager.show_result.connect(_on_show_result)
+	RunManager.show_shop.connect(_on_show_shop)
+	RunManager.show_game_over.connect(_on_show_game_over)
+	RunManager.show_victory.connect(_on_show_victory)
 
 
 func _process(_delta: float) -> void:
-	if current_puzzle and not puzzle_solved:
+	if GameState.puzzle and not puzzle_solved:
 		_update_time_multiplier()
 		_update_timer_display()
 
@@ -113,14 +131,10 @@ func _update_timer_display() -> void:
 # PUZZLE MANAGEMENT
 # =============================================================================
 
-func _generate_new_puzzle(grid_size: int) -> void:
-	# Create puzzle config
-	var config = PuzzleLogic.PuzzleConfig.new()
-	config.grid_size = Vector2i(grid_size, grid_size)
-	config.cells_to_delete_ratio = 0.5  # Delete about half the cells
-
-	# Generate puzzle
-	current_puzzle = PuzzleLogic.generate_puzzle(config)
+func _load_puzzle_grid() -> void:
+	## Load the puzzle grid from GameState.puzzle
+	if GameState.puzzle == null:
+		return
 
 	# Create or update grid
 	if puzzle_grid:
@@ -131,7 +145,7 @@ func _generate_new_puzzle(grid_size: int) -> void:
 
 	# Wait a frame for the grid to initialize, then load puzzle
 	await get_tree().process_frame
-	puzzle_grid.load_puzzle(current_puzzle)
+	await puzzle_grid.load_puzzle(GameState.puzzle)
 
 	# Reset timer and precision tracking
 	puzzle_start_time = Time.get_ticks_msec()
@@ -140,85 +154,160 @@ func _generate_new_puzzle(grid_size: int) -> void:
 	puzzle_solved = false
 	_update_timer_display()
 
-	_update_status("Click numbers to delete them. Make all rows and columns sum to targets.")
+	_update_status("Delete cells to match row/column targets.")
 
 
 func _update_status(text: String) -> void:
 	status_label.text = text
 
-# =============================================================================
-# SIGNAL HANDLERS
-# =============================================================================
 
-func _on_submit_pressed() -> void:
-	if not current_puzzle:
+func refresh_from_state() -> void:
+	## Refresh UI after GameState has been modified externally (e.g., deserialization)
+	if GameState.puzzle == null:
 		return
 
-	var result = PuzzleLogic.validate(current_puzzle)
+	await _load_puzzle_grid()
+	_update_status("State restored.")
+	if _run_hud:
+		_run_hud.refresh()
 
-	if result.is_valid:
-		puzzle_solved = true
-		var breakdown = ScoringEngineScript.calculate_score(current_puzzle, time_multiplier, restore_count)
-		_update_status("🎉 SCORE: %d  |  %s" % [breakdown.final_score, breakdown.get_summary()])
-	else:
-		# Show which rows/columns are wrong
-		var wrong_rows: Array[int] = []
-		var wrong_cols: Array[int] = []
+# =============================================================================
+# RUNMANAGER SIGNAL HANDLERS
+# =============================================================================
 
-		for r in result.row_results:
-			if not r.valid:
-				wrong_rows.append(r.index + 1)
-
-		for c in result.col_results:
-			if not c.valid:
-				wrong_cols.append(c.index + 1)
-
-		var msg = "INCORRECT! "
-		if wrong_rows.size() > 0:
-			msg += "Rows %s wrong. " % str(wrong_rows)
-		if wrong_cols.size() > 0:
-			msg += "Cols %s wrong." % str(wrong_cols)
-
-		_update_status(msg)
+func _on_puzzle_ready(_stage_config) -> void:
+	## RunManager has prepared a new puzzle
+	_clear_overlay()
+	await _load_puzzle_grid()
+	if _run_hud:
+		_run_hud.refresh()
 
 
-func _on_new_puzzle_pressed() -> void:
-	var selected_size = grid_size_option.get_selected_id()
-	_generate_new_puzzle(selected_size)
+func _on_show_result(won: bool, score: int, target: int, reward: int) -> void:
+	## Show result popup after puzzle completion
+	_clear_overlay()
+	var popup = ResultPopupScene.instantiate()
+	popup.continue_pressed.connect(_on_result_continue)
+	overlay_container.add_child(popup)
+	popup.show_result(won, score, target, reward)
+	_current_overlay = popup
 
+
+func _on_show_shop() -> void:
+	## Show shop placeholder between stages
+	_clear_overlay()
+	var shop = ShopPlaceholderScene.instantiate()
+	shop.continue_pressed.connect(_on_shop_continue)
+	overlay_container.add_child(shop)
+	_current_overlay = shop
+
+
+func _on_show_game_over(total_score: int, stages_cleared: int) -> void:
+	## Show game over screen
+	_clear_overlay()
+	var game_over = GameOverScene.instantiate()
+	overlay_container.add_child(game_over)
+	game_over.show_game_over(total_score, stages_cleared)
+	_current_overlay = game_over
+
+
+func _on_show_victory(total_score: int) -> void:
+	## Show victory screen
+	_clear_overlay()
+	var victory = VictoryScene.instantiate()
+	overlay_container.add_child(victory)
+	victory.show_victory(total_score)
+	_current_overlay = victory
+
+
+func _clear_overlay() -> void:
+	if _current_overlay:
+		_current_overlay.queue_free()
+		_current_overlay = null
+
+# =============================================================================
+# OVERLAY BUTTON HANDLERS
+# =============================================================================
+
+func _on_result_continue() -> void:
+	RunManager.continue_from_result()
+
+
+func _on_shop_continue() -> void:
+	RunManager.continue_from_shop()
+
+# =============================================================================
+# PUZZLE INTERACTION HANDLERS
+# =============================================================================
 
 func _on_undo_pressed() -> void:
-	if not current_puzzle:
+	if puzzle_solved:
+		return
+	if not GameState.puzzle:
 		return
 
-	var pos = current_puzzle.undo_last_deletion()
+	var pos = GameState.puzzle.undo_last_deletion()
 	if pos.x >= 0:
 		puzzle_grid.refresh()
 		_update_status("Undid deletion at (%d, %d)" % [pos.x + 1, pos.y + 1])
 
 
-func _on_grid_size_changed(index: int) -> void:
-	var selected_size = grid_size_option.get_item_id(index)
-	_generate_new_puzzle(selected_size)
-
-
 func _on_cell_deleted(row: int, col: int, value: int) -> void:
+	if puzzle_solved:
+		return
 	_update_status("Deleted %d at row %d, col %d" % [value, row + 1, col + 1])
 	_check_auto_win()
 
 
 func _on_cell_restored(row: int, col: int, value: int) -> void:
+	if puzzle_solved:
+		return
 	restore_count += 1
 	_update_status("Restored %d at row %d, col %d" % [value, row + 1, col + 1])
 	_check_auto_win()
 
 
-func _check_auto_win() -> void:
-	if not current_puzzle:
+func _on_mistake_made(_row: int, _col: int) -> void:
+	## Called when player deletes a solution cell (mistake)
+	if puzzle_solved:
+		return
+	if GameState.run == null:
 		return
 
-	var result = PuzzleLogic.validate(current_puzzle)
+	# Lose a life
+	var game_over_flag: bool = GameState.run.lose_life()
+
+	if game_over_flag:
+		# Immediate game over - no more lives
+		puzzle_solved = true  # Stop further input
+		EventBus.game_over.emit()
+		RunManager._end_run(false)
+	else:
+		# Still have lives - show feedback
+		_update_status("Mistake! Lives: %d" % GameState.run.lives)
+
+
+func _check_auto_win() -> void:
+	if puzzle_solved:
+		return
+	if not GameState.puzzle:
+		return
+
+	var result = PuzzleLogic.validate(GameState.puzzle)
 	if result.is_valid:
-		puzzle_solved = true
-		var breakdown = ScoringEngineScript.calculate_score(current_puzzle, time_multiplier, restore_count)
-		_update_status("🎉 WIN! Score: %d  |  %s" % [breakdown.final_score, breakdown.get_summary()])
+		_complete_puzzle()
+
+
+func _complete_puzzle() -> void:
+	## Called when puzzle is solved (auto-win or submit)
+	puzzle_solved = true
+	var breakdown = ScoringEngineScript.calculate_score(
+		GameState.puzzle,
+		time_multiplier,
+		restore_count,
+		GameState.operators
+	)
+	_update_status("Score: %d  |  %s" % [breakdown.final_score, breakdown.get_summary()])
+
+	# Notify RunManager
+	RunManager.on_puzzle_complete(breakdown.final_score)

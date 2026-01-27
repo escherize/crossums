@@ -22,11 +22,19 @@ class ScoreBreakdown:
 	var precision_multiplier: float = 1.0
 	var restore_count: int = 0
 	var final_score: int = 0
+	# Operator bonuses (Sprint 2)
+	var operator_bonus: int = 0
+	var operator_mult: float = 1.0
+	var operator_details: Array = []  # [{name: String, bonus: int}]
 
 	func get_summary() -> String:
 		var parts: Array[String] = []
 		parts.append("Kept %d/%d" % [kept_count, total_cells])
 		parts.append("%.1fx line" % line_multiplier)
+		if operator_bonus > 0:
+			parts.append("+%d ops" % operator_bonus)
+		if operator_mult != 1.0:
+			parts.append("%.1fx ops" % operator_mult)
 		if time_multiplier != 1.0:
 			parts.append("%.1fx time" % time_multiplier)
 		if precision_multiplier != 1.0:
@@ -44,7 +52,8 @@ class ScoreBreakdown:
 static func calculate_score(
 	puzzle: PuzzleState,
 	time_mult: float = 1.0,
-	restore_count: int = 0
+	restore_count: int = 0,
+	operators: Array = []
 ) -> ScoreBreakdown:
 	var breakdown = ScoreBreakdown.new()
 	var grid_size = puzzle.grid_size.x
@@ -83,8 +92,56 @@ static func calculate_score(
 	else:
 		breakdown.precision_multiplier = GameConfig.PRECISION_BASE
 
-	# Final score with all multipliers
-	breakdown.final_score = int(breakdown.line_score * breakdown.time_multiplier * breakdown.precision_multiplier)
+	# Process operators (Sprint 2)
+	var op_score_bonus := 0
+	var op_mult_bonus := 0.0
+
+	for op in operators:
+		var op_total := 0
+
+		# Cell hooks - for each kept cell
+		for row in range(puzzle.grid_size.y):
+			for col in range(puzzle.grid_size.x):
+				var cell = puzzle.get_cell(row, col)
+				if cell.state != PuzzleState.CellState.DELETED:
+					var result = op.on_cell_kept(row, col, cell.value, puzzle)
+					op_total += result.get("score_bonus", 0)
+					op_mult_bonus += result.get("mult_bonus", 0.0)
+
+		# Row hooks - for each valid row
+		for row in range(puzzle.grid_size.y):
+			if puzzle.get_current_row_sum(row) == puzzle.row_targets[row]:
+				var result = op.on_row_complete(row, puzzle)
+				op_total += result.get("score_bonus", 0)
+				op_mult_bonus += result.get("mult_bonus", 0.0)
+
+		# Column hooks - for each valid column
+		for col in range(puzzle.grid_size.x):
+			if puzzle.get_current_col_sum(col) == puzzle.col_targets[col]:
+				var result = op.on_col_complete(col, puzzle)
+				op_total += result.get("score_bonus", 0)
+				op_mult_bonus += result.get("mult_bonus", 0.0)
+
+		# End hook - once per puzzle
+		var end_result = op.on_puzzle_end(puzzle)
+		op_total += end_result.get("score_bonus", 0)
+		op_mult_bonus += end_result.get("mult_bonus", 0.0)
+
+		if op_total > 0:
+			breakdown.operator_details.append({
+				"name": op.display_name,
+				"bonus": op_total
+			})
+
+		op_score_bonus += op_total
+
+	breakdown.operator_bonus = op_score_bonus
+	breakdown.operator_mult = 1.0 + op_mult_bonus
+
+	# Final score with all multipliers (now including operators)
+	var score_before_mult = breakdown.line_score + breakdown.operator_bonus
+	var total_mult = breakdown.time_multiplier * breakdown.precision_multiplier * breakdown.operator_mult
+	breakdown.final_score = int(score_before_mult * total_mult)
 
 	return breakdown
 

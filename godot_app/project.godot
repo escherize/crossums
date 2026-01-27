@@ -13,11 +13,21 @@ config_version=5
 config/name="crossums"
 config/features=PackedStringArray("4.5", "GL Compatibility")
 config/icon="res://icon.svg"
-run/main_scene="res://scenes/main.tscn"
+run/main_scene="res://scenes/title/title_screen.tscn"
+
+[display]
+
+window/size/viewport_width=1280
+window/size/viewport_height=720
+window/stretch/mode="canvas_items"
+window/stretch/aspect="keep_height"
+window/handheld/orientation=4
 
 [autoload]
 
 EventBus="*res://autoload/event_bus.gd"
+GameState="*res://autoload/game_state.gd"
+RunManager="*res://scripts/core/run_manager.gd"
 DebugServer="*res://autoload/debug_server.gd"
 
 [rendering]

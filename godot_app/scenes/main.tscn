@@ -34,91 +34,125 @@ grow_horizontal = 2
 grow_vertical = 2
 color = Color(0.12, 0.14, 0.18, 1)
 
-[node name="VBoxContainer" type="VBoxContainer" parent="."]
+[node name="SafeArea" type="MarginContainer" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="MainLayout" type="HBoxContainer" parent="SafeArea"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
 theme_override_constants/separation = 16
 
-[node name="Header" type="HBoxContainer" parent="VBoxContainer"]
+[node name="LeftPanel" type="VBoxContainer" parent="SafeArea/MainLayout"]
+custom_minimum_size = Vector2(200, 0)
 layout_mode = 2
+size_flags_horizontal = 0
 theme_override_constants/separation = 16
 
-[node name="Title" type="Label" parent="VBoxContainer/Header"]
+[node name="Title" type="Label" parent="SafeArea/MainLayout/LeftPanel"]
+unique_name_in_owner = true
 layout_mode = 2
-theme_override_font_sizes/font_size = 32
+theme_override_font_sizes/font_size = 24
 text = "CROSSSUMS"
 
-[node name="TimerContainer" type="HBoxContainer" parent="VBoxContainer/Header"]
+[node name="StageLabel" type="Label" parent="SafeArea/MainLayout/LeftPanel"]
+unique_name_in_owner = true
 layout_mode = 2
-theme_override_constants/separation = 8
+theme_override_font_sizes/font_size = 18
+text = "Stage 1 - Puzzle 1/3"
+
+[node name="ScoreLabel" type="Label" parent="SafeArea/MainLayout/LeftPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Score: 0"
+
+[node name="TargetLabel" type="Label" parent="SafeArea/MainLayout/LeftPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Target: 300"
+
+[node name="Spacer" type="Control" parent="SafeArea/MainLayout/LeftPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="HUDContainer" type="Control" parent="SafeArea/MainLayout/LeftPanel"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+
+[node name="CenterPanel" type="VBoxContainer" parent="SafeArea/MainLayout"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
 alignment = 1
 
-[node name="TimerBar" type="ProgressBar" parent="VBoxContainer/Header/TimerContainer"]
+[node name="PuzzleContainer" type="CenterContainer" parent="SafeArea/MainLayout/CenterPanel"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(120, 12)
 layout_mode = 2
-size_flags_vertical = 1
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="RightPanel" type="VBoxContainer" parent="SafeArea/MainLayout"]
+custom_minimum_size = Vector2(200, 0)
+layout_mode = 2
+size_flags_horizontal = 0
+theme_override_constants/separation = 16
+alignment = 1
+
+[node name="TimerContainer" type="VBoxContainer" parent="SafeArea/MainLayout/RightPanel"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="TimerLabel" type="Label" parent="SafeArea/MainLayout/RightPanel/TimerContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "2.0x"
+horizontal_alignment = 1
+
+[node name="TimerBar" type="ProgressBar" parent="SafeArea/MainLayout/RightPanel/TimerContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 16)
+layout_mode = 2
 theme_override_styles/background = SubResource("StyleBoxFlat_bg")
 theme_override_styles/fill = SubResource("StyleBoxFlat_fill")
 max_value = 1.0
 value = 1.0
 show_percentage = false
 
-[node name="TimerLabel" type="Label" parent="VBoxContainer/Header/TimerContainer"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_font_sizes/font_size = 18
-text = "2.0x"
-
-[node name="Spacer" type="Control" parent="VBoxContainer/Header"]
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="TargetLabel" type="Label" parent="VBoxContainer/Header"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_font_sizes/font_size = 24
-text = "Target: 300"
-
-[node name="PuzzleContainer" type="CenterContainer" parent="VBoxContainer"]
-unique_name_in_owner = true
+[node name="Spacer" type="Control" parent="SafeArea/MainLayout/RightPanel"]
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="UI" type="HBoxContainer" parent="VBoxContainer"]
-unique_name_in_owner = true
+[node name="ButtonContainer" type="VBoxContainer" parent="SafeArea/MainLayout/RightPanel"]
 layout_mode = 2
-theme_override_constants/separation = 16
+theme_override_constants/separation = 8
 
-[node name="GridSizeOption" type="OptionButton" parent="VBoxContainer/UI"]
+[node name="UndoButton" type="Button" parent="SafeArea/MainLayout/RightPanel/ButtonContainer"]
 unique_name_in_owner = true
-layout_mode = 2
-
-[node name="NewPuzzleButton" type="Button" parent="VBoxContainer/UI"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "New Puzzle"
-
-[node name="UndoButton" type="Button" parent="VBoxContainer/UI"]
-unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
 text = "Undo"
 
-[node name="SubmitButton" type="Button" parent="VBoxContainer/UI"]
+[node name="StatusLabel" type="Label" parent="SafeArea/MainLayout/RightPanel"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Submit"
+theme_override_font_sizes/font_size = 14
+text = "Delete cells to match targets"
+horizontal_alignment = 1
+autowrap_mode = 2
 
-[node name="Spacer" type="Control" parent="VBoxContainer/UI"]
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="StatusLabel" type="Label" parent="VBoxContainer/UI"]
+[node name="OverlayContainer" type="CanvasLayer" parent="."]
 unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Click numbers to delete them"
+layer = 10
