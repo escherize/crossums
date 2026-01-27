@@ -191,7 +191,7 @@ func _execute_action(action: String, params: Dictionary):
 
 		# Puzzle management actions
 		"new_puzzle":
-			return _action_new_puzzle(params)
+			return await _action_new_puzzle(params)
 		"restart_puzzle":
 			return _action_restart_puzzle(params)
 
@@ -229,6 +229,48 @@ func _execute_action(action: String, params: Dictionary):
 		"dump_test":
 			return _action_dump_test(params)
 
+		# State management (Sprint 1)
+		"get_full_state":
+			return _action_get_full_state(params)
+		"set_full_state":
+			return _action_set_full_state(params)
+		"get_run_state":
+			return _action_get_run_state(params)
+		"set_run_state":
+			return _action_set_run_state(params)
+
+		# Operator management (Sprint 2)
+		"add_operator":
+			return _action_add_operator(params)
+		"remove_operator":
+			return _action_remove_operator(params)
+		"list_operators":
+			return _action_list_operators(params)
+		"clear_operators":
+			return _action_clear_operators(params)
+
+		# Scoring (Sprint 2)
+		"get_score":
+			return _action_get_score(params)
+
+		# Run flow (Sprint 4)
+		"start_run":
+			return await _action_start_run(params)
+		"get_run_info":
+			return _action_get_run_info(params)
+		"set_lives":
+			return _action_set_lives(params)
+		"set_stage":
+			return _action_set_stage(params)
+		"complete_puzzle":
+			return await _action_complete_puzzle(params)
+		"continue_result":
+			return await _action_continue_result(params)
+		"continue_shop":
+			return await _action_continue_shop(params)
+		"return_to_title":
+			return _action_return_to_title(params)
+
 		_:
 			return {"error": "not_implemented", "message": "Action '%s' not yet implemented" % action}
 
@@ -242,7 +284,7 @@ func _action_delete_cell(params: Dictionary) -> Dictionary:
 	if main_scene == null:
 		return {"error": "no_game", "message": "Game not running"}
 
-	var puzzle_state: PuzzleState = main_scene.get("current_puzzle")
+	var puzzle_state: PuzzleState = GameState.puzzle
 	if puzzle_state == null:
 		return {"error": "no_puzzle", "message": "No active puzzle"}
 
@@ -256,10 +298,17 @@ func _action_delete_cell(params: Dictionary) -> Dictionary:
 	if cell_data.state != PuzzleState.CellState.ACTIVE:
 		return {"error": "invalid_state", "message": "Cell at (%d, %d) is not active (current: %s)" % [row, col, _cell_state_to_string(cell_data.state)]}
 
+	# Check if this is a solution cell (mistake to delete)
+	if cell_data.is_solution:
+		# Don't delete - just signal mistake
+		EventBus.mistake_made.emit(row, col)
+		return {"cell": {"row": row, "col": col, "value": cell_data.value, "state": "active", "was_mistake": true}}
+
+	# Safe to delete non-solution cell
 	if puzzle_state.delete_cell(row, col):
 		_refresh_puzzle_grid(main_scene)
 		EventBus.cell_deleted.emit(row, col, cell_data.value)
-		return {"cell": {"row": row, "col": col, "value": cell_data.value, "state": "deleted"}}
+		return {"cell": {"row": row, "col": col, "value": cell_data.value, "state": "deleted", "was_mistake": false}}
 	else:
 		return {"error": "delete_failed", "message": "Failed to delete cell at (%d, %d)" % [row, col]}
 
@@ -269,7 +318,7 @@ func _action_keep_cell(params: Dictionary) -> Dictionary:
 	if main_scene == null:
 		return {"error": "no_game", "message": "Game not running"}
 
-	var puzzle_state: PuzzleState = main_scene.get("current_puzzle")
+	var puzzle_state: PuzzleState = GameState.puzzle
 	if puzzle_state == null:
 		return {"error": "no_puzzle", "message": "No active puzzle"}
 
@@ -296,7 +345,7 @@ func _action_restore_cell(params: Dictionary) -> Dictionary:
 	if main_scene == null:
 		return {"error": "no_game", "message": "Game not running"}
 
-	var puzzle_state: PuzzleState = main_scene.get("current_puzzle")
+	var puzzle_state: PuzzleState = GameState.puzzle
 	if puzzle_state == null:
 		return {"error": "no_puzzle", "message": "No active puzzle"}
 
@@ -327,7 +376,7 @@ func _action_undo(_params: Dictionary) -> Dictionary:
 	if main_scene == null:
 		return {"error": "no_game", "message": "Game not running"}
 
-	var puzzle_state: PuzzleState = main_scene.get("current_puzzle")
+	var puzzle_state: PuzzleState = GameState.puzzle
 	if puzzle_state == null:
 		return {"error": "no_puzzle", "message": "No active puzzle"}
 
@@ -362,7 +411,7 @@ func _action_validate(_params: Dictionary) -> Dictionary:
 	if main_scene == null:
 		return {"error": "no_game", "message": "Game not running"}
 
-	var puzzle_state: PuzzleState = main_scene.get("current_puzzle")
+	var puzzle_state: PuzzleState = GameState.puzzle
 	if puzzle_state == null:
 		return {"error": "no_puzzle", "message": "No active puzzle"}
 
@@ -385,7 +434,7 @@ func _action_submit(_params: Dictionary) -> Dictionary:
 	if main_scene == null:
 		return {"error": "no_game", "message": "Game not running"}
 
-	var puzzle_state: PuzzleState = main_scene.get("current_puzzle")
+	var puzzle_state: PuzzleState = GameState.puzzle
 	if puzzle_state == null:
 		return {"error": "no_puzzle", "message": "No active puzzle"}
 
@@ -424,7 +473,7 @@ func _action_get_row_sum(params: Dictionary) -> Dictionary:
 	if main_scene == null:
 		return {"error": "no_game", "message": "Game not running"}
 
-	var puzzle_state: PuzzleState = main_scene.get("current_puzzle")
+	var puzzle_state: PuzzleState = GameState.puzzle
 	if puzzle_state == null:
 		return {"error": "no_puzzle", "message": "No active puzzle"}
 
@@ -449,7 +498,7 @@ func _action_get_col_sum(params: Dictionary) -> Dictionary:
 	if main_scene == null:
 		return {"error": "no_game", "message": "Game not running"}
 
-	var puzzle_state: PuzzleState = main_scene.get("current_puzzle")
+	var puzzle_state: PuzzleState = GameState.puzzle
 	if puzzle_state == null:
 		return {"error": "no_puzzle", "message": "No active puzzle"}
 
@@ -475,7 +524,7 @@ func _action_check_complete(_params: Dictionary) -> Dictionary:
 	if main_scene == null:
 		return {"error": "no_game", "message": "Game not running"}
 
-	var puzzle_state: PuzzleState = main_scene.get("current_puzzle")
+	var puzzle_state: PuzzleState = GameState.puzzle
 	if puzzle_state == null:
 		return {"error": "no_puzzle", "message": "No active puzzle"}
 
@@ -501,10 +550,22 @@ func _serialize_validation_results(results: Array) -> Array:
 # PUZZLE MANAGEMENT ACTIONS
 # =============================================================================
 
-func _action_new_puzzle(params: Dictionary) -> Dictionary:
+func _action_new_puzzle(params: Dictionary):
+	# If no run is active, start one first (this transitions to main scene)
 	var main_scene := _get_main_scene()
 	if main_scene == null:
-		return {"error": "no_game", "message": "Game not running"}
+		# Start a run and transition to main scene
+		RunManager.start_run()
+		var main_scene_packed = load("res://scenes/main.tscn")
+		get_tree().change_scene_to_packed(main_scene_packed)
+		# Wait for scene transition
+		for i in range(20):
+			await get_tree().process_frame
+			main_scene = _get_main_scene()
+			if main_scene != null:
+				break
+		if main_scene == null:
+			return {"error": "no_game", "message": "Failed to start game"}
 
 	# Get parameters
 	var grid_size := int(params.get("size", params.get("grid_size", 3)))
@@ -521,11 +582,8 @@ func _action_new_puzzle(params: Dictionary) -> Dictionary:
 	if seed_val != 0:
 		config.puzzle_seed = seed_val
 
-	# Generate new puzzle
-	var new_puzzle := PuzzleLogic.generate_puzzle(config)
-
-	# Update main scene
-	main_scene.set("current_puzzle", new_puzzle)
+	# Generate new puzzle via GameState
+	GameState.start_new_puzzle(config)
 	main_scene.set("puzzle_solved", false)
 
 	# Reset timer tracking if available
@@ -536,14 +594,14 @@ func _action_new_puzzle(params: Dictionary) -> Dictionary:
 	# Reload grid visually
 	var puzzle_grid = main_scene.get("puzzle_grid")
 	if puzzle_grid and puzzle_grid.has_method("load_puzzle"):
-		puzzle_grid.load_puzzle(new_puzzle)
+		puzzle_grid.load_puzzle(GameState.puzzle)
 
 	return {
-		"seed": new_puzzle.puzzle_seed,
+		"seed": GameState.puzzle.puzzle_seed,
 		"size": grid_size,
 		"targets": {
-			"rows": Array(new_puzzle.row_targets),
-			"cols": Array(new_puzzle.col_targets)
+			"rows": Array(GameState.puzzle.row_targets),
+			"cols": Array(GameState.puzzle.col_targets)
 		}
 	}
 
@@ -553,7 +611,7 @@ func _action_restart_puzzle(_params: Dictionary) -> Dictionary:
 	if main_scene == null:
 		return {"error": "no_game", "message": "Game not running"}
 
-	var puzzle_state: PuzzleState = main_scene.get("current_puzzle")
+	var puzzle_state: PuzzleState = GameState.puzzle
 	if puzzle_state == null:
 		return {"error": "no_puzzle", "message": "No active puzzle"}
 
@@ -588,7 +646,7 @@ func _action_set_cell_state(params: Dictionary) -> Dictionary:
 	if main_scene == null:
 		return {"error": "no_game", "message": "Game not running"}
 
-	var puzzle_state: PuzzleState = main_scene.get("current_puzzle")
+	var puzzle_state: PuzzleState = GameState.puzzle
 	if puzzle_state == null:
 		return {"error": "no_puzzle", "message": "No active puzzle"}
 
@@ -627,7 +685,7 @@ func _action_set_grid_state(params: Dictionary) -> Dictionary:
 	if main_scene == null:
 		return {"error": "no_game", "message": "Game not running"}
 
-	var puzzle_state: PuzzleState = main_scene.get("current_puzzle")
+	var puzzle_state: PuzzleState = GameState.puzzle
 	if puzzle_state == null:
 		return {"error": "no_puzzle", "message": "No active puzzle"}
 
@@ -673,7 +731,7 @@ func _action_apply_solution(_params: Dictionary) -> Dictionary:
 	if main_scene == null:
 		return {"error": "no_game", "message": "Game not running"}
 
-	var puzzle_state: PuzzleState = main_scene.get("current_puzzle")
+	var puzzle_state: PuzzleState = GameState.puzzle
 	if puzzle_state == null:
 		return {"error": "no_puzzle", "message": "No active puzzle"}
 
@@ -702,7 +760,7 @@ func _action_clear_all_marks(_params: Dictionary) -> Dictionary:
 	if main_scene == null:
 		return {"error": "no_game", "message": "Game not running"}
 
-	var puzzle_state: PuzzleState = main_scene.get("current_puzzle")
+	var puzzle_state: PuzzleState = GameState.puzzle
 	if puzzle_state == null:
 		return {"error": "no_puzzle", "message": "No active puzzle"}
 
@@ -733,7 +791,7 @@ func _query_get_cell(params: Dictionary) -> Dictionary:
 	if main_scene == null:
 		return {"error": "no_game", "message": "Game not running"}
 
-	var puzzle_state: PuzzleState = main_scene.get("current_puzzle")
+	var puzzle_state: PuzzleState = GameState.puzzle
 	if puzzle_state == null:
 		return {"error": "no_puzzle", "message": "No active puzzle"}
 
@@ -758,7 +816,7 @@ func _query_get_grid() -> Dictionary:
 	if main_scene == null:
 		return {"error": "no_game", "message": "Game not running"}
 
-	var puzzle_state: PuzzleState = main_scene.get("current_puzzle")
+	var puzzle_state: PuzzleState = GameState.puzzle
 	if puzzle_state == null:
 		return {"error": "no_puzzle", "message": "No active puzzle"}
 
@@ -770,7 +828,7 @@ func _query_get_targets() -> Dictionary:
 	if main_scene == null:
 		return {"error": "no_game", "message": "Game not running"}
 
-	var puzzle_state: PuzzleState = main_scene.get("current_puzzle")
+	var puzzle_state: PuzzleState = GameState.puzzle
 	if puzzle_state == null:
 		return {"error": "no_puzzle", "message": "No active puzzle"}
 
@@ -787,7 +845,7 @@ func _query_get_history() -> Dictionary:
 	if main_scene == null:
 		return {"error": "no_game", "message": "Game not running"}
 
-	var puzzle_state: PuzzleState = main_scene.get("current_puzzle")
+	var puzzle_state: PuzzleState = GameState.puzzle
 	if puzzle_state == null:
 		return {"error": "no_puzzle", "message": "No active puzzle"}
 
@@ -799,16 +857,11 @@ func _query_get_history() -> Dictionary:
 
 
 func _query_get_config() -> Dictionary:
-	var main_scene := _get_main_scene()
-	if main_scene == null:
-		return {"error": "no_game", "message": "Game not running"}
-
-	var puzzle_state: PuzzleState = main_scene.get("current_puzzle")
-
 	return {
-		"grid_size": puzzle_state.grid_size.x if puzzle_state else 3,
+		"grid_size": GameState.puzzle.grid_size.x if GameState.puzzle else 3,
 		"api_version": API_VERSION,
-		"debug_build": OS.is_debug_build()
+		"debug_build": OS.is_debug_build(),
+		"has_run": GameState.run != null
 	}
 
 
@@ -821,7 +874,7 @@ func _action_assert_cell_state(params: Dictionary) -> Dictionary:
 	if main_scene == null:
 		return {"pass": false, "message": "Game not running"}
 
-	var puzzle_state: PuzzleState = main_scene.get("current_puzzle")
+	var puzzle_state: PuzzleState = GameState.puzzle
 	if puzzle_state == null:
 		return {"pass": false, "message": "No active puzzle"}
 
@@ -849,7 +902,7 @@ func _action_assert_row_sum(params: Dictionary) -> Dictionary:
 	if main_scene == null:
 		return {"pass": false, "message": "Game not running"}
 
-	var puzzle_state: PuzzleState = main_scene.get("current_puzzle")
+	var puzzle_state: PuzzleState = GameState.puzzle
 	if puzzle_state == null:
 		return {"pass": false, "message": "No active puzzle"}
 
@@ -875,7 +928,7 @@ func _action_assert_col_sum(params: Dictionary) -> Dictionary:
 	if main_scene == null:
 		return {"pass": false, "message": "Game not running"}
 
-	var puzzle_state: PuzzleState = main_scene.get("current_puzzle")
+	var puzzle_state: PuzzleState = GameState.puzzle
 	if puzzle_state == null:
 		return {"pass": false, "message": "No active puzzle"}
 
@@ -901,7 +954,7 @@ func _action_assert_valid(_params: Dictionary) -> Dictionary:
 	if main_scene == null:
 		return {"pass": false, "message": "Game not running"}
 
-	var puzzle_state: PuzzleState = main_scene.get("current_puzzle")
+	var puzzle_state: PuzzleState = GameState.puzzle
 	if puzzle_state == null:
 		return {"pass": false, "message": "No active puzzle"}
 
@@ -917,7 +970,7 @@ func _action_assert_invalid(_params: Dictionary) -> Dictionary:
 	if main_scene == null:
 		return {"pass": false, "message": "Game not running"}
 
-	var puzzle_state: PuzzleState = main_scene.get("current_puzzle")
+	var puzzle_state: PuzzleState = GameState.puzzle
 	if puzzle_state == null:
 		return {"pass": false, "message": "No active puzzle"}
 
@@ -972,7 +1025,7 @@ func _action_dump_test(params: Dictionary) -> Dictionary:
 	if main_scene == null:
 		return {"error": "no_game", "message": "Game not running"}
 
-	var puzzle_state: PuzzleState = main_scene.get("current_puzzle")
+	var puzzle_state: PuzzleState = GameState.puzzle
 	if puzzle_state == null:
 		return {"error": "no_puzzle", "message": "No active puzzle"}
 
@@ -1008,6 +1061,328 @@ func _action_dump_test(params: Dictionary) -> Dictionary:
 
 
 # =============================================================================
+# STATE MANAGEMENT (Sprint 1)
+# =============================================================================
+
+func _action_get_full_state(_params: Dictionary) -> Dictionary:
+	return {"state": GameState.serialize()}
+
+
+func _action_set_full_state(params: Dictionary) -> Dictionary:
+	if not params.has("state"):
+		return {"error": "missing_state", "message": "state parameter required"}
+
+	if GameState.deserialize(params.state):
+		# Refresh UI
+		var main_scene = _get_main_scene()
+		if main_scene and main_scene.has_method("refresh_from_state"):
+			main_scene.refresh_from_state()
+		return {"success": true}
+	else:
+		return {"error": "deserialize_failed", "message": "Failed to deserialize state"}
+
+
+func _action_get_run_state(_params: Dictionary) -> Dictionary:
+	if GameState.run == null:
+		return {"run": null}
+	return {"run": GameState.run.serialize()}
+
+
+func _action_set_run_state(params: Dictionary) -> Dictionary:
+	if params.has("run") and params.run != null:
+		GameState.run = GameState.RunStateScript.deserialize(params.run)
+	else:
+		GameState.run = null
+	return {"success": true}
+
+
+# =============================================================================
+# OPERATOR MANAGEMENT (Sprint 2)
+# =============================================================================
+
+func _action_add_operator(params: Dictionary) -> Dictionary:
+	var id: String = params.get("id", "")
+	if id.is_empty():
+		return {"error": "missing_id", "message": "Operator id required"}
+
+	var op = OperatorRegistry.create(id)
+	if op == null:
+		return {"error": "unknown_operator", "message": "Unknown operator: %s" % id}
+
+	if GameState.add_operator(op):
+		return {"success": true, "operator": op.serialize(), "count": GameState.operators.size()}
+	else:
+		return {"error": "slots_full", "message": "Operator slots full (max %d)" % GameState.MAX_OPERATORS}
+
+
+func _action_remove_operator(params: Dictionary) -> Dictionary:
+	var index: int = params.get("index", -1)
+	var op = GameState.remove_operator(index)
+	if op:
+		return {"success": true, "removed": op.serialize(), "count": GameState.operators.size()}
+	else:
+		return {"error": "invalid_index", "message": "Invalid operator index: %d" % index}
+
+
+func _action_list_operators(_params: Dictionary) -> Dictionary:
+	return {
+		"operators": GameState.operators.map(func(o): return {
+			"id": o.id,
+			"name": o.display_name,
+			"description": o.description,
+			"rarity": o.rarity,
+			"price": o.price,
+		}),
+		"count": GameState.operators.size(),
+		"max": GameState.MAX_OPERATORS,
+		"available": OperatorRegistry.get_all_ids(),
+	}
+
+
+func _action_clear_operators(_params: Dictionary) -> Dictionary:
+	var count = GameState.operators.size()
+	GameState.operators.clear()
+	return {"cleared": count}
+
+
+func _action_get_score(params: Dictionary) -> Dictionary:
+	## Calculate current score without submitting
+	## Optional params: time_mult (override), restore_count (override)
+	var puzzle_state: PuzzleState = GameState.puzzle
+	if puzzle_state == null:
+		return {"error": "no_puzzle", "message": "No active puzzle"}
+
+	# Get time multiplier - use override or calculate from main scene
+	var time_mult: float = params.get("time_mult", 1.0)
+	var restore_count: int = params.get("restore_count", 0)
+
+	# Try to get actual values from main scene if not overridden
+	if not params.has("time_mult"):
+		var main_scene = _get_main_scene()
+		if main_scene:
+			var tm = main_scene.get("time_multiplier")
+			if tm != null:
+				time_mult = tm
+
+	if not params.has("restore_count"):
+		var main_scene = _get_main_scene()
+		if main_scene:
+			var rc = main_scene.get("restore_count")
+			if rc != null:
+				restore_count = rc
+
+	var breakdown = ScoringEngine.calculate_score(puzzle_state, time_mult, restore_count, GameState.operators)
+
+	return {
+		"final_score": breakdown.final_score,
+		"base_points": breakdown.base_points,
+		"kept_bonus": breakdown.kept_bonus,
+		"kept_count": breakdown.kept_count,
+		"operator_bonus": breakdown.operator_bonus,
+		"operator_mult": breakdown.operator_mult,
+		"operator_details": breakdown.operator_details,
+		"line_multiplier": breakdown.line_multiplier,
+		"time_multiplier": breakdown.time_multiplier,
+		"precision_multiplier": breakdown.precision_multiplier,
+		"valid_lines": breakdown.valid_lines,
+		"total_lines": breakdown.total_lines,
+	}
+
+
+# =============================================================================
+# RUN FLOW (Sprint 4)
+# =============================================================================
+
+func _action_start_run(_params: Dictionary) -> Dictionary:
+	## Start a new run from the beginning
+	RunManager.start_run()
+
+	# Wait a frame for state to settle
+	await get_tree().process_frame
+
+	if GameState.run == null:
+		return {"error": "run_failed", "message": "Failed to start run"}
+
+	return {
+		"success": true,
+		"run": {
+			"stage": GameState.run.stage,
+			"puzzle_index": GameState.run.puzzle_index,
+			"lives": GameState.run.lives,
+			"money": GameState.run.money,
+			"total_score": GameState.run.total_score
+		},
+		"state": RunManager.State.keys()[RunManager.current_state]
+	}
+
+
+func _action_get_run_info(_params: Dictionary) -> Dictionary:
+	## Get current run state information
+	if GameState.run == null:
+		return {
+			"active": false,
+			"run": null,
+			"state": RunManager.State.keys()[RunManager.current_state]
+		}
+
+	return {
+		"active": RunManager.is_run_active(),
+		"run": {
+			"stage": GameState.run.stage,
+			"puzzle_index": GameState.run.puzzle_index,
+			"lives": GameState.run.lives,
+			"money": GameState.run.money,
+			"total_score": GameState.run.total_score,
+			"operators": GameState.operators.map(func(o): return o.id)
+		},
+		"state": RunManager.State.keys()[RunManager.current_state],
+		"stage_config": _get_stage_config_info()
+	}
+
+
+func _get_stage_config_info() -> Variant:
+	var config = RunManager.get_current_stage_config()
+	if config == null:
+		return null
+	return {
+		"stage": config.stage,
+		"puzzle_index": config.puzzle_index,
+		"grid_size": config.grid_size,
+		"score_target": config.score_target,
+		"allow_negatives": config.allow_negatives,
+		"money_reward": config.money_reward
+	}
+
+
+func _action_set_lives(params: Dictionary) -> Dictionary:
+	## Set lives count for testing
+	if GameState.run == null:
+		return {"error": "no_run", "message": "No active run"}
+
+	var lives: int = params.get("lives", 3)
+	lives = clampi(lives, 0, 10)
+
+	GameState.run.lives = lives
+	EventBus.state_changed.emit()
+
+	return {
+		"success": true,
+		"lives": GameState.run.lives
+	}
+
+
+func _action_set_stage(params: Dictionary) -> Dictionary:
+	## Set stage and puzzle_index for testing
+	if GameState.run == null:
+		return {"error": "no_run", "message": "No active run"}
+
+	var stage: int = params.get("stage", GameState.run.stage)
+	var puzzle_index: int = params.get("puzzle_index", GameState.run.puzzle_index)
+
+	stage = clampi(stage, 1, 9)
+	puzzle_index = clampi(puzzle_index, 0, 2)
+
+	GameState.run.stage = stage
+	GameState.run.puzzle_index = puzzle_index
+	EventBus.state_changed.emit()
+
+	return {
+		"success": true,
+		"stage": GameState.run.stage,
+		"puzzle_index": GameState.run.puzzle_index
+	}
+
+
+func _action_complete_puzzle(params: Dictionary) -> Dictionary:
+	## Complete the current puzzle with a given score
+	## This triggers RunManager.on_puzzle_complete() which handles win/lose logic
+	if GameState.run == null:
+		return {"error": "no_run", "message": "No active run"}
+
+	if RunManager.current_state != RunManager.State.PUZZLE_ACTIVE:
+		return {"error": "wrong_state", "message": "Not in PUZZLE_ACTIVE state (current: %s)" % RunManager.State.keys()[RunManager.current_state]}
+
+	var score: int = params.get("score", 0)
+	var old_stage: int = GameState.run.stage
+	var old_puzzle: int = GameState.run.puzzle_index
+	var old_lives: int = GameState.run.lives
+
+	# Get target from stage config
+	var config = RunManager.get_current_stage_config()
+	var target: int = config.score_target if config else 0
+	var passed: bool = score >= target
+
+	# Trigger the completion
+	RunManager.on_puzzle_complete(score)
+
+	# Wait for state to settle
+	await get_tree().process_frame
+
+	return {
+		"success": true,
+		"passed": passed,
+		"score": score,
+		"target": target,
+		"old_stage": old_stage,
+		"old_puzzle": old_puzzle,
+		"new_stage": GameState.run.stage if GameState.run else old_stage,
+		"new_puzzle": GameState.run.puzzle_index if GameState.run else old_puzzle,
+		"old_lives": old_lives,
+		"new_lives": GameState.run.lives if GameState.run else 0,
+		"state": RunManager.State.keys()[RunManager.current_state]
+	}
+
+
+func _action_continue_result(_params: Dictionary) -> Dictionary:
+	## Continue from result popup to next puzzle or shop
+	if RunManager.current_state != RunManager.State.PUZZLE_RESULT:
+		return {"error": "wrong_state", "message": "Not in PUZZLE_RESULT state (current: %s)" % RunManager.State.keys()[RunManager.current_state]}
+
+	RunManager.continue_from_result()
+
+	# Wait for state to settle
+	await get_tree().process_frame
+
+	return {
+		"success": true,
+		"state": RunManager.State.keys()[RunManager.current_state],
+		"stage": GameState.run.stage if GameState.run else 0,
+		"puzzle_index": GameState.run.puzzle_index if GameState.run else 0
+	}
+
+
+func _action_continue_shop(_params: Dictionary) -> Dictionary:
+	## Continue from shop to next puzzle
+	if RunManager.current_state != RunManager.State.SHOP:
+		return {"error": "wrong_state", "message": "Not in SHOP state (current: %s)" % RunManager.State.keys()[RunManager.current_state]}
+
+	RunManager.continue_from_shop()
+
+	# Wait for state to settle
+	await get_tree().process_frame
+
+	return {
+		"success": true,
+		"state": RunManager.State.keys()[RunManager.current_state],
+		"stage": GameState.run.stage if GameState.run else 0,
+		"puzzle_index": GameState.run.puzzle_index if GameState.run else 0
+	}
+
+
+func _action_return_to_title(_params: Dictionary) -> Dictionary:
+	## Return to title screen and reset state (like Try Again button)
+	RunManager.return_to_title()
+
+	return {
+		"success": true,
+		"state": RunManager.State.keys()[RunManager.current_state],
+		"run_active": GameState.run != null,
+		"puzzle_active": GameState.puzzle != null,
+		"operators_count": GameState.operators.size()
+	}
+
+
+# =============================================================================
 # HELPER FUNCTIONS
 # =============================================================================
 
@@ -1026,14 +1401,15 @@ func _get_game_state() -> Dictionary:
 		"api_version": API_VERSION,
 		"phase": _get_game_phase(),
 		"puzzle": null,
-		"validation": null
+		"validation": null,
+		"run": GameState.run.serialize() if GameState.run else null
 	}
 
 	var main_scene := _get_main_scene()
 	if main_scene == null:
 		return state
 
-	var puzzle_state: PuzzleState = main_scene.get("current_puzzle")
+	var puzzle_state: PuzzleState = GameState.puzzle
 	if puzzle_state == null:
 		state.phase = "no_puzzle"
 		return state
@@ -1057,7 +1433,7 @@ func _get_game_phase() -> String:
 	if main_scene.get("puzzle_solved"):
 		return "solved"
 
-	if main_scene.get("current_puzzle") != null:
+	if GameState.puzzle != null:
 		return "playing"
 
 	return "menu"
@@ -1071,7 +1447,7 @@ func _get_main_scene() -> Node:
 	# Main scene is the last child of root (after autoloads)
 	for i in range(root.get_child_count() - 1, -1, -1):
 		var child := root.get_child(i)
-		if child.has_method("_generate_new_puzzle"):  # Duck-type check for main scene
+		if child.has_method("refresh_from_state"):  # Duck-type check for main scene
 			return child
 
 	return null

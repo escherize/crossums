@@ -1,0 +1,30 @@
+{
+  "name": "return_to_title_resets",
+  "description": "Try Again / return_to_title resets GameState for clean slate",
+  "setup": {
+    "action": "start_run"
+  },
+  "steps": [
+    {
+      "action": "get_run_info",
+      "expect": {"active": true}
+    },
+    {
+      "action": "add_operator",
+      "params": {"id": "lucky_seven"},
+      "expect": {"success": true}
+    },
+    {
+      "action": "list_operators",
+      "expect_gt": {"count": 0}
+    },
+    {
+      "action": "return_to_title",
+      "expect": {"success": true, "state": "IDLE", "run_active": false, "operators_count": 0}
+    },
+    {
+      "action": "get_run_info",
+      "expect": {"active": false}
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "name": "solution_cell_protected",
+  "description": "Clicking a solution cell doesn't delete it - returns was_mistake and keeps cell active",
+  "setup": {
+    "size": 3,
+    "seed": 12345
+  },
+  "steps": [
+    {
+      "action": "delete_cell",
+      "params": {"row": 0, "col": 1},
+      "expect_nested": {"cell.was_mistake": true, "cell.state": "active"}
+    },
+    {
+      "assert": "assert_cell_state",
+      "params": {"row": 0, "col": 1, "state": "active"}
+    }
+  ]
+}
