@@ -8,9 +8,9 @@ extends RefCounted
 # =============================================================================
 
 enum CellState {
-	ACTIVE,    ## Cell is available to delete or keep
+	ACTIVE,    ## Cell is available to delete or circle
 	DELETED,   ## Cell has been deleted
-	KEPT,      ## Cell has been explicitly kept (locked)
+	CIRCLED,   ## Cell has been marked as "keeper" by player
 	LOCKED     ## Cell cannot be modified (boss puzzle constraint)
 }
 
@@ -117,8 +117,13 @@ func is_cell_deleted(row: int, col: int) -> bool:
 
 
 func is_cell_kept(row: int, col: int) -> bool:
+	## Returns true if cell contributes to sums (not deleted)
 	var state = get_cell_state(row, col)
-	return state == CellState.KEPT or state == CellState.ACTIVE
+	return state == CellState.CIRCLED or state == CellState.ACTIVE
+
+
+func is_cell_circled(row: int, col: int) -> bool:
+	return get_cell_state(row, col) == CellState.CIRCLED
 
 # =============================================================================
 # CELL OPERATIONS
@@ -154,15 +159,29 @@ func restore_cell(row: int, col: int) -> bool:
 	return true
 
 
-func keep_cell(row: int, col: int) -> bool:
+func circle_cell(row: int, col: int) -> bool:
+	## Mark a cell as "keeper" - visual planning aid
 	var cell = get_cell(row, col)
 	if not cell:
 		return false
 
 	if cell.state != CellState.ACTIVE:
+		return false  # Can only circle active cells
+
+	cell.state = CellState.CIRCLED
+	return true
+
+
+func uncircle_cell(row: int, col: int) -> bool:
+	## Remove circle marking, return to active
+	var cell = get_cell(row, col)
+	if not cell:
 		return false
 
-	cell.state = CellState.KEPT
+	if cell.state != CellState.CIRCLED:
+		return false
+
+	cell.state = CellState.ACTIVE
 	return true
 
 

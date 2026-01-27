@@ -166,8 +166,10 @@ func _execute_action(action: String, params: Dictionary):
 		# Cell manipulation actions
 		"delete_cell":
 			return _action_delete_cell(params)
-		"keep_cell":
-			return _action_keep_cell(params)
+		"circle_cell":
+			return _action_circle_cell(params)
+		"uncircle_cell":
+			return _action_uncircle_cell(params)
 		"restore_cell":
 			return _action_restore_cell(params)
 
@@ -315,7 +317,7 @@ func _action_delete_cell(params: Dictionary) -> Dictionary:
 		return {"error": "delete_failed", "message": "Failed to delete cell at (%d, %d)" % [row, col]}
 
 
-func _action_keep_cell(params: Dictionary) -> Dictionary:
+func _action_circle_cell(params: Dictionary) -> Dictionary:
 	var main_scene := _get_main_scene()
 	if main_scene == null:
 		return {"error": "no_game", "message": "Game not running"}
@@ -334,12 +336,39 @@ func _action_keep_cell(params: Dictionary) -> Dictionary:
 	if cell_data.state != PuzzleState.CellState.ACTIVE:
 		return {"error": "invalid_state", "message": "Cell at (%d, %d) is not active (current: %s)" % [row, col, _cell_state_to_string(cell_data.state)]}
 
-	if puzzle_state.keep_cell(row, col):
+	if puzzle_state.circle_cell(row, col):
 		_refresh_puzzle_grid(main_scene)
-		EventBus.cell_kept.emit(row, col, cell_data.value)
-		return {"cell": {"row": row, "col": col, "value": cell_data.value, "state": "kept"}}
+		EventBus.cell_circled.emit(row, col)
+		return {"cell": {"row": row, "col": col, "value": cell_data.value, "state": "circled"}}
 	else:
-		return {"error": "keep_failed", "message": "Failed to keep cell at (%d, %d)" % [row, col]}
+		return {"error": "circle_failed", "message": "Failed to circle cell at (%d, %d)" % [row, col]}
+
+
+func _action_uncircle_cell(params: Dictionary) -> Dictionary:
+	var main_scene := _get_main_scene()
+	if main_scene == null:
+		return {"error": "no_game", "message": "Game not running"}
+
+	var puzzle_state: PuzzleState = GameState.puzzle
+	if puzzle_state == null:
+		return {"error": "no_puzzle", "message": "No active puzzle"}
+
+	var row := int(params.get("row", -1))
+	var col := int(params.get("col", -1))
+
+	if not _is_valid_cell(puzzle_state, row, col):
+		return {"error": "invalid_cell", "message": "Invalid cell position: (%d, %d)" % [row, col]}
+
+	var cell_data := puzzle_state.get_cell(row, col)
+	if cell_data.state != PuzzleState.CellState.CIRCLED:
+		return {"error": "invalid_state", "message": "Cell at (%d, %d) is not circled (current: %s)" % [row, col, _cell_state_to_string(cell_data.state)]}
+
+	if puzzle_state.uncircle_cell(row, col):
+		_refresh_puzzle_grid(main_scene)
+		EventBus.cell_uncircled.emit(row, col)
+		return {"cell": {"row": row, "col": col, "value": cell_data.value, "state": "active"}}
+	else:
+		return {"error": "uncircle_failed", "message": "Failed to uncircle cell at (%d, %d)" % [row, col]}
 
 
 func _action_restore_cell(params: Dictionary) -> Dictionary:
@@ -1574,8 +1603,8 @@ func _cell_state_to_string(state: PuzzleState.CellState) -> String:
 			return "active"
 		PuzzleState.CellState.DELETED:
 			return "deleted"
-		PuzzleState.CellState.KEPT:
-			return "kept"
+		PuzzleState.CellState.CIRCLED:
+			return "circled"
 		PuzzleState.CellState.LOCKED:
 			return "locked"
 		_:
@@ -1588,8 +1617,8 @@ func _string_to_cell_state(state_str: String) -> PuzzleState.CellState:
 			return PuzzleState.CellState.ACTIVE
 		"deleted":
 			return PuzzleState.CellState.DELETED
-		"kept":
-			return PuzzleState.CellState.KEPT
+		"circled":
+			return PuzzleState.CellState.CIRCLED
 		"locked":
 			return PuzzleState.CellState.LOCKED
 		_:

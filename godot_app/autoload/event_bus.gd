@@ -9,8 +9,11 @@ extends Node
 ## Emitted when a cell is deleted from the grid
 signal cell_deleted(row: int, col: int, value: int)
 
-## Emitted when a cell is marked as kept (locked in)
-signal cell_kept(row: int, col: int, value: int)
+## Emitted when a cell is circled (marked as keeper)
+signal cell_circled(row: int, col: int)
+
+## Emitted when a cell is uncircled (returned to active)
+signal cell_uncircled(row: int, col: int)
 
 ## Emitted when cell deletion is undone
 signal cell_restored(row: int, col: int, value: int)
@@ -62,6 +65,9 @@ signal run_ended(victory: bool, final_score: int)
 ## Emitted when a life is lost
 signal life_lost(remaining: int)
 
+## Emitted when player makes a mistake (deletes a solution cell)
+signal mistake_made(row: int, col: int)
+
 ## Emitted when game over occurs
 signal game_over()
 
@@ -101,5 +107,11 @@ signal screen_transition_completed(screen_name: String)
 # GAME STATE EVENTS
 # =============================================================================
 
-## Emitted when game state changes
+## Emitted when game state changes (phase transitions)
 signal game_state_changed(old_state: int, new_state: int)
+
+## Emitted when any state data changes (for UI refresh)
+signal state_changed()
+
+## Emitted when run ends (victory or defeat) - aliased for Sprint 1 compatibility
+signal run_ended_with_result(won: bool)

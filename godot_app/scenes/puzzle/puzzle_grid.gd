@@ -10,10 +10,15 @@ extends Control
 const GridCellScene = preload("res://scenes/puzzle/grid_cell.tscn")
 const TargetDisplayScene = preload("res://scenes/puzzle/target_display.tscn")
 
-const CELL_SIZE := 96
-const TARGET_SIZE := 96  # Match cell size for alignment
-const CELL_GAP := 6
+const MIN_CELL_SIZE := 80
+const MAX_CELL_SIZE := 200
+const CELL_GAP := 8
 const GRID_PADDING := 16
+const GRID_SCREEN_FRACTION := 0.55  # Grid should fill ~55% of smallest screen dimension
+
+# Dynamic sizing based on grid dimensions and screen size
+var cell_size: int = MAX_CELL_SIZE
+var target_size: int = MAX_CELL_SIZE
 
 # =============================================================================
 # PROPERTIES
@@ -31,6 +36,7 @@ var col_targets: Array[TargetDisplay] = []
 var main_container: HBoxContainer
 var grid_area: VBoxContainer
 var col_target_container: HBoxContainer
+var col_spacer: Control
 var grid_with_row_targets: HBoxContainer
 var row_target_container: VBoxContainer
 var cell_grid_container: GridContainer
@@ -88,9 +94,9 @@ func _build_layout() -> void:
 	grid_area.add_child(col_target_container)
 
 	# Spacer to align column targets with cells (accounts for row target width)
-	# HBoxContainer adds CELL_GAP after this, so spacer is just TARGET_SIZE
-	var col_spacer = Control.new()
-	col_spacer.custom_minimum_size = Vector2(TARGET_SIZE, TARGET_SIZE)
+	# Size will be updated in _build_grid when we know the actual cell size
+	col_spacer = Control.new()
+	col_spacer.custom_minimum_size = Vector2(MAX_CELL_SIZE, MAX_CELL_SIZE)
 	col_target_container.add_child(col_spacer)
 
 	# Grid with row targets
@@ -128,11 +134,41 @@ func _clear_grid() -> void:
 	col_targets.clear()
 
 
+func _calculate_cell_size(grid_dim: int) -> void:
+	## Calculate optimal cell size based on grid dimensions and screen size
+	## Scales to fill a good portion of the screen while respecting min/max limits
+	var viewport_size := get_viewport().get_visible_rect().size
+
+	# Fallback if viewport not ready
+	if viewport_size.x < 100 or viewport_size.y < 100:
+		viewport_size = DisplayServer.window_get_size()
+
+	var available_space := minf(viewport_size.x, viewport_size.y) * GRID_SCREEN_FRACTION
+
+	# Account for target row/column and gaps
+	# Total grid needs: target_size + gap + (cell_size * grid_dim) + (gaps * (grid_dim - 1))
+	# Simplified: we need space for (grid_dim + 1) cells and grid_dim gaps
+	var total_cells := grid_dim + 1  # +1 for target column/row
+	var total_gaps := grid_dim * CELL_GAP
+	var available_for_cells := available_space - total_gaps
+	var calculated_size := int(available_for_cells / total_cells)
+
+	# Clamp to reasonable bounds
+	cell_size = clampi(calculated_size, MIN_CELL_SIZE, MAX_CELL_SIZE)
+	target_size = cell_size  # Keep targets same size as cells
+
+
 func _build_grid() -> void:
 	if not puzzle_state:
 		return
 
 	var grid_size_vec = puzzle_state.grid_size
+
+	# Calculate appropriate cell size for this grid
+	_calculate_cell_size(grid_size_vec.x)
+
+	# Update spacer size to match
+	col_spacer.custom_minimum_size = Vector2(target_size, target_size)
 
 	# Set grid columns
 	cell_grid_container.columns = grid_size_vec.x
@@ -141,7 +177,7 @@ func _build_grid() -> void:
 	for col in range(grid_size_vec.x):
 		var target = TargetDisplayScene.instantiate() as TargetDisplay
 		target.setup(col, puzzle_state.col_targets[col], TargetDisplay.ORIENTATION_COLUMN)
-		target.custom_minimum_size = Vector2(CELL_SIZE, TARGET_SIZE)
+		target.custom_minimum_size = Vector2(cell_size, target_size)
 		col_target_container.add_child(target)
 		col_targets.append(target)
 
@@ -150,7 +186,7 @@ func _build_grid() -> void:
 		# Row target
 		var row_target = TargetDisplayScene.instantiate() as TargetDisplay
 		row_target.setup(row, puzzle_state.row_targets[row], TargetDisplay.ORIENTATION_ROW)
-		row_target.custom_minimum_size = Vector2(TARGET_SIZE, CELL_SIZE)
+		row_target.custom_minimum_size = Vector2(target_size, cell_size)
 		row_target_container.add_child(row_target)
 		row_targets.append(row_target)
 
@@ -160,16 +196,18 @@ func _build_grid() -> void:
 			var cell = GridCellScene.instantiate() as GridCell
 			var cell_data = puzzle_state.get_cell(row, col)
 			cell.setup(row, col, cell_data.value)
+			cell.custom_minimum_size = Vector2(cell_size, cell_size)
 			cell.cell_clicked.connect(_on_cell_clicked)
-			cell.cell_right_clicked.connect(_on_cell_right_clicked)
+			cell.cell_right_clicked.connect(_on_cell_long_pressed)  # Right-click = circle
+			cell.cell_long_pressed.connect(_on_cell_long_pressed)   # Long press = circle
 			cell_grid_container.add_child(cell)
 			row_cells.append(cell)
 
 		grid_cells.append(row_cells)
 
 	# Calculate and set our minimum size so CenterContainer can center us
-	var total_width = TARGET_SIZE + CELL_GAP + (CELL_SIZE * grid_size_vec.x) + (CELL_GAP * (grid_size_vec.x - 1))
-	var total_height = TARGET_SIZE + CELL_GAP + (CELL_SIZE * grid_size_vec.y) + (CELL_GAP * (grid_size_vec.y - 1))
+	var total_width = target_size + CELL_GAP + (cell_size * grid_size_vec.x) + (CELL_GAP * (grid_size_vec.x - 1))
+	var total_height = target_size + CELL_GAP + (cell_size * grid_size_vec.y) + (CELL_GAP * (grid_size_vec.y - 1))
 	custom_minimum_size = Vector2(total_width, total_height)
 
 
@@ -202,12 +240,18 @@ func _on_cell_clicked(row: int, col: int) -> void:
 
 	match cell_data.state:
 		PuzzleState.CellState.ACTIVE:
-			# Delete the cell
-			if puzzle_state.delete_cell(row, col):
-				cell.set_cell_state(PuzzleState.CellState.DELETED)
-				cell.play_delete_animation()
-				_update_all_targets()
-				EventBus.cell_deleted.emit(row, col, value)
+			# Check if this is a solution cell (mistake to delete)
+			if cell_data.is_solution:
+				# Don't delete - just signal mistake and show feedback
+				EventBus.mistake_made.emit(row, col)
+				cell.play_error_animation()
+			else:
+				# Safe to delete non-solution cell
+				if puzzle_state.delete_cell(row, col):
+					cell.set_cell_state(PuzzleState.CellState.DELETED)
+					cell.play_delete_animation()
+					_update_all_targets()
+					EventBus.cell_deleted.emit(row, col, value)
 
 		PuzzleState.CellState.DELETED:
 			# Restore the cell
@@ -217,28 +261,39 @@ func _on_cell_clicked(row: int, col: int) -> void:
 				_update_all_targets()
 				EventBus.cell_restored.emit(row, col, value)
 
+		PuzzleState.CellState.CIRCLED:
+			# Uncircle the cell (return to active)
+			if puzzle_state.uncircle_cell(row, col):
+				cell.set_cell_state(PuzzleState.CellState.ACTIVE)
+				cell.play_circle_animation()
+				EventBus.cell_uncircled.emit(row, col)
+
 		_:
-			pass  # KEPT or LOCKED cells can't be toggled
+			pass  # LOCKED cells can't be toggled
 
 
-func _on_cell_right_clicked(row: int, col: int) -> void:
+func _on_cell_long_pressed(row: int, col: int) -> void:
+	## Long press or right-click = toggle circle state
 	if not puzzle_state:
 		return
 
 	var cell_data = puzzle_state.get_cell(row, col)
-	if cell_data.state != PuzzleState.CellState.DELETED:
-		return  # Can only restore deleted cells
+	var cell = grid_cells[row][col] as GridCell
 
-	# Restore the cell
-	var value = cell_data.value
-	if puzzle_state.restore_cell(row, col):
-		# Update visual
-		var cell = grid_cells[row][col] as GridCell
-		cell.set_cell_state(PuzzleState.CellState.ACTIVE)
-		cell.play_restore_animation()
+	match cell_data.state:
+		PuzzleState.CellState.ACTIVE:
+			# Circle the cell
+			if puzzle_state.circle_cell(row, col):
+				cell.set_cell_state(PuzzleState.CellState.CIRCLED)
+				cell.play_circle_animation()
+				EventBus.cell_circled.emit(row, col)
 
-		# Update targets
-		_update_all_targets()
+		PuzzleState.CellState.CIRCLED:
+			# Uncircle the cell
+			if puzzle_state.uncircle_cell(row, col):
+				cell.set_cell_state(PuzzleState.CellState.ACTIVE)
+				cell.play_circle_animation()
+				EventBus.cell_uncircled.emit(row, col)
 
-		# Emit event
-		EventBus.cell_restored.emit(row, col, value)
+		_:
+			pass  # Can't circle deleted or locked cells

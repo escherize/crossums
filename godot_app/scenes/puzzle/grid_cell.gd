@@ -8,6 +8,7 @@ extends Button
 
 signal cell_clicked(row: int, col: int)
 signal cell_right_clicked(row: int, col: int)
+signal cell_long_pressed(row: int, col: int)
 signal cell_hovered(row: int, col: int)
 signal cell_unhovered(row: int, col: int)
 
@@ -32,25 +33,34 @@ var cell_state: PuzzleState.CellState = PuzzleState.CellState.ACTIVE
 const COLOR_ACTIVE := Color(0.2, 0.25, 0.35)       # Dark blue-gray
 const COLOR_ACTIVE_HOVER := Color(0.3, 0.35, 0.45) # Lighter on hover
 const COLOR_DELETED := Color(0.15, 0.15, 0.15)     # Dark gray
-const COLOR_KEPT := Color(0.2, 0.4, 0.3)           # Dark green
+const COLOR_CIRCLED := Color(0.2, 0.25, 0.35)      # Same as active (border shows state)
+const COLOR_CIRCLED_BORDER := Color(0.3, 0.7, 0.9) # Cyan border for circled
 const COLOR_LOCKED := Color(0.35, 0.25, 0.2)       # Dark brown
 
 const TEXT_COLOR_ACTIVE := Color(0.95, 0.95, 0.95) # White
 const TEXT_COLOR_DELETED := Color(0.4, 0.4, 0.4)   # Gray
-const TEXT_COLOR_KEPT := Color(0.7, 1.0, 0.8)      # Light green
+const TEXT_COLOR_CIRCLED := Color(0.7, 0.9, 1.0)   # Light cyan
 
-const CELL_SIZE := Vector2(96, 96)
+const DEFAULT_SIZE := Vector2(96, 96)
 const FONT_SIZE := 36
+const LONG_PRESS_TIME := 0.4  # 400ms for long press
+
+# Long press tracking
+var _press_start_time: int = 0
+var _is_pressing: bool = false
+var _long_press_triggered: bool = false
 
 # =============================================================================
 # LIFECYCLE
 # =============================================================================
 
 func _ready() -> void:
-	custom_minimum_size = CELL_SIZE
+	# Don't override custom_minimum_size - let puzzle_grid set it dynamically
+	if custom_minimum_size == Vector2.ZERO:
+		custom_minimum_size = DEFAULT_SIZE
 
-	# Set pivot to center for scale animations
-	pivot_offset = CELL_SIZE / 2
+	# Set pivot to center for scale animations (use actual size)
+	pivot_offset = custom_minimum_size / 2
 
 	# Connect signals
 	pressed.connect(_on_pressed)
@@ -65,9 +75,31 @@ func _ready() -> void:
 
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
+		# Right-click = circle (mouse)
 		if event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
 			cell_right_clicked.emit(row, col)
 			accept_event()
+		# Track left button for long press detection
+		elif event.button_index == MOUSE_BUTTON_LEFT:
+			if event.pressed:
+				_is_pressing = true
+				_long_press_triggered = false
+				_press_start_time = Time.get_ticks_msec()
+			else:
+				# Button released
+				if _is_pressing and not _long_press_triggered:
+					# Normal tap - let _on_pressed handle it
+					pass
+				_is_pressing = false
+
+
+func _process(delta: float) -> void:
+	if _is_pressing and not _long_press_triggered:
+		var elapsed := (Time.get_ticks_msec() - _press_start_time) / 1000.0
+		if elapsed >= LONG_PRESS_TIME:
+			_long_press_triggered = true
+			_is_pressing = false
+			cell_long_pressed.emit(row, col)
 
 # =============================================================================
 # PUBLIC METHODS
@@ -102,6 +134,28 @@ func play_restore_animation() -> void:
 	tween.tween_property(self, "scale", Vector2(1.2, 1.2), 0.1)
 	tween.tween_property(self, "scale", Vector2(1.0, 1.0), 0.1)
 
+
+func play_error_animation() -> void:
+	## Flash red and shake to indicate mistake
+	var original_modulate = modulate
+	var tween = create_tween()
+	# Flash red
+	tween.tween_property(self, "modulate", Color.RED, 0.05)
+	# Shake left-right
+	tween.tween_property(self, "position:x", position.x - 5, 0.05)
+	tween.tween_property(self, "position:x", position.x + 5, 0.05)
+	tween.tween_property(self, "position:x", position.x - 5, 0.05)
+	tween.tween_property(self, "position:x", position.x, 0.05)
+	# Restore color
+	tween.tween_property(self, "modulate", original_modulate, 0.1)
+
+
+func play_circle_animation() -> void:
+	## Brief pulse to confirm circle/uncircle
+	var tween = create_tween()
+	tween.tween_property(self, "scale", Vector2(1.1, 1.1), 0.1)
+	tween.tween_property(self, "scale", Vector2(1.0, 1.0), 0.1)
+
 # =============================================================================
 # PRIVATE METHODS
 # =============================================================================
@@ -114,6 +168,9 @@ func _update_appearance() -> void:
 	var bg_color: Color
 	var text_color: Color
 
+	var border_color: Color = Color.TRANSPARENT
+	var border_width: int = 0
+
 	match cell_state:
 		PuzzleState.CellState.ACTIVE:
 			bg_color = COLOR_ACTIVE
@@ -123,10 +180,12 @@ func _update_appearance() -> void:
 			bg_color = COLOR_DELETED
 			text_color = TEXT_COLOR_DELETED
 			disabled = false  # Keep clickable for toggle (touch-friendly)
-		PuzzleState.CellState.KEPT:
-			bg_color = COLOR_KEPT
-			text_color = TEXT_COLOR_KEPT
-			disabled = true
+		PuzzleState.CellState.CIRCLED:
+			bg_color = COLOR_CIRCLED
+			text_color = TEXT_COLOR_CIRCLED
+			border_color = COLOR_CIRCLED_BORDER
+			border_width = 3
+			disabled = false  # Clickable to uncircle
 		PuzzleState.CellState.LOCKED:
 			bg_color = COLOR_LOCKED
 			text_color = TEXT_COLOR_ACTIVE
@@ -143,6 +202,14 @@ func _update_appearance() -> void:
 	style.content_margin_right = 4
 	style.content_margin_top = 4
 	style.content_margin_bottom = 4
+
+	# Add border for circled state
+	if border_width > 0:
+		style.border_width_left = border_width
+		style.border_width_right = border_width
+		style.border_width_top = border_width
+		style.border_width_bottom = border_width
+		style.border_color = border_color
 
 	add_theme_stylebox_override("normal", style)
 
@@ -178,6 +245,11 @@ func _update_appearance() -> void:
 # =============================================================================
 
 func _on_pressed() -> void:
+	# Don't emit click if long press was triggered
+	if _long_press_triggered:
+		_long_press_triggered = false
+		release_focus()
+		return
 	cell_clicked.emit(row, col)
 	release_focus()  # Prevent "selected" look after click
 

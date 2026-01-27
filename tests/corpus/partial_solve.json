@@ -1,0 +1,29 @@
+{
+  "name": "partial_solve",
+  "description": "Deleting some but not all required cells leaves puzzle invalid",
+  "setup": {
+    "size": 3,
+    "start_board": {
+      "size": 3,
+      "row_targets": [7, 5, 5],
+      "col_targets": [5, 4, 8],
+      "cells": [
+        [{"value": 1, "is_solution": false}, {"value": 2, "is_solution": true}, {"value": 5, "is_solution": true}],
+        [{"value": 4, "is_solution": false}, {"value": 2, "is_solution": true}, {"value": 3, "is_solution": true}],
+        [{"value": 5, "is_solution": true}, {"value": 6, "is_solution": false}, {"value": 6, "is_solution": false}]
+      ]
+    }
+  },
+  "steps": [
+    {"comment": "Delete (0,0) - row 0 sum goes from 8 to 7 (valid)"},
+    {"action": "delete_cell", "params": {"row": 0, "col": 0}},
+    {"assert": "assert_row_sum", "params": {"row": 0, "expected": 7}},
+
+    {"comment": "But we haven't fixed row 1 (still 9) or row 2 (still 17)"},
+    {"assert": "assert_row_sum", "params": {"row": 1, "expected": 9}},
+    {"assert": "assert_row_sum", "params": {"row": 2, "expected": 17}},
+
+    {"comment": "Puzzle should be invalid - not all rows/cols match targets"},
+    {"assert": "assert_invalid"}
+  ]
+}

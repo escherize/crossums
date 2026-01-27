@@ -1,0 +1,49 @@
+{
+  "name": "solve_5x5",
+  "description": "Solve a 5x5 puzzle correctly",
+  "setup": {
+    "size": 5,
+    "start_board": {
+      "size": 5,
+      "row_targets": [5, 5, 5, 5, 5],
+      "col_targets": [5, 5, 5, 5, 5],
+      "cells": [
+        [{"value": 5, "is_solution": true},  {"value": 1, "is_solution": false}, {"value": 1, "is_solution": false}, {"value": 1, "is_solution": false}, {"value": 1, "is_solution": false}],
+        [{"value": 1, "is_solution": false}, {"value": 5, "is_solution": true},  {"value": 1, "is_solution": false}, {"value": 1, "is_solution": false}, {"value": 1, "is_solution": false}],
+        [{"value": 1, "is_solution": false}, {"value": 1, "is_solution": false}, {"value": 5, "is_solution": true},  {"value": 1, "is_solution": false}, {"value": 1, "is_solution": false}],
+        [{"value": 1, "is_solution": false}, {"value": 1, "is_solution": false}, {"value": 1, "is_solution": false}, {"value": 5, "is_solution": true},  {"value": 1, "is_solution": false}],
+        [{"value": 1, "is_solution": false}, {"value": 1, "is_solution": false}, {"value": 1, "is_solution": false}, {"value": 1, "is_solution": false}, {"value": 5, "is_solution": true}]
+      ]
+    }
+  },
+  "steps": [
+    {"comment": "Solution is the diagonal - delete all non-diagonal cells"},
+    {"action": "delete_cell", "params": {"row": 0, "col": 1}},
+    {"action": "delete_cell", "params": {"row": 0, "col": 2}},
+    {"action": "delete_cell", "params": {"row": 0, "col": 3}},
+    {"action": "delete_cell", "params": {"row": 0, "col": 4}},
+
+    {"action": "delete_cell", "params": {"row": 1, "col": 0}},
+    {"action": "delete_cell", "params": {"row": 1, "col": 2}},
+    {"action": "delete_cell", "params": {"row": 1, "col": 3}},
+    {"action": "delete_cell", "params": {"row": 1, "col": 4}},
+
+    {"action": "delete_cell", "params": {"row": 2, "col": 0}},
+    {"action": "delete_cell", "params": {"row": 2, "col": 1}},
+    {"action": "delete_cell", "params": {"row": 2, "col": 3}},
+    {"action": "delete_cell", "params": {"row": 2, "col": 4}},
+
+    {"action": "delete_cell", "params": {"row": 3, "col": 0}},
+    {"action": "delete_cell", "params": {"row": 3, "col": 1}},
+    {"action": "delete_cell", "params": {"row": 3, "col": 2}},
+    {"action": "delete_cell", "params": {"row": 3, "col": 4}},
+
+    {"action": "delete_cell", "params": {"row": 4, "col": 0}},
+    {"action": "delete_cell", "params": {"row": 4, "col": 1}},
+    {"action": "delete_cell", "params": {"row": 4, "col": 2}},
+    {"action": "delete_cell", "params": {"row": 4, "col": 3}},
+
+    {"comment": "Verify solution"},
+    {"assert": "assert_valid"}
+  ]
+}

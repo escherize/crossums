@@ -1,0 +1,38 @@
+{
+  "name": "undo_after_circle",
+  "description": "Circle a cell, delete another, undo the delete - circle should persist",
+  "setup": {
+    "size": 3,
+    "start_board": {
+      "size": 3,
+      "row_targets": [7, 5, 5],
+      "col_targets": [5, 4, 8],
+      "cells": [
+        [{"value": 1, "is_solution": false}, {"value": 2, "is_solution": true}, {"value": 5, "is_solution": true}],
+        [{"value": 4, "is_solution": false}, {"value": 2, "is_solution": true}, {"value": 3, "is_solution": true}],
+        [{"value": 5, "is_solution": true}, {"value": 6, "is_solution": false}, {"value": 6, "is_solution": false}]
+      ]
+    }
+  },
+  "steps": [
+    {"comment": "Circle cell (0,1)"},
+    {"action": "circle_cell", "params": {"row": 0, "col": 1}},
+    {"assert": "assert_cell_state", "params": {"row": 0, "col": 1, "state": "circled"}},
+
+    {"comment": "Delete cell (0,0)"},
+    {"action": "delete_cell", "params": {"row": 0, "col": 0}},
+    {"assert": "assert_cell_state", "params": {"row": 0, "col": 0, "state": "deleted"}},
+
+    {"comment": "Circle should still be there"},
+    {"assert": "assert_cell_state", "params": {"row": 0, "col": 1, "state": "circled"}},
+
+    {"comment": "Undo the delete"},
+    {"action": "undo"},
+
+    {"comment": "Deleted cell is restored"},
+    {"assert": "assert_cell_state", "params": {"row": 0, "col": 0, "state": "active"}},
+
+    {"comment": "Circle should STILL persist - undo doesn't affect circles"},
+    {"assert": "assert_cell_state", "params": {"row": 0, "col": 1, "state": "circled"}}
+  ]
+}

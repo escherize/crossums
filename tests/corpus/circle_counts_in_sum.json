@@ -1,0 +1,52 @@
+{
+  "name": "circle_counts_in_sum",
+  "description": "Test that circled cells still count toward row and column sums",
+  "setup": {
+    "size": 3,
+    "start_board": {
+      "size": 3,
+      "seed": 12345,
+      "row_targets": [7, 5, 5],
+      "col_targets": [5, 4, 8],
+      "cells": [
+        [{"value": 1, "is_solution": false}, {"value": 2, "is_solution": true}, {"value": 5, "is_solution": true}],
+        [{"value": 4, "is_solution": false}, {"value": 2, "is_solution": true}, {"value": 3, "is_solution": true}],
+        [{"value": 5, "is_solution": true}, {"value": 6, "is_solution": false}, {"value": 6, "is_solution": false}]
+      ]
+    }
+  },
+  "steps": [
+    {
+      "comment": "Row 0 sum starts at 1+2+5=8. Circle cell (0,1) which has value 2."
+    },
+    {
+      "action": "circle_cell",
+      "params": {"row": 0, "col": 1}
+    },
+    {
+      "assert": "assert_cell_state",
+      "params": {"row": 0, "col": 1, "state": "circled"}
+    },
+    {
+      "comment": "After circling, row sum should still be 8 (circled cells count)"
+    },
+    {
+      "assert": "assert_row_sum",
+      "params": {"row": 0, "expected": 8}
+    },
+    {
+      "comment": "Now delete non-solution cell (0,0) with value 1. Row sum becomes 7."
+    },
+    {
+      "action": "delete_cell",
+      "params": {"row": 0, "col": 0}
+    },
+    {
+      "assert": "assert_row_sum",
+      "params": {"row": 0, "expected": 7}
+    },
+    {
+      "comment": "Circled cell (0,1) still contributes value 2 to the sum"
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "name": "consecutive_puzzles",
+  "description": "Complete multiple puzzles in sequence, verify stage advances",
+  "setup": {
+    "action": "start_run"
+  },
+  "steps": [
+    {"comment": "Verify we start at stage 1, puzzle 0"},
+    {"action": "get_run_info", "expect_nested": {"run.stage": 1, "run.puzzle_index": 0}},
+
+    {"comment": "Complete puzzle 1 with passing score"},
+    {"action": "complete_puzzle", "params": {"score": 500}, "expect": {"passed": true}},
+    {"action": "continue_result"},
+
+    {"comment": "Now at puzzle 1 of stage 1"},
+    {"action": "get_run_info", "expect_nested": {"run.stage": 1, "run.puzzle_index": 1}},
+
+    {"comment": "Complete puzzle 2"},
+    {"action": "complete_puzzle", "params": {"score": 500}, "expect": {"passed": true}},
+    {"action": "continue_result"},
+
+    {"comment": "Now at puzzle 2 of stage 1"},
+    {"action": "get_run_info", "expect_nested": {"run.stage": 1, "run.puzzle_index": 2}},
+
+    {"comment": "Complete puzzle 3 - this should advance to stage 2"},
+    {"action": "complete_puzzle", "params": {"score": 500}, "expect": {"passed": true}},
+    {"action": "continue_result"},
+
+    {"comment": "Should now be at stage 2 (after shop)"},
+    {"action": "continue_shop"},
+    {"action": "get_run_info", "expect_nested": {"run.stage": 2, "run.puzzle_index": 0}}
+  ]
+}
