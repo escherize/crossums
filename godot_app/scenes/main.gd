@@ -8,7 +8,6 @@ extends Control
 
 const PuzzleGridScene = preload("res://scenes/puzzle/puzzle_grid.tscn")
 const ScoringEngineScript = preload("res://scripts/core/scoring_engine.gd")
-const RunHUDScene = preload("res://scenes/ui/run_hud.tscn")
 const ResultPopupScene = preload("res://scenes/ui/result_popup.tscn")
 const ShopPlaceholderScene = preload("res://scenes/ui/shop_placeholder.tscn")
 const GameOverScene = preload("res://scenes/ui/game_over.tscn")
@@ -24,8 +23,15 @@ const VictoryScene = preload("res://scenes/ui/victory.tscn")
 @onready var timer_label: Label = %TimerLabel
 @onready var timer_bar: ProgressBar = %TimerBar
 @onready var overlay_container: CanvasLayer = %OverlayContainer
-@onready var hud_container: Control = %HUDContainer
 @onready var title_label: Label = %Title
+
+# HUD labels
+@onready var stage_label: Label = %StageLabel
+@onready var puzzle_label: Label = %PuzzleLabel
+@onready var lives_label: Label = %LivesLabel
+@onready var money_label: Label = %MoneyLabel
+@onready var score_label: Label = %ScoreLabel
+@onready var target_label: Label = %TargetLabel
 
 # Owned StyleBox for runtime color changes (avoid modifying shared resources)
 var _timer_fill_style: StyleBoxFlat
@@ -34,7 +40,6 @@ var puzzle_grid: PuzzleGrid = null
 var puzzle_solved: bool = false
 
 # Overlay instances
-var _run_hud: Control = null
 var _current_overlay: Control = null
 
 # =============================================================================
@@ -57,7 +62,6 @@ var restore_count: int = 0
 func _ready() -> void:
 	_setup_ui()
 	_connect_signals()
-	_setup_hud()
 	title_label.text = "CROSSSUMS v%s" % GameConfig.VERSION
 
 	# Start first puzzle if run is active (coming from title screen)
@@ -78,11 +82,6 @@ func _setup_ui() -> void:
 	timer_bar.add_theme_stylebox_override("fill", _timer_fill_style)
 
 
-func _setup_hud() -> void:
-	_run_hud = RunHUDScene.instantiate()
-	hud_container.add_child(_run_hud)
-
-
 func _connect_signals() -> void:
 	undo_button.pressed.connect(_on_undo_pressed)
 
@@ -90,6 +89,9 @@ func _connect_signals() -> void:
 	EventBus.cell_deleted.connect(_on_cell_deleted)
 	EventBus.cell_restored.connect(_on_cell_restored)
 	EventBus.mistake_made.connect(_on_mistake_made)
+	EventBus.state_changed.connect(_refresh_hud)
+	EventBus.money_changed.connect(func(_a, _b): _refresh_hud())
+	EventBus.life_lost.connect(func(_a): _refresh_hud())
 
 	# RunManager connections
 	RunManager.puzzle_ready.connect(_on_puzzle_ready)
@@ -126,6 +128,19 @@ func _update_timer_display() -> void:
 
 	# Update label
 	timer_label.text = "%.1fx" % time_multiplier
+
+
+func _refresh_hud() -> void:
+	if GameState.run == null:
+		return
+	var run = GameState.run
+	stage_label.text = "Stage %d" % run.stage
+	puzzle_label.text = "Puzzle %d/3" % (run.puzzle_index + 1)
+	lives_label.text = "Lives: %d/%d" % [run.lives, run.max_lives]
+	money_label.text = "$%d" % run.money
+	score_label.text = "Score: %d" % run.total_score
+	var config = RunManager.get_current_stage_config()
+	target_label.text = "Target: %d" % config.score_target if config else "Target: ---"
 
 # =============================================================================
 # PUZZLE MANAGEMENT
@@ -168,8 +183,7 @@ func refresh_from_state() -> void:
 
 	await _load_puzzle_grid()
 	_update_status("State restored.")
-	if _run_hud:
-		_run_hud.refresh()
+	_refresh_hud()
 
 # =============================================================================
 # RUNMANAGER SIGNAL HANDLERS
@@ -179,8 +193,7 @@ func _on_puzzle_ready(_stage_config) -> void:
 	## RunManager has prepared a new puzzle
 	_clear_overlay()
 	await _load_puzzle_grid()
-	if _run_hud:
-		_run_hud.refresh()
+	_refresh_hud()
 
 
 func _on_show_result(won: bool, score: int, target: int, reward: int) -> void:
