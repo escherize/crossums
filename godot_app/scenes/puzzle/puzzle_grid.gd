@@ -233,13 +233,17 @@ func _on_cell_clicked(row: int, col: int) -> void:
 
 	match cell_data.state:
 		PuzzleState.CellState.ACTIVE:
-			# Check if this is a solution cell (mistake to delete)
-			if cell_data.is_solution:
-				# Don't delete - just signal mistake and show feedback
+			# Check if deleting this cell would make the puzzle unsolvable
+			cell_data.state = PuzzleState.CellState.DELETED
+			var still_solvable := PuzzleLogic.has_any_solution(puzzle_state)
+			cell_data.state = PuzzleState.CellState.ACTIVE
+
+			if not still_solvable:
+				# Deleting this cell would make puzzle unsolvable - it's a mistake
 				EventBus.mistake_made.emit(row, col)
 				cell.play_error_animation()
 			else:
-				# Safe to delete non-solution cell
+				# Safe to delete - puzzle remains solvable
 				if puzzle_state.delete_cell(row, col):
 					cell.set_cell_state(PuzzleState.CellState.DELETED)
 					cell.play_delete_animation()

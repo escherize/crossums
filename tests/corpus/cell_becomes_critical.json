@@ -1,0 +1,44 @@
+{
+  "name": "cell_becomes_critical",
+  "description": "A cell that's deletable initially becomes critical after other deletions",
+  "setup": {
+    "size": 3,
+    "start_board": {
+      "size": 3,
+      "row_targets": [3, 3, 3],
+      "col_targets": [3, 3, 3],
+      "cells": [
+        [{"value": 1, "is_solution": false}, {"value": 1, "is_solution": false}, {"value": 3, "is_solution": true}],
+        [{"value": 1, "is_solution": false}, {"value": 3, "is_solution": true},  {"value": 1, "is_solution": false}],
+        [{"value": 3, "is_solution": true},  {"value": 1, "is_solution": false}, {"value": 1, "is_solution": false}]
+      ]
+    }
+  },
+  "steps": [
+    {"comment": "Initially (0,0) can be deleted - alternates exist via anti-diagonal"},
+    {"comment": "Solution options: diagonal 3s OR use 1+1+1 combinations"},
+
+    {"action": "delete_cell", "params": {"row": 0, "col": 0},
+     "expect_nested": {"cell.was_mistake": false}
+    },
+
+    {"comment": "Delete (0,1) too - still solvable via (0,2)=3"},
+    {"action": "delete_cell", "params": {"row": 0, "col": 1},
+     "expect_nested": {"cell.was_mistake": false}
+    },
+
+    {"comment": "Now (0,2) is CRITICAL - it's the only cell left in row 0"},
+    {"comment": "Trying to delete it should fail"},
+    {"action": "delete_cell", "params": {"row": 0, "col": 2},
+     "expect_nested": {"cell.was_mistake": true, "cell.state": "active"}
+    },
+
+    {"comment": "Complete the puzzle by deleting non-critical cells"},
+    {"action": "delete_cell", "params": {"row": 1, "col": 0}},
+    {"action": "delete_cell", "params": {"row": 1, "col": 2}},
+    {"action": "delete_cell", "params": {"row": 2, "col": 1}},
+    {"action": "delete_cell", "params": {"row": 2, "col": 2}},
+
+    {"assert": "assert_valid"}
+  ]
+}

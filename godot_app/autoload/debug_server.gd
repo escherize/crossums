@@ -277,6 +277,9 @@ func _execute_action(action: String, params: Dictionary):
 		"return_to_title":
 			return _action_return_to_title(params)
 
+		"check_solvable":
+			return _action_check_solvable(params)
+
 		_:
 			return {"error": "not_implemented", "message": "Action '%s' not yet implemented" % action}
 
@@ -304,13 +307,18 @@ func _action_delete_cell(params: Dictionary) -> Dictionary:
 	if cell_data.state != PuzzleState.CellState.ACTIVE:
 		return {"error": "invalid_state", "message": "Cell at (%d, %d) is not active (current: %s)" % [row, col, _cell_state_to_string(cell_data.state)]}
 
-	# Check if this is a solution cell (mistake to delete)
-	if cell_data.is_solution:
-		# Don't delete - just signal mistake
+	# Check if deleting this cell would make the puzzle unsolvable
+	# Temporarily delete the cell to test
+	cell_data.state = PuzzleState.CellState.DELETED
+	var still_solvable := PuzzleLogic.has_any_solution(puzzle_state)
+	cell_data.state = PuzzleState.CellState.ACTIVE  # Restore for now
+
+	if not still_solvable:
+		# Deleting this cell would make puzzle unsolvable - it's a mistake
 		EventBus.mistake_made.emit(row, col)
 		return {"cell": {"row": row, "col": col, "value": cell_data.value, "state": "active", "was_mistake": true}}
 
-	# Safe to delete non-solution cell
+	# Safe to delete - puzzle remains solvable
 	if puzzle_state.delete_cell(row, col):
 		_refresh_puzzle_grid(main_scene)
 		EventBus.cell_deleted.emit(row, col, cell_data.value)
@@ -693,6 +701,13 @@ func _action_load_board(params: Dictionary):
 	# Set as current puzzle
 	GameState.puzzle = puzzle_state
 	main_scene.set("puzzle_solved", false)
+
+	# Wait for any pending puzzle generation from _ready() to complete
+	for i in range(5):
+		await get_tree().process_frame
+
+	# Force our puzzle state (in case _ready() overwrote it)
+	GameState.puzzle = puzzle_state
 
 	# Reload grid visually
 	var puzzle_grid = main_scene.get("puzzle_grid")
@@ -1687,6 +1702,22 @@ func _get_validation_data(puzzle_state: PuzzleState) -> Dictionary:
 		"col_results": col_results,
 		"row_sums": row_sums,
 		"col_sums": col_sums
+	}
+
+
+func _action_check_solvable(params: Dictionary) -> Dictionary:
+	## Debug action to check if puzzle is solvable
+	var puzzle_state: PuzzleState = GameState.puzzle
+	if puzzle_state == null:
+		return {"error": "no_puzzle", "message": "No active puzzle"}
+
+	var has_any = PuzzleLogic.has_any_solution(puzzle_state)
+	var has_intended = PuzzleLogic.is_puzzle_solvable(puzzle_state)
+
+	return {
+		"has_any_solution": has_any,
+		"has_intended_solution": has_intended,
+		"grid_size": puzzle_state.grid_size.x
 	}
 
 

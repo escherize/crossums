@@ -262,3 +262,169 @@ static func is_puzzle_solvable(state: PuzzleState) -> bool:
 	# Restore any incorrectly deleted solution cells... but we can't in real game
 	# So just check if the intended solution is still reachable
 	return test_state.is_solved()
+
+
+# Cache for has_any_solution - keyed by deleted cell bitmask
+static var _solution_cache: Dictionary = {}
+static var _cache_puzzle_hash: int = -1
+
+
+static func has_any_solution(state: PuzzleState) -> bool:
+	## Check if ANY valid solution exists from current state.
+	## Uses backtracking to find if any combination of active cells satisfies all constraints.
+	## Results are cached based on which cells are deleted.
+
+	# Clear cache if puzzle changed (use hash of values+targets for robustness)
+	var puzzle_hash := _compute_puzzle_hash(state)
+	if puzzle_hash != _cache_puzzle_hash:
+		_solution_cache.clear()
+		_cache_puzzle_hash = puzzle_hash
+
+	# Build cache key from deleted cell positions (bitmask for small grids)
+	var cache_key := _build_state_key(state)
+	if _solution_cache.has(cache_key):
+		return _solution_cache[cache_key]
+
+	var result := _compute_has_any_solution(state)
+	_solution_cache[cache_key] = result
+	return result
+
+
+static func _compute_puzzle_hash(state: PuzzleState) -> int:
+	## Compute a hash of the puzzle's static properties (values and targets).
+	## Used to detect when the puzzle changes and cache should be cleared.
+	var hash_val := state.grid_size.x * 1000 + state.grid_size.y
+	for row in range(state.grid_size.y):
+		for col in range(state.grid_size.x):
+			hash_val = hash_val * 31 + state.get_cell(row, col).value
+	for t in state.row_targets:
+		hash_val = hash_val * 31 + t
+	for t in state.col_targets:
+		hash_val = hash_val * 31 + t
+	return hash_val
+
+
+static func _build_state_key(state: PuzzleState) -> int:
+	## Build a unique key representing current deleted cells.
+	## Uses bitmask for grids up to 6x6 (36 bits fits in int).
+	var key := 0
+	var bit := 1
+	for row in range(state.grid_size.y):
+		for col in range(state.grid_size.x):
+			if state.get_cell(row, col).state == PuzzleState.CellState.DELETED:
+				key |= bit
+			bit <<= 1
+	return key
+
+
+static func _compute_has_any_solution(state: PuzzleState) -> bool:
+	## Actual solver implementation.
+	var grid_size = state.grid_size
+	var row_targets = state.row_targets
+	var col_targets = state.col_targets
+
+	# Build list of active cells per row with their values and column indices
+	var rows_cells: Array = []  # Array of Array of {col: int, value: int}
+	for row in range(grid_size.y):
+		var row_cells: Array = []
+		for col in range(grid_size.x):
+			var cell = state.get_cell(row, col)
+			if cell.state != PuzzleState.CellState.DELETED:
+				row_cells.append({"col": col, "value": cell.value})
+		rows_cells.append(row_cells)
+
+	# For each row, precompute all subsets that sum to the row target
+	var row_valid_subsets: Array = []  # Array of Array of Array[int] (col indices)
+	for row in range(grid_size.y):
+		var subsets = _find_subsets_with_sum(rows_cells[row], row_targets[row])
+		if subsets.is_empty():
+			return false  # No way to satisfy this row
+		row_valid_subsets.append(subsets)
+
+	# Backtracking: try to find a combination where column sums also match
+	var col_sums: Array[int] = []
+	col_sums.resize(grid_size.x)
+	col_sums.fill(0)
+
+	return _backtrack_solve(state, row_valid_subsets, 0, col_sums, col_targets)
+
+
+static func _find_subsets_with_sum(cells: Array, target: int) -> Array:
+	## Find all subsets of cells that sum to exactly target.
+	## Returns Array of Arrays, where each inner array contains column indices.
+	var results: Array = []
+	_find_subsets_recursive(cells, target, 0, [], 0, results)
+	return results
+
+
+static func _find_subsets_recursive(cells: Array, target: int, index: int, current: Array, current_sum: int, results: Array) -> void:
+	if current_sum == target:
+		results.append(current.duplicate())
+		# Don't return - there might be cells with value 0 we could add
+		# But actually with values 1-9, we should return to avoid duplicates
+		# Continue to find other subsets though
+
+	if index >= cells.size():
+		return
+
+	if current_sum > target:
+		return  # Prune: already over target
+
+	# Try including cell at index
+	var cell = cells[index]
+	current.append(cell.col)
+	_find_subsets_recursive(cells, target, index + 1, current, current_sum + cell.value, results)
+	current.pop_back()
+
+	# Try excluding cell at index
+	_find_subsets_recursive(cells, target, index + 1, current, current_sum, results)
+
+
+static func _backtrack_solve(state: PuzzleState, row_subsets: Array, row: int, col_sums: Array[int], col_targets: Array[int], memo: Dictionary = {}) -> bool:
+	## Backtracking solver: try each valid subset for current row and recurse.
+	## Uses memoization keyed by (row, col_sums) to avoid redundant work.
+	if row >= state.grid_size.y:
+		# All rows processed - check if column sums match
+		for col in range(state.grid_size.x):
+			if col_sums[col] != col_targets[col]:
+				return false
+		return true
+
+	# Create memo key from row + column sums
+	var memo_key := _col_sums_to_key(row, col_sums)
+	if memo.has(memo_key):
+		return memo[memo_key]
+
+	# Try each valid subset for this row
+	for subset in row_subsets[row]:
+		# Add this subset's contribution to column sums
+		for col in subset:
+			var cell = state.get_cell(row, col)
+			col_sums[col] += cell.value
+
+		# Early pruning: if any column already exceeds target, skip
+		var valid = true
+		for col in range(state.grid_size.x):
+			if col_sums[col] > col_targets[col]:
+				valid = false
+				break
+
+		if valid and _backtrack_solve(state, row_subsets, row + 1, col_sums, col_targets, memo):
+			memo[memo_key] = true
+			return true
+
+		# Backtrack: remove this subset's contribution
+		for col in subset:
+			var cell = state.get_cell(row, col)
+			col_sums[col] -= cell.value
+
+	memo[memo_key] = false
+	return false
+
+
+static func _col_sums_to_key(row: int, col_sums: Array[int]) -> String:
+	## Convert row + column sums to a hashable key for memoization.
+	var parts: PackedStringArray = [str(row)]
+	for s in col_sums:
+		parts.append(str(s))
+	return ",".join(parts)
