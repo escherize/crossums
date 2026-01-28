@@ -88,6 +88,7 @@ func _connect_signals() -> void:
 	# EventBus connections
 	EventBus.cell_deleted.connect(_on_cell_deleted)
 	EventBus.cell_restored.connect(_on_cell_restored)
+	EventBus.cell_circled.connect(func(_r, _c): _check_auto_win())
 	EventBus.mistake_made.connect(_on_mistake_made)
 	EventBus.state_changed.connect(_refresh_hud)
 	EventBus.money_changed.connect(func(_a, _b): _refresh_hud())
@@ -306,8 +307,14 @@ func _check_auto_win() -> void:
 	if not GameState.puzzle:
 		return
 
+	# Win condition 1: All sums match (via deletion)
 	var result = PuzzleLogic.validate(GameState.puzzle)
 	if result.is_valid:
+		_complete_puzzle()
+		return
+
+	# Win condition 2: Circled cells alone match targets
+	if GameState.puzzle.is_solved_by_circles():
 		_complete_puzzle()
 
 

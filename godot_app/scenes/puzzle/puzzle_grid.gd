@@ -137,8 +137,8 @@ func _calculate_cell_size(grid_dim: int) -> void:
 	## Calculate cell size based on smallest viewport dimension
 	var viewport_size := get_viewport().get_visible_rect().size
 
-	# Use 55% of smallest dimension (conservative to fit with side panels)
-	var available_space := minf(viewport_size.x, viewport_size.y) * 0.55
+	# Use 70% of smallest dimension for better visibility
+	var available_space := minf(viewport_size.x, viewport_size.y) * 0.70
 
 	# Account for target row/column and gaps
 	var total_cells := grid_dim + 1  # +1 for target column/row

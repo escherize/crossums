@@ -1,13 +1,172 @@
 extends Control
-## Shop placeholder shown between stages.
-## Will be replaced with actual shop in Sprint 5.
+## Shop screen shown between stages.
+## Allows buying/selling operators and rerolling.
 
 signal continue_pressed
 
+const ShopStateScript = preload("res://scripts/core/shop_state.gd")
+
 @onready var continue_button: Button = %ContinueButton
+@onready var money_label: Label = %MoneyLabel
+@onready var reroll_button: Button = %RerollButton
+@onready var slots_container: HBoxContainer = %SlotsContainer
+@onready var owned_container: HBoxContainer = %OwnedContainer
+@onready var slots_label: Label = %SlotsLabel
+
+var shop_state: ShopState = null
 
 func _ready() -> void:
 	continue_button.pressed.connect(_on_continue_pressed)
+	reroll_button.pressed.connect(_on_reroll_pressed)
+	_setup_shop()
+
+
+func _setup_shop() -> void:
+	shop_state = ShopStateScript.new()
+	shop_state.generate()
+	_refresh_display()
+
+
+func _refresh_display() -> void:
+	# Update money
+	if GameState.run:
+		money_label.text = "$%d" % GameState.run.money
+	else:
+		money_label.text = "$0"
+
+	# Update reroll button
+	reroll_button.text = "Reroll ($%d)" % shop_state.reroll_cost
+	reroll_button.disabled = not shop_state.can_reroll()
+
+	# Update slots label
+	slots_label.text = "Operators (%d/%d)" % [GameState.operators.size(), GameState.MAX_OPERATORS]
+
+	# Clear and rebuild operator slots
+	for child in slots_container.get_children():
+		child.queue_free()
+
+	for i in range(shop_state.operator_slots.size()):
+		var op = shop_state.get_slot(i)
+		var slot = _create_shop_slot(i, op)
+		slots_container.add_child(slot)
+
+	# Clear and rebuild owned operators
+	for child in owned_container.get_children():
+		child.queue_free()
+
+	for i in range(GameState.operators.size()):
+		var op = GameState.operators[i]
+		var slot = _create_owned_slot(i, op)
+		owned_container.add_child(slot)
+
+
+func _create_shop_slot(index: int, op: Operator) -> Control:
+	var panel = PanelContainer.new()
+	panel.custom_minimum_size = Vector2(140, 120)
+
+	var vbox = VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 4)
+	panel.add_child(vbox)
+
+	var margin = MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 8)
+	margin.add_theme_constant_override("margin_right", 8)
+	margin.add_theme_constant_override("margin_top", 8)
+	margin.add_theme_constant_override("margin_bottom", 8)
+	panel.add_child(margin)
+
+	var content = VBoxContainer.new()
+	content.add_theme_constant_override("separation", 4)
+	margin.add_child(content)
+
+	if op == null:
+		var empty_label = Label.new()
+		empty_label.text = "SOLD"
+		empty_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		empty_label.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5))
+		content.add_child(empty_label)
+	else:
+		var name_label = Label.new()
+		name_label.text = op.display_name
+		name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		name_label.add_theme_font_size_override("font_size", 14)
+		content.add_child(name_label)
+
+		var desc_label = Label.new()
+		desc_label.text = op.description
+		desc_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		desc_label.add_theme_font_size_override("font_size", 11)
+		desc_label.add_theme_color_override("font_color", Color(0.7, 0.75, 0.8))
+		desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD
+		content.add_child(desc_label)
+
+		var spacer = Control.new()
+		spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		content.add_child(spacer)
+
+		var buy_button = Button.new()
+		buy_button.text = "Buy $%d" % op.price
+		buy_button.disabled = not shop_state.can_buy(index)
+		buy_button.pressed.connect(_on_buy_pressed.bind(index))
+		content.add_child(buy_button)
+
+	return panel
+
+
+func _create_owned_slot(index: int, op: Operator) -> Control:
+	var panel = PanelContainer.new()
+	panel.custom_minimum_size = Vector2(120, 100)
+
+	var margin = MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 8)
+	margin.add_theme_constant_override("margin_right", 8)
+	margin.add_theme_constant_override("margin_top", 8)
+	margin.add_theme_constant_override("margin_bottom", 8)
+	panel.add_child(margin)
+
+	var content = VBoxContainer.new()
+	content.add_theme_constant_override("separation", 4)
+	margin.add_child(content)
+
+	var name_label = Label.new()
+	name_label.text = op.display_name
+	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	name_label.add_theme_font_size_override("font_size", 12)
+	content.add_child(name_label)
+
+	var desc_label = Label.new()
+	desc_label.text = op.description
+	desc_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	desc_label.add_theme_font_size_override("font_size", 10)
+	desc_label.add_theme_color_override("font_color", Color(0.6, 0.65, 0.7))
+	desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD
+	content.add_child(desc_label)
+
+	var spacer = Control.new()
+	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	content.add_child(spacer)
+
+	var sell_button = Button.new()
+	sell_button.text = "Sell $%d" % (op.price / 2)
+	sell_button.pressed.connect(_on_sell_pressed.bind(index))
+	content.add_child(sell_button)
+
+	return panel
+
+
+func _on_buy_pressed(index: int) -> void:
+	if shop_state.buy_operator(index):
+		_refresh_display()
+
+
+func _on_sell_pressed(index: int) -> void:
+	if shop_state.sell_operator(index):
+		_refresh_display()
+
+
+func _on_reroll_pressed() -> void:
+	if shop_state.reroll():
+		_refresh_display()
 
 
 func _on_continue_pressed() -> void:

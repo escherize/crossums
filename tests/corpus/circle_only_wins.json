@@ -1,0 +1,30 @@
+{
+  "name": "circle_only_wins",
+  "description": "Circling all solution cells (sums match targets) triggers auto-win without deleting",
+  "setup": {
+    "size": 3,
+    "start_board": {
+      "size": 3,
+      "row_targets": [7, 5, 5],
+      "col_targets": [5, 4, 8],
+      "cells": [
+        [{"value": 1, "is_solution": false}, {"value": 2, "is_solution": true}, {"value": 5, "is_solution": true}],
+        [{"value": 4, "is_solution": false}, {"value": 2, "is_solution": true}, {"value": 3, "is_solution": true}],
+        [{"value": 5, "is_solution": true}, {"value": 6, "is_solution": false}, {"value": 6, "is_solution": false}]
+      ]
+    }
+  },
+  "steps": [
+    {"comment": "Circle all the solution cells - their sums should match targets"},
+    {"action": "circle_cell", "params": {"row": 0, "col": 1}},
+    {"action": "circle_cell", "params": {"row": 0, "col": 2}},
+    {"action": "circle_cell", "params": {"row": 1, "col": 1}},
+    {"action": "circle_cell", "params": {"row": 1, "col": 2}},
+
+    {"comment": "This is the last solution cell - should trigger auto-win"},
+    {"action": "circle_cell", "params": {"row": 2, "col": 0}},
+
+    {"comment": "Puzzle should now be complete (auto-win triggered)"},
+    {"assert": "assert_puzzle_complete"}
+  ]
+}

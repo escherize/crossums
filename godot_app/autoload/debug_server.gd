@@ -220,6 +220,8 @@ func _execute_action(action: String, params: Dictionary):
 			return _action_assert_valid(params)
 		"assert_invalid":
 			return _action_assert_invalid(params)
+		"assert_puzzle_complete":
+			return _action_assert_puzzle_complete(params)
 
 		# Screenshot and utilities
 		"screenshot":
@@ -1079,6 +1081,18 @@ func _action_assert_invalid(_params: Dictionary) -> Dictionary:
 	return {
 		"pass": not is_valid,
 		"message": "Puzzle is invalid (as expected)" if not is_valid else "Puzzle is unexpectedly valid"
+	}
+
+
+func _action_assert_puzzle_complete(_params: Dictionary) -> Dictionary:
+	var main_scene := _get_main_scene()
+	if main_scene == null:
+		return {"pass": false, "message": "Game not running"}
+
+	var is_complete: bool = main_scene.get("puzzle_solved") == true
+	return {
+		"pass": is_complete,
+		"message": "Puzzle is complete" if is_complete else "Puzzle is not complete"
 	}
 
 

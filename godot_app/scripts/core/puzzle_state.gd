@@ -259,6 +259,57 @@ func is_solved() -> bool:
 	return true
 
 
+func get_circled_row_sum(row: int) -> int:
+	## Sum of only CIRCLED cells in this row
+	if row < 0 or row >= grid_size.y:
+		return 0
+	var sum = 0
+	for col in range(grid_size.x):
+		var cell = cells[row][col]
+		if cell.state == CellState.CIRCLED:
+			sum += cell.value
+	return sum
+
+
+func get_circled_col_sum(col: int) -> int:
+	## Sum of only CIRCLED cells in this column
+	if col < 0 or col >= grid_size.x:
+		return 0
+	var sum = 0
+	for row in range(grid_size.y):
+		var cell = cells[row][col]
+		if cell.state == CellState.CIRCLED:
+			sum += cell.value
+	return sum
+
+
+func is_solved_by_circles() -> bool:
+	## Check if circled cells alone form a valid solution
+	# Must have at least one circled cell
+	var has_circles = false
+	for row in range(grid_size.y):
+		for col in range(grid_size.x):
+			if cells[row][col].state == CellState.CIRCLED:
+				has_circles = true
+				break
+		if has_circles:
+			break
+	if not has_circles:
+		return false
+
+	# Check all row sums
+	for row in range(grid_size.y):
+		if get_circled_row_sum(row) != row_targets[row]:
+			return false
+
+	# Check all col sums
+	for col in range(grid_size.x):
+		if get_circled_col_sum(col) != col_targets[col]:
+			return false
+
+	return true
+
+
 func get_row_delta(row: int) -> int:
 	## Returns difference between current sum and target (negative = under, positive = over)
 	return get_current_row_sum(row) - row_targets[row]
