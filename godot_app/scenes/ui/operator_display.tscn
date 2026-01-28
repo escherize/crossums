@@ -1,0 +1,18 @@
+[gd_scene load_steps=2 format=3 uid="uid://operator_display"]
+
+[ext_resource type="Script" path="res://scenes/ui/operator_display.gd" id="1_script"]
+
+[node name="OperatorDisplay" type="VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 8
+script = ExtResource("1_script")
+
+[node name="HeaderLabel" type="Label" parent="."]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.7, 0.75, 0.8, 1)
+text = "Operators (0/5)"
+
+[node name="OperatorList" type="VBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 6

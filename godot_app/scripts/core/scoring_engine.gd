@@ -132,6 +132,8 @@ static func calculate_score(
 				"name": op.display_name,
 				"bonus": op_total
 			})
+			# Emit trigger signal for UI feedback
+			EventBus.operator_triggered.emit(op.id, op_total)
 
 		op_score_bonus += op_total
 

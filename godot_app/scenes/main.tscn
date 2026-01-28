@@ -1,6 +1,7 @@
-[gd_scene load_steps=4 format=3 uid="uid://main001"]
+[gd_scene load_steps=5 format=3 uid="uid://main001"]
 
 [ext_resource type="Script" path="res://scenes/main.gd" id="1_main"]
+[ext_resource type="PackedScene" uid="uid://operator_display" path="res://scenes/ui/operator_display.tscn" id="2_opdisplay"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bg"]
 bg_color = Color(0.2, 0.22, 0.28, 1)
@@ -105,6 +106,13 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 14
 theme_override_colors/font_color = Color(0.5, 0.8, 0.9, 1)
 text = "Target: 300"
+
+[node name="OperatorSpacer" type="Control" parent="SafeArea/MainLayout/LeftPanel"]
+custom_minimum_size = Vector2(0, 12)
+layout_mode = 2
+
+[node name="OperatorDisplay" parent="SafeArea/MainLayout/LeftPanel" instance=ExtResource("2_opdisplay")]
+layout_mode = 2
 
 [node name="CenterPanel" type="VBoxContainer" parent="SafeArea/MainLayout"]
 layout_mode = 2
