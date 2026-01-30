@@ -14,6 +14,18 @@ const GameOverScene = preload("res://scenes/ui/game_over.tscn")
 const VictoryScene = preload("res://scenes/ui/victory.tscn")
 
 # =============================================================================
+# STATE
+# =============================================================================
+
+var puzzle_grid: PuzzleGrid = null
+var puzzle_solved: bool = false
+var puzzle_start_time: int = 0
+var time_multiplier: float = GameConfig.TIME_MULT_START
+var restore_count: int = 0
+var _timer_fill_style: StyleBoxFlat
+var _current_overlay: Control = null
+
+# =============================================================================
 # NODE REFERENCES
 # =============================================================================
 
@@ -24,36 +36,12 @@ const VictoryScene = preload("res://scenes/ui/victory.tscn")
 @onready var timer_bar: ProgressBar = %TimerBar
 @onready var overlay_container: CanvasLayer = %OverlayContainer
 @onready var title_label: Label = %Title
-
-# HUD labels
 @onready var stage_label: Label = %StageLabel
 @onready var puzzle_label: Label = %PuzzleLabel
 @onready var lives_label: Label = %LivesLabel
 @onready var money_label: Label = %MoneyLabel
 @onready var score_label: Label = %ScoreLabel
 @onready var target_label: Label = %TargetLabel
-
-# Owned StyleBox for runtime color changes (avoid modifying shared resources)
-var _timer_fill_style: StyleBoxFlat
-
-var puzzle_grid: PuzzleGrid = null
-var puzzle_solved: bool = false
-
-# Overlay instances
-var _current_overlay: Control = null
-
-# =============================================================================
-# TIME MULTIPLIER (values from GameConfig)
-# =============================================================================
-
-var puzzle_start_time: int = 0
-var time_multiplier: float = GameConfig.TIME_MULT_START
-
-# =============================================================================
-# PRECISION TRACKING
-# =============================================================================
-
-var restore_count: int = 0
 
 # =============================================================================
 # LIFECYCLE
@@ -141,7 +129,11 @@ func _refresh_hud() -> void:
 	money_label.text = "$%d" % run.money
 	score_label.text = "Score: %d" % run.total_score
 	var config = RunManager.get_current_stage_config()
-	target_label.text = "Target: %d" % config.score_target if config else "Target: ---"
+	# Show stage accumulated score vs target
+	if config:
+		target_label.text = "Stage: %d/%d" % [run.stage_score, config.score_target]
+	else:
+		target_label.text = "Stage: ---"
 
 # =============================================================================
 # PUZZLE MANAGEMENT

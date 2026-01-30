@@ -279,6 +279,14 @@ func _on_cell_long_pressed(row: int, col: int) -> void:
 
 	match cell_data.state:
 		PuzzleState.CellState.ACTIVE:
+			# Check if any valid solution includes this cell
+			# If not, circling it is a mistake (the cell must be deleted)
+			var can_be_in_solution := PuzzleLogic.has_solution_including_cell(puzzle_state, row, col)
+			if not can_be_in_solution:
+				cell.play_mistake_animation()
+				EventBus.mistake_made.emit(row, col)
+				return
+
 			# Circle the cell
 			if puzzle_state.circle_cell(row, col):
 				cell.set_cell_state(PuzzleState.CellState.CIRCLED)

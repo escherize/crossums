@@ -1,14 +1,76 @@
 {
   "name": "run_game_over",
-  "description": "Test missing score target triggers instant game over",
+  "description": "Test failing stage score gate triggers game over after boss puzzle",
   "setup": {
     "action": "start_run"
   },
   "steps": [
-    {"action": "get_run_info", "expect_nested": {"run.lives": 5}},
-    {"action": "get_run_info", "expect": {"state": "PUZZLE_ACTIVE"}},
-
-    {"action": "complete_puzzle", "params": {"score": 0}, "expect": {"passed": false}},
-    {"action": "get_run_info", "expect": {"state": "GAME_OVER"}}
+    {
+      "action": "get_run_info",
+      "expect_nested": {
+        "run.lives": 5
+      }
+    },
+    {
+      "action": "get_run_info",
+      "expect": {
+        "state": "PUZZLE_ACTIVE"
+      }
+    },
+    {
+      "action": "complete_puzzle",
+      "params": {
+        "score": 100
+      },
+      "expect": {
+        "passed": true
+      }
+    },
+    {
+      "action": "continue_result"
+    },
+    {
+      "action": "get_run_info",
+      "expect_nested": {
+        "run.stage": 1,
+        "run.puzzle_index": 1,
+        "run.stage_score": 100
+      }
+    },
+    {
+      "action": "complete_puzzle",
+      "params": {
+        "score": 100
+      },
+      "expect": {
+        "passed": true
+      }
+    },
+    {
+      "action": "continue_result"
+    },
+    {
+      "action": "get_run_info",
+      "expect_nested": {
+        "run.stage": 1,
+        "run.puzzle_index": 2,
+        "run.stage_score": 200
+      }
+    },
+    {
+      "action": "complete_puzzle",
+      "params": {
+        "score": 100
+      },
+      "expect": {
+        "passed": false
+      }
+    },
+    {
+      "action": "get_run_info",
+      "expect": {
+        "state": "GAME_OVER"
+      }
+    }
   ]
 }

@@ -5,6 +5,196 @@
 
 ---
 
+## 2026-01-29
+
+### Session Summary
+Implemented slack progression and stage-level score gates to make puzzles easier and give operators room to shine. Design influenced by Schell's "Art of Game Design" (Chapter 12: Balance, Chapter 14: Puzzles).
+
+---
+
+### Feature: Slack Progression (Tight → Loose)
+
+Each stage now has 3 puzzles with increasing slack (room for optimization):
+
+| Puzzle | Slack | Feel | Purpose |
+|--------|-------|------|---------|
+| 0 | Tight | Constrained | Test core puzzle skill |
+| 1 | Medium | Balanced | Building tension |
+| 2 (Boss) | Loose | Open | Operator playground, epic moves |
+
+**Implementation (`stage_config.gd`):**
+```gdscript
+var base_slack := clampf(0.7 - (p_stage - 1) * 0.06, 0.2, 0.7)
+var puzzle_adjustment := p_puzzle_index * 0.15  # 0, 0.15, 0.30
+config.slack = clampf(base_slack + puzzle_adjustment, 0.2, 0.85)
+```
+
+Slack now integrates into puzzle generation via `to_puzzle_config()`:
+```gdscript
+pc.cells_to_delete_ratio = clampf(0.55 - (slack - 0.2) * 0.4, 0.25, 0.55)
+```
+
+---
+
+### Feature: Stage-Level Score Gates
+
+Scores now accumulate across 3 puzzles; gate check only after boss puzzle.
+
+**Old behavior:** Each puzzle checked against target → miss = instant game over
+**New behavior:** Stage total checked after puzzle 2 → miss = game over
+
+**Files modified:**
+- `run_state.gd` - Added `stage_score`, `add_stage_score()`, `reset_stage_score()`
+- `run_manager.gd` - Refactored `on_puzzle_complete()` for stage gating
+- `main.gd` - HUD shows "Stage: X/Y" (accumulated vs target)
+- `debug_server.gd` - Updated API for `stage_score` and `passed` logic
+
+**New score targets (~3x old values for 3-puzzle accumulation):**
+```gdscript
+const SCORE_TARGETS := [900, 1500, 2400, 3600, 6000, 10500, 18000, 30000]
+```
+
+---
+
+### Difficulty Tuning Knobs
+
+All in `stage_config.gd`:
+
+| Knob | Location | Current | Effect |
+|------|----------|---------|--------|
+| `SCORE_TARGETS` | const | [900, 1500, ...] | Stage gate thresholds |
+| `GRID_SIZES` | const | [3,3,4,4,5,5,6,6] | Grid size per stage |
+| `base_slack` | `get_config()` | 0.7 → 0.28 | Fewer solutions as stages progress |
+| `puzzle_adjustment` | `get_config()` | +0.15 per puzzle | Boss gets most slack |
+| `cells_to_delete_ratio` | `to_puzzle_config()` | 0.25–0.55 | How many cells removed |
+| `allow_negatives` | `get_config()` | stage >= 4 | Negative numbers in later stages |
+| `money_reward` | `get_config()` | 3 + stage | Shop currency per puzzle |
+
+**Scoring multipliers (`scoring_engine.gd`):**
+- Time multiplier: 2.0 → 1.0 over 60 seconds
+- Precision multiplier: 1.5x (perfect) / 1.25x (1-2 restores) / 1.0x (3+)
+- Kept bonus: 25 points per cell kept
+- Line multiplier: 1.0 + 0.2 per valid line
+
+**Future knobs to consider:**
+- Boss puzzle score weight (2x?)
+- Grid size per puzzle (not just stage)
+- Slack curve shape (linear vs exponential)
+
+---
+
+### Design Rationale (from Schell)
+
+From Chapter 14 (Puzzles):
+> "A puzzle is a game with a dominant strategy."
+
+Multi-solution puzzles fight this — players find *their* optimal path.
+
+> Principle #5: "Increase difficulty gradually"
+
+Slack tight→loose within stage creates rhythm: constraint → constraint → payoff.
+
+> Principle #7: "Pyramid structure extends interest"
+
+Stage gates = pyramid. Small puzzles feed into stage goal.
+
+From Chapter 12 (Balance):
+> "Expected value is an excellent tool for game balancing"
+
+If basic solve > target, operators have no room. Raised targets so operators become necessary.
+
+---
+
+### Tests Updated
+
+- `run_game_over.json` - Now tests stage-level gating (3 puzzles × 100 < 900 = fail)
+- `run_start.json` - Updated expected score_target to 900, added stage_score check
+
+31 tests passing.
+
+---
+
+### Deployed
+
+v0.2.18 - Slack progression + stage-level score gates live.
+
+---
+
+### Technical Notes
+
+1. **GDScript type inference** - `:=` failed for boolean comparisons (`var was_boss := x == 2`). Used explicit `var was_boss: bool = x == 2` instead.
+
+2. **Godot 4.5 parse errors** - Not caught by gdlint. Consider adding headless compile check to test framework.
+
+---
+
+## 2026-01-27
+
+### Session Summary
+Fixed circle vulnerability, removed legacy `is_solution` field, added gdlint to test framework.
+
+---
+
+### Feature: Circling Invalid Cell is a Mistake
+
+Previously, players could avoid mistakes by only circling cells (never deleting). Fixed by:
+- Added `has_solution_including_cell()` to `puzzle_logic.gd` - checks if any valid solution includes a specific cell
+- If no solution includes the cell, circling it triggers `mistake_made` signal (same as deleting a critical cell)
+- Tests added: `circle_invalid_is_mistake.json`, `circle_alternate_valid.json`
+
+---
+
+### Refactor: Removed `is_solution` Field
+
+The `is_solution` flag on cells was legacy from before the backtracking solver. Now redundant since the solver determines validity dynamically.
+
+**Removed from:**
+- `puzzle_state.gd` - CellData class
+- `puzzle_logic.gd` - generation code, `get_cells_to_delete()`, `is_puzzle_solvable()`
+- `debug_server.gd` - serialization, `_action_apply_solution()` (now uses solver)
+- `game_state.gd` - save/load
+- All 27 test JSON files
+
+---
+
+### Added: gdlint to Test Framework
+
+Integrated GDScript linter into `tests/run-tests.ts` - runs before Godot tests.
+
+**Config (`godot_app/gdlintrc`):**
+```yaml
+disable:
+  - max-line-length
+  - class-variable-name  # Allow SCREAMING_SNAKE for constants
+
+# Raised limits for large files
+max-file-lines: 2000
+max-returns: 10
+max-public-methods: 20
+```
+
+**Inline disables:**
+- `debug_server.gd`: `# gdlint: disable=max-returns` (dispatcher with 49 cases)
+- `puzzle_state.gd`: `# gdlint: disable=max-public-methods` (34 methods in core data model)
+
+---
+
+### Lint Fixes Applied
+
+**Rules enabled and fixed:**
+- `duplicated-load` - consolidated `load("res://scenes/main.tscn")` into `MAIN_SCENE` constant
+- `class-definitions-order` - reordered declarations in 8 files (signals → enums → consts → vars → @onready)
+- `no-else-return` / `no-elif-return` - removed 10 unnecessary else blocks
+- `unused-argument` - prefixed unused `delta` with `_`
+
+---
+
+### Tests
+
+31 tests passing (including gdlint check).
+
+---
+
 ## 2026-01-23
 
 ### Session Summary

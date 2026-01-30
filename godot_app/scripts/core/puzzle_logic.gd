@@ -70,6 +70,14 @@ class ValidationResult:
 		return count
 
 # =============================================================================
+# CACHE
+# =============================================================================
+
+# Cache for has_any_solution - keyed by deleted cell bitmask
+static var _solution_cache: Dictionary = {}
+static var _cache_puzzle_hash: int = -1
+
+# =============================================================================
 # PUZZLE GENERATION
 # =============================================================================
 
@@ -164,8 +172,6 @@ static func generate_puzzle(config: PuzzleConfig) -> PuzzleState:
 			var value = rng.randi_range(config.min_cell_value, config.max_cell_value)
 			var cell = state.get_cell(row, col)
 			cell.value = value
-			# Mark if this is a solution cell
-			cell.is_solution = solution_cells.has(Vector2i(col, row))
 
 	# Step 3: Calculate targets from ONLY the solution cells
 	for row in range(grid_size.y):
@@ -231,43 +237,6 @@ static func validate(state: PuzzleState) -> ValidationResult:
 
 	return result
 
-# =============================================================================
-# HINTS
-# =============================================================================
-
-static func get_cells_to_delete(state: PuzzleState) -> Array[Vector2i]:
-	## Returns positions of cells that are NOT part of the intended solution.
-	## Note: Other solutions may exist!
-	var to_delete: Array[Vector2i] = []
-	for row in range(state.grid_size.y):
-		for col in range(state.grid_size.x):
-			var cell = state.get_cell(row, col)
-			if not cell.is_solution:
-				to_delete.append(Vector2i(col, row))
-	return to_delete
-
-
-static func is_puzzle_solvable(state: PuzzleState) -> bool:
-	## Check if the puzzle can still be solved from current state.
-	## Creates a test copy and tries the intended solution.
-	var test_state = state.duplicate_state()
-
-	# Delete all non-solution cells that are still active
-	for row in range(test_state.grid_size.y):
-		for col in range(test_state.grid_size.x):
-			var cell = test_state.get_cell(row, col)
-			if not cell.is_solution and cell.state == PuzzleState.CellState.ACTIVE:
-				test_state.delete_cell(row, col)
-
-	# Restore any incorrectly deleted solution cells... but we can't in real game
-	# So just check if the intended solution is still reachable
-	return test_state.is_solved()
-
-
-# Cache for has_any_solution - keyed by deleted cell bitmask
-static var _solution_cache: Dictionary = {}
-static var _cache_puzzle_hash: int = -1
-
 
 static func has_any_solution(state: PuzzleState) -> bool:
 	## Check if ANY valid solution exists from current state.
@@ -317,8 +286,9 @@ static func _build_state_key(state: PuzzleState) -> int:
 	return key
 
 
-static func _compute_has_any_solution(state: PuzzleState) -> bool:
+static func _compute_has_any_solution(state: PuzzleState, required_cell: Vector2i = Vector2i(-1, -1)) -> bool:
 	## Actual solver implementation.
+	## If required_cell is valid, only considers solutions that INCLUDE that cell.
 	var grid_size = state.grid_size
 	var row_targets = state.row_targets
 	var col_targets = state.col_targets
@@ -339,6 +309,17 @@ static func _compute_has_any_solution(state: PuzzleState) -> bool:
 		var subsets = _find_subsets_with_sum(rows_cells[row], row_targets[row])
 		if subsets.is_empty():
 			return false  # No way to satisfy this row
+
+		# If this row contains the required cell, filter to subsets that include it
+		if row == required_cell.y and required_cell.x >= 0:
+			var filtered: Array = []
+			for subset in subsets:
+				if required_cell.x in subset:
+					filtered.append(subset)
+			if filtered.is_empty():
+				return false  # No valid subset includes the required cell
+			subsets = filtered
+
 		row_valid_subsets.append(subsets)
 
 	# Backtracking: try to find a combination where column sums also match
@@ -428,3 +409,9 @@ static func _col_sums_to_key(row: int, col_sums: Array[int]) -> String:
 	for s in col_sums:
 		parts.append(str(s))
 	return ",".join(parts)
+
+
+static func has_solution_including_cell(state: PuzzleState, row: int, col: int) -> bool:
+	## Check if ANY valid solution exists that INCLUDES the cell at (row, col).
+	## Used to validate circling: if no solution includes this cell, circling it is a mistake.
+	return _compute_has_any_solution(state, Vector2i(col, row))

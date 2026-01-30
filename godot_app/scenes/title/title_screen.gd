@@ -10,6 +10,12 @@ const MainScene = preload("res://scenes/main.tscn")
 const HowToPlayScene = preload("res://scenes/title/how_to_play.tscn")
 
 # =============================================================================
+# STATE
+# =============================================================================
+
+var _how_to_play_instance: Control = null
+
+# =============================================================================
 # NODE REFERENCES
 # =============================================================================
 
@@ -18,8 +24,6 @@ const HowToPlayScene = preload("res://scenes/title/how_to_play.tscn")
 @onready var options_button: Button = %OptionsButton
 @onready var overlay_container: CanvasLayer = %OverlayContainer
 @onready var subtitle_label: Label = %SubtitleLabel
-
-var _how_to_play_instance: Control = null
 
 # =============================================================================
 # LIFECYCLE

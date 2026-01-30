@@ -4,6 +4,16 @@ extends RefCounted
 ## Determines difficulty parameters like grid size, score target, etc.
 
 # =============================================================================
+# CONSTANTS
+# =============================================================================
+
+## Score targets per stage (1-8) - cumulative across 3 puzzles
+const SCORE_TARGETS := [900, 1500, 2400, 3600, 6000, 10500, 18000, 30000]
+
+## Grid sizes per stage: 3,3,4,4,5,5,6,6
+const GRID_SIZES := [3, 3, 4, 4, 5, 5, 6, 6]
+
+# =============================================================================
 # CONFIGURATION VALUES
 # =============================================================================
 
@@ -14,16 +24,6 @@ var score_target: int
 var allow_negatives: bool
 var slack: float
 var money_reward: int
-
-# =============================================================================
-# CONSTANTS
-# =============================================================================
-
-## Score targets per stage (1-8)
-const SCORE_TARGETS := [300, 500, 800, 1200, 2000, 3500, 6000, 10000]
-
-## Grid sizes per stage: 3,3,4,4,5,5,6,6
-const GRID_SIZES := [3, 3, 4, 4, 5, 5, 6, 6]
 
 # =============================================================================
 # FACTORY
@@ -45,9 +45,12 @@ static func get_config(p_stage: int, p_puzzle_index: int):
 	# Negatives enabled from stage 4+
 	config.allow_negatives = p_stage >= 4
 
-	# Slack decreases as stages progress (tighter puzzles)
-	# Stage 1: 0.7, Stage 8: ~0.28
-	config.slack = clampf(0.7 - (p_stage - 1) * 0.06, 0.2, 0.7)
+	# Slack: tight → loose within each stage (boss has most room for optimization)
+	# Base slack decreases with stage progression
+	var base_slack := clampf(0.7 - (p_stage - 1) * 0.06, 0.2, 0.7)
+	# Increase slack for later puzzles (boss = loosest)
+	var puzzle_adjustment := p_puzzle_index * 0.15  # 0, 0.15, 0.30
+	config.slack = clampf(base_slack + puzzle_adjustment, 0.2, 0.85)
 
 	# Money reward increases with stage
 	config.money_reward = 3 + p_stage
@@ -63,9 +66,9 @@ func to_puzzle_config() -> PuzzleLogic.PuzzleConfig:
 	## Convert to PuzzleLogic.PuzzleConfig for puzzle generation
 	var pc = PuzzleLogic.PuzzleConfig.new()
 	pc.grid_size = Vector2i(grid_size, grid_size)
-	pc.cells_to_delete_ratio = 0.5
-	# Note: allow_negatives and slack are defined in Sprint 3
-	# For now, just set basic config
+	# High slack → low deletion ratio (more cells, more solutions, easier)
+	# Low slack → high deletion ratio (fewer cells, tighter constraints)
+	pc.cells_to_delete_ratio = clampf(0.55 - (slack - 0.2) * 0.4, 0.25, 0.55)
 	return pc
 
 

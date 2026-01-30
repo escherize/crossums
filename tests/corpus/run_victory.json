@@ -5,10 +5,34 @@
     "action": "start_run"
   },
   "steps": [
-    {"action": "set_stage", "params": {"stage": 8, "puzzle_index": 2}},
-    {"action": "get_run_info", "expect_nested": {"run.stage": 8, "run.puzzle_index": 2}},
-
-    {"action": "complete_puzzle", "params": {"score": 15000}, "expect": {"passed": true}},
-    {"action": "get_run_info", "expect": {"state": "VICTORY"}}
+    {
+      "action": "set_stage",
+      "params": {
+        "stage": 8,
+        "puzzle_index": 2
+      }
+    },
+    {
+      "action": "get_run_info",
+      "expect_nested": {
+        "run.stage": 8,
+        "run.puzzle_index": 2
+      }
+    },
+    {
+      "action": "complete_puzzle",
+      "params": {
+        "score": 15000
+      },
+      "expect": {
+        "passed": true
+      }
+    },
+    {
+      "action": "get_run_info",
+      "expect": {
+        "state": "VICTORY"
+      }
+    }
   ]
 }

@@ -1,0 +1,139 @@
+{
+  "name": "circle_invalid_is_mistake",
+  "description": "Circling a cell that must be deleted is a mistake",
+  "setup": {
+    "size": 3,
+    "start_board": {
+      "size": 3,
+      "row_targets": [
+        9,
+        5,
+        5
+      ],
+      "col_targets": [
+        9,
+        5,
+        5
+      ],
+      "cells": [
+        [
+          {
+            "value": 9
+          },
+          {
+            "value": 1
+          },
+          {
+            "value": 1
+          }
+        ],
+        [
+          {
+            "value": 1
+          },
+          {
+            "value": 5
+          },
+          {
+            "value": 1
+          }
+        ],
+        [
+          {
+            "value": 1
+          },
+          {
+            "value": 1
+          },
+          {
+            "value": 5
+          }
+        ]
+      ]
+    }
+  },
+  "steps": [
+    {
+      "comment": "Row 0 target is 9, only (0,0)=9 can satisfy it"
+    },
+    {
+      "comment": "So (0,1)=1 and (0,2)=1 MUST be deleted - they can't be part of any solution"
+    },
+    {
+      "comment": "Circling (0,1) should be a mistake - this cell must be deleted"
+    },
+    {
+      "action": "circle_cell",
+      "params": {
+        "row": 0,
+        "col": 1
+      },
+      "expect_nested": {
+        "cell.was_mistake": true,
+        "cell.state": "active"
+      }
+    },
+    {
+      "comment": "Circling (0,0) should work - it's part of the only solution"
+    },
+    {
+      "action": "circle_cell",
+      "params": {
+        "row": 0,
+        "col": 0
+      },
+      "expect_nested": {
+        "cell.was_mistake": false,
+        "cell.state": "circled"
+      }
+    },
+    {
+      "comment": "Now delete the cells that must be deleted"
+    },
+    {
+      "action": "delete_cell",
+      "params": {
+        "row": 0,
+        "col": 1
+      }
+    },
+    {
+      "action": "delete_cell",
+      "params": {
+        "row": 0,
+        "col": 2
+      }
+    },
+    {
+      "action": "delete_cell",
+      "params": {
+        "row": 1,
+        "col": 0
+      }
+    },
+    {
+      "action": "delete_cell",
+      "params": {
+        "row": 1,
+        "col": 2
+      }
+    },
+    {
+      "action": "delete_cell",
+      "params": {
+        "row": 2,
+        "col": 0
+      }
+    },
+    {
+      "action": "delete_cell",
+      "params": {
+        "row": 2,
+        "col": 1
+      }
+    },
+    {
+      "assert": "assert_valid"
+    }
+  ]
+}

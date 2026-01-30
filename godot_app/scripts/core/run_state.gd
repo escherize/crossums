@@ -18,6 +18,7 @@ var lives: int = 5
 var max_lives: int = 5
 var money: int = 0
 var total_score: int = 0
+var stage_score: int = 0  # Accumulated score within current stage
 
 # =============================================================================
 # COMPUTED
@@ -62,6 +63,14 @@ func spend_money(amount: int) -> bool:
 func add_score(amount: int) -> void:
 	total_score += amount
 
+
+func add_stage_score(amount: int) -> void:
+	stage_score += amount
+
+
+func reset_stage_score() -> void:
+	stage_score = 0
+
 # =============================================================================
 # SERIALIZATION
 # =============================================================================
@@ -74,6 +83,7 @@ func serialize() -> Dictionary:
 		"max_lives": max_lives,
 		"money": money,
 		"total_score": total_score,
+		"stage_score": stage_score,
 	}
 
 
@@ -86,4 +96,5 @@ static func deserialize(data: Dictionary):
 	rs.max_lives = data.get("max_lives", 5)
 	rs.money = data.get("money", 0)
 	rs.total_score = data.get("total_score", 0)
+	rs.stage_score = data.get("stage_score", 0)
 	return rs

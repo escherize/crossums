@@ -5,29 +5,84 @@
     "size": 3,
     "start_board": {
       "size": 3,
-      "row_targets": [9, 5, 5],
-      "col_targets": [9, 5, 5],
+      "row_targets": [
+        9,
+        5,
+        5
+      ],
+      "col_targets": [
+        9,
+        5,
+        5
+      ],
       "cells": [
-        [{"value": 9, "is_solution": true},  {"value": 1, "is_solution": false}, {"value": 1, "is_solution": false}],
-        [{"value": 1, "is_solution": false}, {"value": 5, "is_solution": true},  {"value": 1, "is_solution": false}],
-        [{"value": 1, "is_solution": false}, {"value": 1, "is_solution": false}, {"value": 5, "is_solution": true}]
+        [
+          {
+            "value": 9
+          },
+          {
+            "value": 1
+          },
+          {
+            "value": 1
+          }
+        ],
+        [
+          {
+            "value": 1
+          },
+          {
+            "value": 5
+          },
+          {
+            "value": 1
+          }
+        ],
+        [
+          {
+            "value": 1
+          },
+          {
+            "value": 1
+          },
+          {
+            "value": 5
+          }
+        ]
       ]
     }
   },
   "steps": [
-    {"comment": "The 9 in (0,0) is the ONLY way to hit row 0 target of 9"},
-    {"comment": "Trying to delete it should fail since no alternate exists"},
-
-    {"action": "delete_cell", "params": {"row": 0, "col": 0},
-     "expect_nested": {
-       "cell.was_mistake": true,
-       "cell.state": "active"
-     }
+    {
+      "comment": "The 9 in (0,0) is the ONLY way to hit row 0 target of 9"
     },
-
-    {"comment": "But deleting (0,1) should work - it's not critical"},
-    {"action": "delete_cell", "params": {"row": 0, "col": 1},
-     "expect_nested": {"cell.was_mistake": false, "cell.state": "deleted"}
+    {
+      "comment": "Trying to delete it should fail since no alternate exists"
+    },
+    {
+      "action": "delete_cell",
+      "params": {
+        "row": 0,
+        "col": 0
+      },
+      "expect_nested": {
+        "cell.was_mistake": true,
+        "cell.state": "active"
+      }
+    },
+    {
+      "comment": "But deleting (0,1) should work - it's not critical"
+    },
+    {
+      "action": "delete_cell",
+      "params": {
+        "row": 0,
+        "col": 1
+      },
+      "expect_nested": {
+        "cell.was_mistake": false,
+        "cell.state": "deleted"
+      }
     }
   ]
 }

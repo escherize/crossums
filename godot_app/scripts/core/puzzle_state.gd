@@ -1,3 +1,4 @@
+# gdlint: disable=max-public-methods
 class_name PuzzleState
 extends RefCounted
 ## Represents the current state of a puzzle grid.
@@ -21,15 +22,13 @@ enum CellState {
 class CellData:
 	var value: int = 0
 	var state: CellState = CellState.ACTIVE
-	var is_solution: bool = false  ## True if this cell is part of the valid solution
 	var modifiers: Array[String] = []  ## Applied modifier effect IDs
 
-	func _init(v: int = 0, is_sol: bool = false) -> void:
+	func _init(v: int = 0) -> void:
 		value = v
-		is_solution = is_sol
 
 	func duplicate() -> CellData:
-		var copy = CellData.new(value, is_solution)
+		var copy = CellData.new(value)
 		copy.state = state
 		copy.modifiers = modifiers.duplicate()
 		return copy

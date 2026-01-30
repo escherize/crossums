@@ -2,7 +2,16 @@ extends Node
 ## Manages run state machine and progression.
 ## Controls flow: puzzle → result → shop → next puzzle → victory/game over
 
-const StageConfigScript = preload("res://scripts/core/stage_config.gd")
+# =============================================================================
+# SIGNALS
+# =============================================================================
+
+signal state_changed(new_state: State)
+signal puzzle_ready(stage_config)
+signal show_result(won: bool, score: int, target: int, reward: int)
+signal show_shop()
+signal show_game_over(total_score: int, stages_cleared: int)
+signal show_victory(total_score: int)
 
 # =============================================================================
 # STATE MACHINE
@@ -17,23 +26,17 @@ enum State {
 	VICTORY,        # Completed all stages
 }
 
+# =============================================================================
+# CONSTANTS
+# =============================================================================
+
+const StageConfigScript = preload("res://scripts/core/stage_config.gd")
+
+# =============================================================================
+# STATE
+# =============================================================================
+
 var current_state: State = State.IDLE
-
-# =============================================================================
-# SIGNALS
-# =============================================================================
-
-signal state_changed(new_state: State)
-signal puzzle_ready(stage_config)
-signal show_result(won: bool, score: int, target: int, reward: int)
-signal show_shop()
-signal show_game_over(total_score: int, stages_cleared: int)
-signal show_victory(total_score: int)
-
-# =============================================================================
-# CURRENT PUZZLE TRACKING
-# =============================================================================
-
 var _current_stage_config = null  # StageConfig instance
 var _last_puzzle_score: int = 0
 
@@ -77,40 +80,45 @@ func _start_next_puzzle() -> void:
 
 
 func on_puzzle_complete(score: int) -> void:
-	## Called when player completes a puzzle (wins or fails to meet target)
+	## Called when player completes a puzzle.
+	## Scores accumulate across stage; gate check only on boss puzzle (index 2).
 	if _current_stage_config == null:
 		push_error("No stage config for puzzle completion")
 		return
 
 	_last_puzzle_score = score
-	var target: int = _current_stage_config.score_target
-	var won: bool = score >= target
-	var reward: int = _current_stage_config.money_reward if won else 0
+	var reward: int = _current_stage_config.money_reward
 
-	if won:
-		# Add score and money
-		GameState.run.add_score(score)
-		GameState.run.add_money(reward)
-		EventBus.puzzle_completed.emit(true, score, reward)
+	# Always add score (no per-puzzle gate)
+	GameState.run.add_stage_score(score)
+	GameState.run.add_score(score)
+	GameState.run.add_money(reward)
+	EventBus.puzzle_completed.emit(true, score, reward)
 
-		# Advance to next puzzle
-		GameState.run.advance_puzzle()
+	# Remember if this was the boss puzzle before advancing
+	var was_boss: bool = GameState.run.puzzle_index == 2
+	GameState.run.advance_puzzle()
 
-		# Check for victory
-		if GameState.run.stage > 8:
-			_end_run(true)
-			return
-	else:
-		# Miss score target = instant game over (no life loss, just death)
-		EventBus.puzzle_completed.emit(false, score, 0)
-		EventBus.game_over.emit()
-		_end_run(false)
+	# Check for victory (completed all stages)
+	if GameState.run.stage > 8:
+		_end_run(true)
 		return
+
+	# Boss puzzle (index was 2): check stage gate
+	if was_boss:
+		var stage_target: int = _current_stage_config.score_target
+		if GameState.run.stage_score < stage_target:
+			# Failed stage gate = game over
+			EventBus.game_over.emit()
+			_end_run(false)
+			return
+		# Passed! Reset stage score for next stage
+		GameState.run.reset_stage_score()
 
 	# Show result
 	current_state = State.PUZZLE_RESULT
 	state_changed.emit(current_state)
-	show_result.emit(won, score, target, reward)
+	show_result.emit(true, score, _current_stage_config.score_target, reward)
 
 
 func continue_from_result() -> void:

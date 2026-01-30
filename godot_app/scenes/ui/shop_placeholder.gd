@@ -6,14 +6,14 @@ signal continue_pressed
 
 const ShopStateScript = preload("res://scripts/core/shop_state.gd")
 
+var shop_state: ShopState = null
+
 @onready var continue_button: Button = %ContinueButton
 @onready var money_label: Label = %MoneyLabel
 @onready var reroll_button: Button = %RerollButton
 @onready var slots_container: HBoxContainer = %SlotsContainer
 @onready var owned_container: HBoxContainer = %OwnedContainer
 @onready var slots_label: Label = %SlotsLabel
-
-var shop_state: ShopState = null
 
 func _ready() -> void:
 	continue_button.pressed.connect(_on_continue_pressed)

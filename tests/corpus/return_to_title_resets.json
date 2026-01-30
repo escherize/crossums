@@ -7,24 +7,39 @@
   "steps": [
     {
       "action": "get_run_info",
-      "expect": {"active": true}
+      "expect": {
+        "active": true
+      }
     },
     {
       "action": "add_operator",
-      "params": {"id": "lucky_seven"},
-      "expect": {"success": true}
+      "params": {
+        "id": "lucky_seven"
+      },
+      "expect": {
+        "success": true
+      }
     },
     {
       "action": "list_operators",
-      "expect_gt": {"count": 0}
+      "expect_gt": {
+        "count": 0
+      }
     },
     {
       "action": "return_to_title",
-      "expect": {"success": true, "state": "IDLE", "run_active": false, "operators_count": 0}
+      "expect": {
+        "success": true,
+        "state": "IDLE",
+        "run_active": false,
+        "operators_count": 0
+      }
     },
     {
       "action": "get_run_info",
-      "expect": {"active": false}
+      "expect": {
+        "active": false
+      }
     }
   ]
 }

@@ -3,7 +3,7 @@ extends PanelContainer
 ## Displays a row or column target sum, with visual feedback on current progress.
 
 # =============================================================================
-# CONSTANTS (using const instead of enum to avoid type issues)
+# CONSTANTS
 # =============================================================================
 
 const ORIENTATION_ROW := 0
@@ -11,6 +11,12 @@ const ORIENTATION_COLUMN := 1
 
 const STATUS_WRONG := 0   # Under OR over - doesn't match
 const STATUS_EXACT := 1   # Matches target
+
+const COLOR_WRONG := Color(0.7, 0.25, 0.25)     # Red (doesn't match)
+const COLOR_EXACT := Color(0.2, 0.6, 0.3)       # Green (matches!)
+const TEXT_COLOR := Color(0.95, 0.95, 0.95)
+const DEFAULT_SIZE := Vector2(96, 96)  # Default, can be overridden
+const FONT_SIZE := 32
 
 # =============================================================================
 # PROPERTIES
@@ -21,22 +27,6 @@ var index: int = 0  ## Row or column index
 var target: int = 0
 var current_sum: int = 0
 var status: int = STATUS_WRONG
-
-# =============================================================================
-# STYLE CONSTANTS
-# =============================================================================
-
-const COLOR_WRONG := Color(0.7, 0.25, 0.25)     # Red (doesn't match)
-const COLOR_EXACT := Color(0.2, 0.6, 0.3)       # Green (matches!)
-
-const TEXT_COLOR := Color(0.95, 0.95, 0.95)
-const DEFAULT_SIZE := Vector2(96, 96)  # Default, can be overridden
-const FONT_SIZE := 32
-
-# =============================================================================
-# NODES
-# =============================================================================
-
 var label: Label
 
 # =============================================================================

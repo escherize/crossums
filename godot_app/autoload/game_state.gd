@@ -3,6 +3,7 @@ extends Node
 ## Holds all game data for serialization, save/load, and testing.
 
 const RunStateScript = preload("res://scripts/core/run_state.gd")
+const MAX_OPERATORS := 5
 
 # =============================================================================
 # STATE
@@ -44,8 +45,6 @@ func start_new_puzzle(config: PuzzleLogic.PuzzleConfig) -> void:
 # =============================================================================
 # OPERATOR MANAGEMENT (Sprint 2)
 # =============================================================================
-
-const MAX_OPERATORS := 5
 
 func add_operator(op: Operator) -> bool:
 	if operators.size() >= MAX_OPERATORS:
@@ -130,7 +129,6 @@ func _serialize_puzzle() -> Dictionary:
 			row_data.append({
 				"value": cell.value,
 				"state": cell.state,
-				"is_solution": cell.is_solution,
 			})
 		cells.append(row_data)
 
@@ -158,7 +156,6 @@ func _deserialize_puzzle(data: Dictionary) -> PuzzleState:
 			var cell = ps.get_cell(row, col)
 			cell.value = cell_data.value
 			cell.state = cell_data.state
-			cell.is_solution = cell_data.is_solution
 
 	ps.deletion_history.clear()
 	for pos in data.get("deletion_history", []):

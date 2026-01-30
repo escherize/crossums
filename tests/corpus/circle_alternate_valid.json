@@ -1,0 +1,100 @@
+{
+  "name": "circle_alternate_valid",
+  "description": "Circling a non-solution cell is valid if it can be part of an alternate solution",
+  "setup": {
+    "size": 2,
+    "start_board": {
+      "size": 2,
+      "row_targets": [
+        1,
+        1
+      ],
+      "col_targets": [
+        1,
+        1
+      ],
+      "cells": [
+        [
+          {
+            "value": 1
+          },
+          {
+            "value": 1
+          }
+        ],
+        [
+          {
+            "value": 1
+          },
+          {
+            "value": 1
+          }
+        ]
+      ]
+    }
+  },
+  "steps": [
+    {
+      "comment": "2x2 all 1s - diagonal is marked as solution but anti-diagonal also works"
+    },
+    {
+      "comment": "Circle (0,1) which is NOT marked is_solution but CAN be part of anti-diagonal solution"
+    },
+    {
+      "action": "circle_cell",
+      "params": {
+        "row": 0,
+        "col": 1
+      },
+      "expect_nested": {
+        "cell.was_mistake": false,
+        "cell.state": "circled"
+      }
+    },
+    {
+      "comment": "Now (0,0) must be deleted since (0,1) is circled and row target is 1"
+    },
+    {
+      "action": "delete_cell",
+      "params": {
+        "row": 0,
+        "col": 0
+      },
+      "expect_nested": {
+        "cell.was_mistake": false,
+        "cell.state": "deleted"
+      }
+    },
+    {
+      "comment": "Circle (1,0) to complete the anti-diagonal"
+    },
+    {
+      "action": "circle_cell",
+      "params": {
+        "row": 1,
+        "col": 0
+      },
+      "expect_nested": {
+        "cell.was_mistake": false,
+        "cell.state": "circled"
+      }
+    },
+    {
+      "comment": "Delete (1,1) to finish"
+    },
+    {
+      "action": "delete_cell",
+      "params": {
+        "row": 1,
+        "col": 1
+      },
+      "expect_nested": {
+        "cell.was_mistake": false,
+        "cell.state": "deleted"
+      }
+    },
+    {
+      "assert": "assert_valid"
+    }
+  ]
+}

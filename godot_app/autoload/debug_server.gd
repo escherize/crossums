@@ -5,14 +5,13 @@ extends Node
 
 const PORT: int = 9999
 const BIND_ADDRESS: String = "127.0.0.1"
+const MAIN_SCENE: PackedScene = preload("res://scenes/main.tscn")
+const API_VERSION: String = "1.0.0"
 
 var _server: TCPServer = null
 var _connection: StreamPeerTCP = null
 var _buffer: String = ""
 var _enabled: bool = false
-
-# API version for compatibility checking
-const API_VERSION: String = "1.0.0"
 
 
 func _ready() -> void:
@@ -158,6 +157,7 @@ func _handle_action(id: String, msg: Dictionary) -> void:
 		_send_response(id, result)
 
 
+# gdlint: disable=max-returns
 func _execute_action(action: String, params: Dictionary):
 	match action:
 		"ping":
@@ -323,8 +323,7 @@ func _action_delete_cell(params: Dictionary) -> Dictionary:
 		_refresh_puzzle_grid(main_scene)
 		EventBus.cell_deleted.emit(row, col, cell_data.value)
 		return {"cell": {"row": row, "col": col, "value": cell_data.value, "state": "deleted", "was_mistake": false}}
-	else:
-		return {"error": "delete_failed", "message": "Failed to delete cell at (%d, %d)" % [row, col]}
+	return {"error": "delete_failed", "message": "Failed to delete cell at (%d, %d)" % [row, col]}
 
 
 func _action_circle_cell(params: Dictionary) -> Dictionary:
@@ -346,12 +345,18 @@ func _action_circle_cell(params: Dictionary) -> Dictionary:
 	if cell_data.state != PuzzleState.CellState.ACTIVE:
 		return {"error": "invalid_state", "message": "Cell at (%d, %d) is not active (current: %s)" % [row, col, _cell_state_to_string(cell_data.state)]}
 
+	# Check if any valid solution includes this cell
+	# If not, circling it is a mistake (the cell must be deleted)
+	var can_be_in_solution := PuzzleLogic.has_solution_including_cell(puzzle_state, row, col)
+	if not can_be_in_solution:
+		EventBus.mistake_made.emit(row, col)
+		return {"cell": {"row": row, "col": col, "value": cell_data.value, "state": "active", "was_mistake": true}}
+
 	if puzzle_state.circle_cell(row, col):
 		_refresh_puzzle_grid(main_scene)
 		EventBus.cell_circled.emit(row, col)
-		return {"cell": {"row": row, "col": col, "value": cell_data.value, "state": "circled"}}
-	else:
-		return {"error": "circle_failed", "message": "Failed to circle cell at (%d, %d)" % [row, col]}
+		return {"cell": {"row": row, "col": col, "value": cell_data.value, "state": "circled", "was_mistake": false}}
+	return {"error": "circle_failed", "message": "Failed to circle cell at (%d, %d)" % [row, col]}
 
 
 func _action_uncircle_cell(params: Dictionary) -> Dictionary:
@@ -377,8 +382,7 @@ func _action_uncircle_cell(params: Dictionary) -> Dictionary:
 		_refresh_puzzle_grid(main_scene)
 		EventBus.cell_uncircled.emit(row, col)
 		return {"cell": {"row": row, "col": col, "value": cell_data.value, "state": "active"}}
-	else:
-		return {"error": "uncircle_failed", "message": "Failed to uncircle cell at (%d, %d)" % [row, col]}
+	return {"error": "uncircle_failed", "message": "Failed to uncircle cell at (%d, %d)" % [row, col]}
 
 
 func _action_restore_cell(params: Dictionary) -> Dictionary:
@@ -404,8 +408,7 @@ func _action_restore_cell(params: Dictionary) -> Dictionary:
 		_refresh_puzzle_grid(main_scene)
 		EventBus.cell_restored.emit(row, col, cell_data.value)
 		return {"cell": {"row": row, "col": col, "value": cell_data.value, "state": "active"}}
-	else:
-		return {"error": "restore_failed", "message": "Failed to restore cell at (%d, %d)" % [row, col]}
+	return {"error": "restore_failed", "message": "Failed to restore cell at (%d, %d)" % [row, col]}
 
 
 # =============================================================================
@@ -432,8 +435,7 @@ func _action_undo(_params: Dictionary) -> Dictionary:
 			"undone": {"row": pos.y, "col": pos.x, "value": cell_data.value},
 			"remaining_undo_count": puzzle_state.deletion_history.size()
 		}
-	else:
-		return {"error": "undo_failed", "message": "Failed to undo"}
+	return {"error": "undo_failed", "message": "Failed to undo"}
 
 
 func _action_redo(_params: Dictionary) -> Dictionary:
@@ -496,17 +498,17 @@ func _action_submit(_params: Dictionary) -> Dictionary:
 			"valid": true,
 			"message": "Puzzle solved!"
 		}
-	else:
-		EventBus.puzzle_submitted.emit()
-		EventBus.puzzle_validated.emit(false, result.row_results, result.col_results)
 
-		return {
-			"success": false,
-			"valid": false,
-			"row_results": _serialize_validation_results(result.row_results),
-			"col_results": _serialize_validation_results(result.col_results),
-			"message": "Puzzle not solved"
-		}
+	EventBus.puzzle_submitted.emit()
+	EventBus.puzzle_validated.emit(false, result.row_results, result.col_results)
+
+	return {
+		"success": false,
+		"valid": false,
+		"row_results": _serialize_validation_results(result.row_results),
+		"col_results": _serialize_validation_results(result.col_results),
+		"message": "Puzzle not solved"
+	}
 
 
 func _action_get_row_sum(params: Dictionary) -> Dictionary:
@@ -597,7 +599,7 @@ func _action_new_puzzle(params: Dictionary):
 	if main_scene == null:
 		# Start a run and transition to main scene
 		RunManager.start_run()
-		var main_scene_packed = load("res://scenes/main.tscn")
+		var main_scene_packed = MAIN_SCENE
 		get_tree().change_scene_to_packed(main_scene_packed)
 		# Wait for scene transition
 		for i in range(20):
@@ -649,12 +651,12 @@ func _action_new_puzzle(params: Dictionary):
 
 func _action_load_board(params: Dictionary):
 	## Load a puzzle from a predefined board state (for deterministic tests)
-	## Expects: size, row_targets, col_targets, cells (2D array with value/is_solution)
+	## Expects: size, row_targets, col_targets, cells (2D array with value)
 	var main_scene := _get_main_scene()
 	if main_scene == null:
 		# Start a run and transition to main scene
 		RunManager.start_run()
-		var main_scene_packed = load("res://scenes/main.tscn")
+		var main_scene_packed = MAIN_SCENE
 		get_tree().change_scene_to_packed(main_scene_packed)
 		for i in range(20):
 			await get_tree().process_frame
@@ -695,7 +697,6 @@ func _action_load_board(params: Dictionary):
 			var cell_data = row_data[col] if col < row_data.size() else {}
 			var cell = puzzle_state.get_cell(row, col)
 			cell.value = int(cell_data.get("value", 0))
-			cell.is_solution = bool(cell_data.get("is_solution", false))
 			cell.state = PuzzleState.CellState.ACTIVE
 
 	# Set as current puzzle
@@ -844,7 +845,7 @@ func _action_set_grid_state(params: Dictionary) -> Dictionary:
 
 
 func _action_apply_solution(_params: Dictionary) -> Dictionary:
-	## Apply the known solution to the grid (delete all non-solution cells)
+	## Apply a valid solution to the grid (delete cells that can be deleted)
 	var main_scene := _get_main_scene()
 	if main_scene == null:
 		return {"error": "no_game", "message": "Game not running"}
@@ -855,13 +856,23 @@ func _action_apply_solution(_params: Dictionary) -> Dictionary:
 
 	var cells_deleted := 0
 
-	for row in range(puzzle_state.grid_size.y):
-		for col in range(puzzle_state.grid_size.x):
-			var cell_data := puzzle_state.get_cell(row, col)
-			if not cell_data.is_solution and cell_data.state == PuzzleState.CellState.ACTIVE:
+	# Iteratively delete cells that can be deleted without breaking solvability
+	var made_progress := true
+	while made_progress and not puzzle_state.is_solved():
+		made_progress = false
+		for row in range(puzzle_state.grid_size.y):
+			for col in range(puzzle_state.grid_size.x):
+				var cell_data := puzzle_state.get_cell(row, col)
+				if cell_data.state != PuzzleState.CellState.ACTIVE:
+					continue
+				# Check if deleting this cell still leaves a valid solution
 				cell_data.state = PuzzleState.CellState.DELETED
-				puzzle_state.deletion_history.append(Vector2i(col, row))
-				cells_deleted += 1
+				if PuzzleLogic.has_any_solution(puzzle_state):
+					puzzle_state.deletion_history.append(Vector2i(col, row))
+					cells_deleted += 1
+					made_progress = true
+				else:
+					cell_data.state = PuzzleState.CellState.ACTIVE
 
 	_refresh_puzzle_grid(main_scene)
 
@@ -925,7 +936,6 @@ func _query_get_cell(params: Dictionary) -> Dictionary:
 		"col": col,
 		"value": cell_data.value,
 		"state": _cell_state_to_string(cell_data.state),
-		"is_solution": cell_data.is_solution
 	}
 
 
@@ -1127,8 +1137,7 @@ func _action_screenshot(params: Dictionary) -> Dictionary:
 	var err := img.save_png(path)
 	if err == OK:
 		return {"path": path, "width": img.get_width(), "height": img.get_height()}
-	else:
-		return {"error": "save_failed", "message": "Failed to save screenshot: %s" % error_string(err)}
+	return {"error": "save_failed", "message": "Failed to save screenshot: %s" % error_string(err)}
 
 
 func _action_wait_frames(params: Dictionary) -> Dictionary:
@@ -1208,8 +1217,7 @@ func _action_set_full_state(params: Dictionary) -> Dictionary:
 		if main_scene and main_scene.has_method("refresh_from_state"):
 			main_scene.refresh_from_state()
 		return {"success": true}
-	else:
-		return {"error": "deserialize_failed", "message": "Failed to deserialize state"}
+	return {"error": "deserialize_failed", "message": "Failed to deserialize state"}
 
 
 func _action_get_run_state(_params: Dictionary) -> Dictionary:
@@ -1241,8 +1249,7 @@ func _action_add_operator(params: Dictionary) -> Dictionary:
 
 	if GameState.add_operator(op):
 		return {"success": true, "operator": op.serialize(), "count": GameState.operators.size()}
-	else:
-		return {"error": "slots_full", "message": "Operator slots full (max %d)" % GameState.MAX_OPERATORS}
+	return {"error": "slots_full", "message": "Operator slots full (max %d)" % GameState.MAX_OPERATORS}
 
 
 func _action_remove_operator(params: Dictionary) -> Dictionary:
@@ -1250,8 +1257,7 @@ func _action_remove_operator(params: Dictionary) -> Dictionary:
 	var op = GameState.remove_operator(index)
 	if op:
 		return {"success": true, "removed": op.serialize(), "count": GameState.operators.size()}
-	else:
-		return {"error": "invalid_index", "message": "Invalid operator index: %d" % index}
+	return {"error": "invalid_index", "message": "Invalid operator index: %d" % index}
 
 
 func _action_list_operators(_params: Dictionary) -> Dictionary:
@@ -1363,6 +1369,7 @@ func _action_get_run_info(_params: Dictionary) -> Dictionary:
 			"lives": GameState.run.lives,
 			"money": GameState.run.money,
 			"total_score": GameState.run.total_score,
+			"stage_score": GameState.run.stage_score,
 			"operators": GameState.operators.map(func(o): return o.id)
 		},
 		"state": RunManager.State.keys()[RunManager.current_state],
@@ -1440,7 +1447,11 @@ func _action_complete_puzzle(params: Dictionary) -> Dictionary:
 	# Get target from stage config
 	var config = RunManager.get_current_stage_config()
 	var target: int = config.score_target if config else 0
-	var passed: bool = score >= target
+
+	# Stage-level gating: only boss puzzle (index 2) can fail
+	var is_boss: bool = old_puzzle == 2
+	var stage_total: int = GameState.run.stage_score + score
+	var passed: bool = not is_boss or stage_total >= target
 
 	# Trigger the completion
 	RunManager.on_puzzle_complete(score)
@@ -1615,7 +1626,6 @@ func _serialize_grid(puzzle_state: PuzzleState) -> Dictionary:
 			row_cells.append({
 				"value": cell_data.value,
 				"state": _cell_state_to_string(cell_data.state),
-				"is_solution": cell_data.is_solution
 			})
 		cells.append(row_cells)
 
@@ -1705,18 +1715,16 @@ func _get_validation_data(puzzle_state: PuzzleState) -> Dictionary:
 	}
 
 
-func _action_check_solvable(params: Dictionary) -> Dictionary:
+func _action_check_solvable(_params: Dictionary) -> Dictionary:
 	## Debug action to check if puzzle is solvable
 	var puzzle_state: PuzzleState = GameState.puzzle
 	if puzzle_state == null:
 		return {"error": "no_puzzle", "message": "No active puzzle"}
 
 	var has_any = PuzzleLogic.has_any_solution(puzzle_state)
-	var has_intended = PuzzleLogic.is_puzzle_solvable(puzzle_state)
 
 	return {
 		"has_any_solution": has_any,
-		"has_intended_solution": has_intended,
 		"grid_size": puzzle_state.grid_size.x
 	}
 

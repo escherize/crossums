@@ -7,8 +7,8 @@
  *   bun tests/run-tests.ts basic_solve  # Run specific test
  */
 
-import { spawn, type Subprocess } from "bun";
-import { readdirSync, readFileSync } from "fs";
+import { spawn, spawnSync, type Subprocess } from "bun";
+import { readdirSync, readFileSync, existsSync } from "fs";
 import { join, basename } from "path";
 import { action, waitForServer, type Response } from "../lib/game-client";
 
@@ -52,6 +52,7 @@ interface TestResult {
 
 const CORPUS_DIR = join(import.meta.dir, "corpus");
 const GODOT_PROJECT = join(import.meta.dir, "..", "godot_app");
+const GDLINT_PATH = join(process.env.HOME || "", "Library/Python/3.9/bin/gdlint");
 
 // Helper to get nested value using dot notation (e.g., "run.stage")
 function getNestedValue(obj: unknown, path: string): unknown {
@@ -205,6 +206,32 @@ async function runTest(test: TestCase): Promise<TestResult> {
   return result;
 }
 
+function runGdlint(): boolean {
+  if (!existsSync(GDLINT_PATH)) {
+    console.log("gdlint not found, skipping lint check\n");
+    return true;
+  }
+
+  process.stdout.write("Running gdlint... ");
+
+  // Use shell to expand glob pattern
+  const result = spawnSync(["sh", "-c", `${GDLINT_PATH} **/*.gd`], {
+    cwd: GODOT_PROJECT,
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+
+  if (result.exitCode === 0) {
+    console.log("✓\n");
+    return true;
+  } else {
+    console.log("✗\n");
+    console.log(result.stdout.toString());
+    console.log(result.stderr.toString());
+    return false;
+  }
+}
+
 function loadTestCases(filter?: string): TestCase[] {
   const files = readdirSync(CORPUS_DIR).filter((f) => f.endsWith(".json"));
   const tests: TestCase[] = [];
@@ -224,6 +251,11 @@ function loadTestCases(filter?: string): TestCase[] {
 
 async function main() {
   const filter = process.argv[2];
+
+  // Run gdlint first
+  if (!runGdlint()) {
+    process.exit(1);
+  }
 
   // Load test cases
   const tests = loadTestCases(filter);

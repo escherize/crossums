@@ -13,20 +13,6 @@ signal cell_hovered(row: int, col: int)
 signal cell_unhovered(row: int, col: int)
 
 # =============================================================================
-# PROPERTIES
-# =============================================================================
-
-## Cell position in the grid
-var row: int = 0
-var col: int = 0
-
-## The numeric value displayed
-var value: int = 0
-
-## Current visual state
-var cell_state: PuzzleState.CellState = PuzzleState.CellState.ACTIVE
-
-# =============================================================================
 # STYLE CONSTANTS (Minimal placeholder style)
 # =============================================================================
 
@@ -44,6 +30,20 @@ const TEXT_COLOR_CIRCLED := Color(0.7, 0.9, 1.0)   # Light cyan
 const DEFAULT_SIZE := Vector2(96, 96)
 const FONT_SIZE := 36
 const LONG_PRESS_TIME := 0.4  # 400ms for long press
+
+# =============================================================================
+# PROPERTIES
+# =============================================================================
+
+## Cell position in the grid
+var row: int = 0
+var col: int = 0
+
+## The numeric value displayed
+var value: int = 0
+
+## Current visual state
+var cell_state: PuzzleState.CellState = PuzzleState.CellState.ACTIVE
 
 # Long press tracking
 var _press_start_time: int = 0
@@ -93,7 +93,7 @@ func _gui_input(event: InputEvent) -> void:
 				_is_pressing = false
 
 
-func _process(delta: float) -> void:
+func _process(_delta: float) -> void:
 	if _is_pressing and not _long_press_triggered:
 		var elapsed := (Time.get_ticks_msec() - _press_start_time) / 1000.0
 		if elapsed >= LONG_PRESS_TIME:

@@ -19,44 +19,35 @@
       "cells": [
         [
           {
-            "value": 7,
-            "is_solution": false
+            "value": 7
           },
           {
-            "value": 5,
-            "is_solution": true
+            "value": 5
           },
           {
-            "value": 1,
-            "is_solution": false
+            "value": 1
           }
         ],
         [
           {
-            "value": 8,
-            "is_solution": true
+            "value": 8
           },
           {
-            "value": 2,
-            "is_solution": false
+            "value": 2
           },
           {
-            "value": 9,
-            "is_solution": true
+            "value": 9
           }
         ],
         [
           {
-            "value": 5,
-            "is_solution": true
+            "value": 5
           },
           {
-            "value": 1,
-            "is_solution": true
+            "value": 1
           },
           {
-            "value": 8,
-            "is_solution": false
+            "value": 8
           }
         ]
       ]

@@ -5,37 +5,158 @@
     "size": 3,
     "start_board": {
       "size": 3,
-      "row_targets": [7, 5, 5],
-      "col_targets": [5, 4, 8],
+      "row_targets": [
+        7,
+        5,
+        5
+      ],
+      "col_targets": [
+        5,
+        4,
+        8
+      ],
       "cells": [
-        [{"value": 1, "is_solution": false}, {"value": 2, "is_solution": true}, {"value": 5, "is_solution": true}],
-        [{"value": 4, "is_solution": false}, {"value": 2, "is_solution": true}, {"value": 3, "is_solution": true}],
-        [{"value": 5, "is_solution": true}, {"value": 6, "is_solution": false}, {"value": 6, "is_solution": false}]
+        [
+          {
+            "value": 1
+          },
+          {
+            "value": 2
+          },
+          {
+            "value": 5
+          }
+        ],
+        [
+          {
+            "value": 4
+          },
+          {
+            "value": 2
+          },
+          {
+            "value": 3
+          }
+        ],
+        [
+          {
+            "value": 5
+          },
+          {
+            "value": 6
+          },
+          {
+            "value": 6
+          }
+        ]
       ]
     }
   },
   "steps": [
-    {"comment": "Circle the solution cells as 'definitely keep'"},
-    {"action": "circle_cell", "params": {"row": 0, "col": 1}},
-    {"action": "circle_cell", "params": {"row": 0, "col": 2}},
-    {"action": "circle_cell", "params": {"row": 1, "col": 1}},
-    {"action": "circle_cell", "params": {"row": 1, "col": 2}},
-    {"action": "circle_cell", "params": {"row": 2, "col": 0}},
-
-    {"comment": "Verify cells are circled"},
-    {"assert": "assert_cell_state", "params": {"row": 0, "col": 1, "state": "circled"}},
-    {"assert": "assert_cell_state", "params": {"row": 2, "col": 0, "state": "circled"}},
-
-    {"comment": "Now delete the non-solution cells"},
-    {"action": "delete_cell", "params": {"row": 0, "col": 0}},
-    {"action": "delete_cell", "params": {"row": 1, "col": 0}},
-    {"action": "delete_cell", "params": {"row": 2, "col": 1}},
-    {"action": "delete_cell", "params": {"row": 2, "col": 2}},
-
-    {"comment": "Circled cells should still be circled"},
-    {"assert": "assert_cell_state", "params": {"row": 0, "col": 1, "state": "circled"}},
-
-    {"comment": "Puzzle should be solved - circled cells count toward sums"},
-    {"assert": "assert_valid"}
+    {
+      "comment": "Circle the solution cells as 'definitely keep'"
+    },
+    {
+      "action": "circle_cell",
+      "params": {
+        "row": 0,
+        "col": 1
+      }
+    },
+    {
+      "action": "circle_cell",
+      "params": {
+        "row": 0,
+        "col": 2
+      }
+    },
+    {
+      "action": "circle_cell",
+      "params": {
+        "row": 1,
+        "col": 1
+      }
+    },
+    {
+      "action": "circle_cell",
+      "params": {
+        "row": 1,
+        "col": 2
+      }
+    },
+    {
+      "action": "circle_cell",
+      "params": {
+        "row": 2,
+        "col": 0
+      }
+    },
+    {
+      "comment": "Verify cells are circled"
+    },
+    {
+      "assert": "assert_cell_state",
+      "params": {
+        "row": 0,
+        "col": 1,
+        "state": "circled"
+      }
+    },
+    {
+      "assert": "assert_cell_state",
+      "params": {
+        "row": 2,
+        "col": 0,
+        "state": "circled"
+      }
+    },
+    {
+      "comment": "Now delete the non-solution cells"
+    },
+    {
+      "action": "delete_cell",
+      "params": {
+        "row": 0,
+        "col": 0
+      }
+    },
+    {
+      "action": "delete_cell",
+      "params": {
+        "row": 1,
+        "col": 0
+      }
+    },
+    {
+      "action": "delete_cell",
+      "params": {
+        "row": 2,
+        "col": 1
+      }
+    },
+    {
+      "action": "delete_cell",
+      "params": {
+        "row": 2,
+        "col": 2
+      }
+    },
+    {
+      "comment": "Circled cells should still be circled"
+    },
+    {
+      "assert": "assert_cell_state",
+      "params": {
+        "row": 0,
+        "col": 1,
+        "state": "circled"
+      }
+    },
+    {
+      "comment": "Puzzle should be solved - circled cells count toward sums"
+    },
+    {
+      "assert": "assert_valid"
+    }
   ]
 }
