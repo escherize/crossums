@@ -12,9 +12,9 @@ const RARITY_COLORS := {
 var operator: Operator = null
 var operator_id: String = ""
 
-@onready var rarity_strip: ColorRect = $VBox/RarityStrip
-@onready var name_label: Label = $VBox/Content/NameLabel
-@onready var desc_label: Label = $VBox/Content/DescLabel
+@onready var rarity_strip: ColorRect = %RarityStrip
+@onready var name_label: Label = %NameLabel
+@onready var desc_label: Label = %DescLabel
 
 
 func setup(op: Operator) -> void:

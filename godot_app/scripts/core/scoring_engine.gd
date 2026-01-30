@@ -25,6 +25,7 @@ class ScoreBreakdown:
 	# Operator bonuses (Sprint 2)
 	var operator_bonus: int = 0
 	var operator_mult: float = 1.0
+	var money_bonus: int = 0
 	var operator_details: Array = []  # [{name: String, bonus: int}]
 
 	func get_summary() -> String:
@@ -95,6 +96,7 @@ static func calculate_score(
 	# Process operators (Sprint 2)
 	var op_score_bonus := 0
 	var op_mult_bonus := 0.0
+	var op_money_bonus := 0
 
 	for op in operators:
 		var op_total := 0
@@ -126,6 +128,7 @@ static func calculate_score(
 		var end_result = op.on_puzzle_end(puzzle)
 		op_total += end_result.get("score_bonus", 0)
 		op_mult_bonus += end_result.get("mult_bonus", 0.0)
+		op_money_bonus += end_result.get("money_bonus", 0)
 
 		if op_total > 0:
 			breakdown.operator_details.append({
@@ -139,6 +142,7 @@ static func calculate_score(
 
 	breakdown.operator_bonus = op_score_bonus
 	breakdown.operator_mult = 1.0 + op_mult_bonus
+	breakdown.money_bonus = op_money_bonus
 
 	# Final score with all multipliers (now including operators)
 	var score_before_mult = breakdown.line_score + breakdown.operator_bonus

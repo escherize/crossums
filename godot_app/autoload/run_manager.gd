@@ -50,11 +50,6 @@ func start_run(run_seed: int = 0) -> void:
 	GameState.reset()
 	GameState.start_new_run(run_seed)
 
-	# Give starter operator
-	var starter = OperatorRegistry.create("counter")
-	if starter:
-		GameState.add_operator(starter)
-
 	_start_next_puzzle()
 
 

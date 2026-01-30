@@ -1327,6 +1327,7 @@ func _action_get_score(params: Dictionary) -> Dictionary:
 		"precision_multiplier": breakdown.precision_multiplier,
 		"valid_lines": breakdown.valid_lines,
 		"total_lines": breakdown.total_lines,
+		"money_bonus": breakdown.money_bonus,
 	}
 
 
@@ -1339,6 +1340,16 @@ func _action_start_run(params: Dictionary) -> Dictionary:
 	## Optional params: seed (int) - for deterministic puzzle generation
 	var run_seed: int = params.get("seed", 0)
 	RunManager.start_run(run_seed)
+
+	# Navigate to main scene if not already there
+	var main_scene := _get_main_scene()
+	if main_scene == null:
+		get_tree().change_scene_to_packed(MAIN_SCENE)
+		for i in range(20):
+			await get_tree().process_frame
+			main_scene = _get_main_scene()
+			if main_scene != null:
+				break
 
 	# Wait a frame for state to settle
 	await get_tree().process_frame

@@ -1,0 +1,30 @@
+{
+  "name": "op_elite_delete",
+  "description": "Elite Delete gives +$2 per deleted, -$1 per circled",
+  "setup": {
+    "start_board": {
+      "size": 3,
+      "seed": 104,
+      "row_targets": [1, 1, 1],
+      "col_targets": [1, 1, 1],
+      "cells": [
+        [{"value": 1}, {"value": 5}, {"value": 5}],
+        [{"value": 5}, {"value": 1}, {"value": 5}],
+        [{"value": 5}, {"value": 5}, {"value": 1}]
+      ]
+    }
+  },
+  "steps": [
+    {"action": "clear_operators"},
+    {"action": "add_operator", "params": {"id": "elite_delete"}},
+    {"action": "delete_cell", "params": {"row": 0, "col": 1}},
+    {"action": "delete_cell", "params": {"row": 0, "col": 2}},
+    {"action": "delete_cell", "params": {"row": 1, "col": 0}},
+    {"action": "delete_cell", "params": {"row": 1, "col": 2}},
+    {"action": "delete_cell", "params": {"row": 2, "col": 0}},
+    {"action": "delete_cell", "params": {"row": 2, "col": 1}},
+    {"action": "get_score", "params": {"time_mult": 1, "restore_count": 0},
+     "expect": {"money_bonus": 12}},
+    {"action": "clear_operators"}
+  ]
+}

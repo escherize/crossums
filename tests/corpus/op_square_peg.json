@@ -1,0 +1,25 @@
+{
+  "name": "op_square_peg",
+  "description": "Square Peg gives +100 per 2x2, +1000 per 3x3 of same state",
+  "setup": {
+    "start_board": {
+      "size": 3,
+      "seed": 106,
+      "row_targets": [2, 2, 1],
+      "col_targets": [2, 2, 1],
+      "cells": [
+        [{"value": 1}, {"value": 1}, {"value": 5}],
+        [{"value": 1}, {"value": 1}, {"value": 5}],
+        [{"value": 5}, {"value": 5}, {"value": 1}]
+      ]
+    }
+  },
+  "steps": [
+    {"action": "clear_operators"},
+    {"action": "add_operator", "params": {"id": "square_peg"}},
+    {"action": "apply_solution"},
+    {"action": "get_score", "params": {"time_mult": 1, "restore_count": 0},
+     "expect": {"operator_bonus": 100}},
+    {"action": "clear_operators"}
+  ]
+}

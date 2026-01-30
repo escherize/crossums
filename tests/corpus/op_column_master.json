@@ -1,0 +1,25 @@
+{
+  "name": "op_column_master",
+  "description": "Column Master gives +50 per completed column",
+  "setup": {
+    "start_board": {
+      "size": 3,
+      "seed": 100,
+      "row_targets": [5, 5, 5],
+      "col_targets": [5, 5, 5],
+      "cells": [
+        [{"value": 1}, {"value": 2}, {"value": 2}],
+        [{"value": 2}, {"value": 1}, {"value": 2}],
+        [{"value": 2}, {"value": 2}, {"value": 1}]
+      ]
+    }
+  },
+  "steps": [
+    {"action": "clear_operators"},
+    {"action": "add_operator", "params": {"id": "column_master"}},
+    {"action": "apply_solution"},
+    {"action": "get_score", "params": {"time_mult": 1, "restore_count": 0},
+     "expect": {"operator_bonus": 150}},
+    {"action": "clear_operators"}
+  ]
+}

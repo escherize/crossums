@@ -1,0 +1,28 @@
+{
+  "name": "op_zero_hero",
+  "description": "Zero Hero gives x2 multiplier if a 0 is kept",
+  "setup": {
+    "start_board": {
+      "size": 3,
+      "seed": 101,
+      "row_targets": [1, 2, 1],
+      "col_targets": [1, 2, 1],
+      "cells": [
+        [{"value": 0}, {"value": 1}, {"value": 9}],
+        [{"value": 1}, {"value": 1}, {"value": 9}],
+        [{"value": 9}, {"value": 9}, {"value": 1}]
+      ]
+    }
+  },
+  "steps": [
+    {"action": "clear_operators"},
+    {"action": "add_operator", "params": {"id": "zero_hero"}},
+    {"action": "delete_cell", "params": {"row": 0, "col": 2}},
+    {"action": "delete_cell", "params": {"row": 1, "col": 2}},
+    {"action": "delete_cell", "params": {"row": 2, "col": 0}},
+    {"action": "delete_cell", "params": {"row": 2, "col": 1}},
+    {"action": "get_score", "params": {"time_mult": 1, "restore_count": 0},
+     "expect": {"operator_mult": 2}},
+    {"action": "clear_operators"}
+  ]
+}

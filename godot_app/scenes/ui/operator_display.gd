@@ -3,8 +3,8 @@ extends VBoxContainer
 
 const OperatorCardScene = preload("res://scenes/ui/operator_card.tscn")
 
-@onready var header_label: Label = $HeaderLabel
-@onready var operator_list: VBoxContainer = $OperatorList
+@onready var header_label: Label = %HeaderLabel
+@onready var operator_list: VBoxContainer = %OperatorList
 
 func _ready() -> void:
 	# Connect to operator change signals

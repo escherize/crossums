@@ -1,0 +1,30 @@
+{
+  "name": "op_purist",
+  "description": "Purist gives +300 if no circles used",
+  "setup": {
+    "start_board": {
+      "size": 3,
+      "seed": 105,
+      "row_targets": [1, 1, 1],
+      "col_targets": [1, 1, 1],
+      "cells": [
+        [{"value": 1}, {"value": 5}, {"value": 5}],
+        [{"value": 5}, {"value": 1}, {"value": 5}],
+        [{"value": 5}, {"value": 5}, {"value": 1}]
+      ]
+    }
+  },
+  "steps": [
+    {"action": "clear_operators"},
+    {"action": "add_operator", "params": {"id": "purist"}},
+    {"action": "apply_solution"},
+    {"action": "get_score", "params": {"time_mult": 1, "restore_count": 0},
+     "expect": {"operator_bonus": 300}},
+    {"action": "restart_puzzle"},
+    {"action": "circle_cell", "params": {"row": 0, "col": 0}},
+    {"action": "apply_solution"},
+    {"action": "get_score", "params": {"time_mult": 1, "restore_count": 0},
+     "expect": {"operator_bonus": 0}},
+    {"action": "clear_operators"}
+  ]
+}
