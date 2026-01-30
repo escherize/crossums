@@ -4,11 +4,35 @@ extends RefCounted
 ## Serializable for save/load.
 
 # =============================================================================
+# SEED VERSIONING
+# =============================================================================
+
+## Bump this when puzzle generation algorithm changes to invalidate old seeds.
+## Tests using seeded runs will need baselines regenerated.
+const SEED_VERSION := 1
+
+## FUTURE: Isolated RNG Streams
+## -----------------------------
+## Current approach: single run_seed → puzzle_seed via get_puzzle_seed()
+## Limitation: adding new random-consuming features (shop, operators) would
+## shift puzzle sequences for existing seeds.
+##
+## When needed, refactor to isolated RNG streams:
+##   func get_puzzle_rng(stage, puzzle_index) -> RNG seeded by hash(run_seed + "_puzzle_" + stage + "_" + puzzle_index)
+##   func get_shop_rng(stage) -> RNG seeded by hash(run_seed + "_shop_" + stage)
+##   func get_operator_rng() -> RNG seeded by hash(run_seed + "_operators")
+##
+## Each system gets its own deterministic stream. Adding features to one
+## system doesn't affect others. See Balatro's approach: pre-generate
+## entire deck order at run start.
+
+# =============================================================================
 # PROGRESSION
 # =============================================================================
 
 var stage: int = 1              # 1-8
 var puzzle_index: int = 0       # 0-2 within stage
+var run_seed: int = 0           # 0 = random, else deterministic
 
 # =============================================================================
 # RESOURCES
@@ -71,6 +95,27 @@ func add_stage_score(amount: int) -> void:
 func reset_stage_score() -> void:
 	stage_score = 0
 
+
+func get_puzzle_seed() -> int:
+	## Compute deterministic seed for current puzzle.
+	## Returns 0 (random) if run_seed is 0.
+	if run_seed == 0:
+		return 0
+	# Combine run_seed, version, stage, puzzle_index into unique seed
+	# Using prime multipliers to reduce collisions
+	return (run_seed * SEED_VERSION * 31337) + (stage * 997) + (puzzle_index * 13)
+
+
+func get_shop_rng() -> RandomNumberGenerator:
+	## Get deterministic RNG for shop at current stage.
+	## Returns null if run_seed is 0 (random mode).
+	if run_seed == 0:
+		return null
+	var rng = RandomNumberGenerator.new()
+	# Isolated seed stream for shop - doesn't affect puzzles
+	rng.seed = (run_seed * SEED_VERSION * 7919) + (stage * 1009) + 999999
+	return rng
+
 # =============================================================================
 # SERIALIZATION
 # =============================================================================
@@ -84,6 +129,7 @@ func serialize() -> Dictionary:
 		"money": money,
 		"total_score": total_score,
 		"stage_score": stage_score,
+		"run_seed": run_seed,
 	}
 
 
@@ -97,4 +143,5 @@ static func deserialize(data: Dictionary):
 	rs.money = data.get("money", 0)
 	rs.total_score = data.get("total_score", 0)
 	rs.stage_score = data.get("stage_score", 0)
+	rs.run_seed = data.get("run_seed", 0)
 	return rs

@@ -1,0 +1,15 @@
+{
+  "name": "crossums-tests",
+  "type": "module",
+  "scripts": {
+    "test": "bun tests/run-tests.ts",
+    "update-baselines": "bun tests/update-baselines.ts"
+  },
+  "dependencies": {
+    "pixelmatch": "^6.0.0",
+    "pngjs": "^7.0.0"
+  },
+  "devDependencies": {
+    "@types/pngjs": "^6.0.5"
+  }
+}

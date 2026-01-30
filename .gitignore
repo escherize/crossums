@@ -1,0 +1,8 @@
+# Dependencies
+node_modules/
+
+# Visual regression test diffs (generated, not committed)
+tests/diffs/*.png
+
+# Keep the directory structure
+!tests/diffs/.gitkeep

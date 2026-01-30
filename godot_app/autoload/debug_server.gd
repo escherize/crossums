@@ -275,7 +275,7 @@ func _execute_action(action: String, params: Dictionary):
 		"continue_shop":
 			return await _action_continue_shop(params)
 		"return_to_title":
-			return _action_return_to_title(params)
+			return await _action_return_to_title(params)
 
 		"check_solvable":
 			return _action_check_solvable(params)
@@ -594,23 +594,7 @@ func _serialize_validation_results(results: Array) -> Array:
 # =============================================================================
 
 func _action_new_puzzle(params: Dictionary):
-	# If no run is active, start one first (this transitions to main scene)
-	var main_scene := _get_main_scene()
-	if main_scene == null:
-		# Start a run and transition to main scene
-		RunManager.start_run()
-		var main_scene_packed = MAIN_SCENE
-		get_tree().change_scene_to_packed(main_scene_packed)
-		# Wait for scene transition
-		for i in range(20):
-			await get_tree().process_frame
-			main_scene = _get_main_scene()
-			if main_scene != null:
-				break
-		if main_scene == null:
-			return {"error": "no_game", "message": "Failed to start game"}
-
-	# Get parameters
+	# Get parameters first
 	var grid_size := int(params.get("size", params.get("grid_size", 3)))
 	var seed_val := int(params.get("seed", 0))
 
@@ -625,8 +609,29 @@ func _action_new_puzzle(params: Dictionary):
 	if seed_val != 0:
 		config.puzzle_seed = seed_val
 
-	# Generate new puzzle via GameState
-	GameState.start_new_puzzle(config)
+	# If no main scene, start a minimal run and transition
+	var main_scene := _get_main_scene()
+	if main_scene == null:
+		# Reset and start run (use seed if provided for determinism)
+		GameState.reset()
+		GameState.start_new_run(seed_val)
+		# Generate our specific puzzle BEFORE transitioning (overrides run's default)
+		GameState.start_new_puzzle(config)
+
+		var main_scene_packed = MAIN_SCENE
+		get_tree().change_scene_to_packed(main_scene_packed)
+		# Wait for scene transition
+		for i in range(20):
+			await get_tree().process_frame
+			main_scene = _get_main_scene()
+			if main_scene != null:
+				break
+		if main_scene == null:
+			return {"error": "no_game", "message": "Failed to start game"}
+	else:
+		# Main scene exists - just generate new puzzle
+		GameState.start_new_puzzle(config)
+
 	main_scene.set("puzzle_solved", false)
 
 	# Reset timer tracking if available
@@ -1329,9 +1334,11 @@ func _action_get_score(params: Dictionary) -> Dictionary:
 # RUN FLOW (Sprint 4)
 # =============================================================================
 
-func _action_start_run(_params: Dictionary) -> Dictionary:
+func _action_start_run(params: Dictionary) -> Dictionary:
 	## Start a new run from the beginning
-	RunManager.start_run()
+	## Optional params: seed (int) - for deterministic puzzle generation
+	var run_seed: int = params.get("seed", 0)
+	RunManager.start_run(run_seed)
 
 	# Wait a frame for state to settle
 	await get_tree().process_frame
@@ -1346,7 +1353,8 @@ func _action_start_run(_params: Dictionary) -> Dictionary:
 			"puzzle_index": GameState.run.puzzle_index,
 			"lives": GameState.run.lives,
 			"money": GameState.run.money,
-			"total_score": GameState.run.total_score
+			"total_score": GameState.run.total_score,
+			"run_seed": GameState.run.run_seed
 		},
 		"state": RunManager.State.keys()[RunManager.current_state]
 	}
@@ -1513,6 +1521,13 @@ func _action_continue_shop(_params: Dictionary) -> Dictionary:
 func _action_return_to_title(_params: Dictionary) -> Dictionary:
 	## Return to title screen and reset state (like Try Again button)
 	RunManager.return_to_title()
+
+	# Actually change to title scene to fully reset UI
+	get_tree().change_scene_to_file("res://scenes/title/title_screen.tscn")
+
+	# Wait for scene transition
+	for i in range(10):
+		await get_tree().process_frame
 
 	return {
 		"success": true,

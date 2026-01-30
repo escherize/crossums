@@ -44,10 +44,11 @@ var _last_puzzle_score: int = 0
 # RUN CONTROL
 # =============================================================================
 
-func start_run() -> void:
+func start_run(run_seed: int = 0) -> void:
 	## Begin a new run from stage 1, puzzle 1
+	## run_seed: 0 = random puzzles, else deterministic sequence
 	GameState.reset()
-	GameState.start_new_run()
+	GameState.start_new_run(run_seed)
 
 	# Give starter operator
 	var starter = OperatorRegistry.create("counter")

@@ -18,12 +18,17 @@ var reroll_count: int = 0
 # =============================================================================
 
 func generate() -> void:
-	## Populate shop with random operators
+	## Populate shop with operators (deterministic if run is seeded)
 	var owned_ids: Array = []
 	for op in GameState.operators:
 		owned_ids.append(op.id)
 
-	operator_slots = OperatorRegistry.get_random_operators(OPERATOR_SLOTS, owned_ids)
+	# Use seeded RNG if run has a seed, otherwise random
+	var rng: RandomNumberGenerator = null
+	if GameState.run:
+		rng = GameState.run.get_shop_rng()
+
+	operator_slots = OperatorRegistry.get_random_operators(OPERATOR_SLOTS, owned_ids, rng)
 	reroll_count = 0
 	reroll_cost = REROLL_BASE_COST
 

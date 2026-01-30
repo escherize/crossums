@@ -29,12 +29,17 @@ func reset() -> void:
 	functions.clear()
 
 
-func start_new_run() -> void:
+func start_new_run(run_seed: int = 0) -> void:
 	run = RunStateScript.new()
+	run.run_seed = run_seed
 	EventBus.run_started.emit("standard", 1)
 
 
 func start_new_puzzle(config: PuzzleLogic.PuzzleConfig) -> void:
+	# Apply run seed if available and config doesn't have one
+	if run and config.puzzle_seed == 0:
+		config.puzzle_seed = run.get_puzzle_seed()
+
 	puzzle = PuzzleLogic.generate_puzzle(config)
 	# Notify operators of puzzle start
 	for op in operators:

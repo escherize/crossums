@@ -1,0 +1,12 @@
+{
+  "name": "visual_grid_5x5",
+  "description": "Visual test for 5x5 puzzle grid",
+  "setup": {
+    "action": "return_to_title"
+  },
+  "steps": [
+    {"action": "new_puzzle", "params": {"size": 5, "seed": 12345}},
+    {"action": "wait_idle"},
+    {"visual": "puzzle_5x5", "max_diff_pixels": 2000}
+  ]
+}

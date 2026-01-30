@@ -1,0 +1,12 @@
+{
+  "name": "visual_grid_4x4",
+  "description": "Visual test for 4x4 puzzle grid",
+  "setup": {
+    "action": "return_to_title"
+  },
+  "steps": [
+    {"action": "new_puzzle", "params": {"size": 4, "seed": 12345}},
+    {"action": "wait_idle"},
+    {"visual": "puzzle_4x4", "max_diff_pixels": 2000}
+  ]
+}

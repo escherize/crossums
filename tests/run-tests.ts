@@ -11,16 +11,20 @@ import { spawn, spawnSync, type Subprocess } from "bun";
 import { readdirSync, readFileSync, existsSync } from "fs";
 import { join, basename } from "path";
 import { action, waitForServer, type Response } from "../lib/game-client";
+import { compareScreenshot, BASELINE_DIR, DIFF_DIR } from "../lib/visual-compare";
 
 // Test case schema
 interface TestStep {
   action?: string;
   assert?: string;
+  visual?: string;  // Visual regression test name (compares screenshot to baseline)
   params?: Record<string, unknown>;
   expect?: Record<string, unknown>;  // Expected fields in response (exact match)
   expect_nested?: Record<string, unknown>;  // Expected nested fields (dot notation: "run.stage")
   expect_gt?: Record<string, number>;  // Expected fields greater than value
   expect_error?: string;  // Expected error code (action should fail)
+  threshold?: number;  // Visual comparison threshold (0-1, default 0.1)
+  max_diff_pixels?: number;  // Max allowed pixel difference (default 0)
 }
 
 interface BoardState {
@@ -48,6 +52,7 @@ interface TestResult {
   passed: boolean;
   error?: string;
   failedStep?: number;
+  newBaselines?: string[];  // Visual baselines created during this test
 }
 
 const CORPUS_DIR = join(import.meta.dir, "corpus");
@@ -94,7 +99,7 @@ function stopGodot(): void {
 }
 
 async function runTest(test: TestCase): Promise<TestResult> {
-  const result: TestResult = { name: test.name, passed: true };
+  const result: TestResult = { name: test.name, passed: true, newBaselines: [] };
 
   try {
     // Setup: create new puzzle or start run
@@ -196,6 +201,30 @@ async function runTest(test: TestCase): Promise<TestResult> {
           result.failedStep = i;
           return result;
         }
+      } else if (step.visual) {
+        // Visual regression test: take screenshot and compare to baseline
+        const screenshotPath = `/tmp/crossums_visual_${step.visual}_${Date.now()}.png`;
+        response = await action("screenshot", { path: screenshotPath });
+        if (!response.ok) {
+          result.passed = false;
+          result.error = `Visual test '${step.visual}' failed to capture screenshot: ${response.message || response.error}`;
+          result.failedStep = i;
+          return result;
+        }
+
+        const compareResult = compareScreenshot(step.visual, screenshotPath, {
+          threshold: step.threshold,
+          maxDiffPixels: step.max_diff_pixels,
+        });
+
+        if (compareResult.isNewBaseline) {
+          result.newBaselines!.push(step.visual);
+        } else if (!compareResult.match) {
+          result.passed = false;
+          result.error = `Visual test '${step.visual}' failed: ${compareResult.diffPixels} pixels differ (${compareResult.diffPercent.toFixed(2)}%). See: ${compareResult.diffPath}`;
+          result.failedStep = i;
+          return result;
+        }
       }
     }
   } catch (err) {
@@ -275,6 +304,7 @@ async function main() {
   const results: TestResult[] = [];
   let passed = 0;
   let failed = 0;
+  let newBaselinesTotal = 0;
 
   for (const test of tests) {
     process.stdout.write(`  ${test.name}... `);
@@ -282,7 +312,11 @@ async function main() {
     results.push(result);
 
     if (result.passed) {
-      console.log("✓");
+      const baselineInfo = result.newBaselines?.length
+        ? ` (${result.newBaselines.length} new baseline${result.newBaselines.length > 1 ? 's' : ''})`
+        : '';
+      console.log(`✓${baselineInfo}`);
+      newBaselinesTotal += result.newBaselines?.length || 0;
       passed++;
     } else {
       console.log("✗");
@@ -295,7 +329,11 @@ async function main() {
   }
 
   // Summary
-  console.log(`\n${passed} passed, ${failed} failed`);
+  let summary = `\n${passed} passed, ${failed} failed`;
+  if (newBaselinesTotal > 0) {
+    summary += ` (${newBaselinesTotal} new visual baseline${newBaselinesTotal > 1 ? 's' : ''} created)`;
+  }
+  console.log(summary);
 
   // Cleanup
   stopGodot();

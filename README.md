@@ -26,9 +26,25 @@ Delete numbers from a grid so each row and column sums to its target. Keep more 
 
 ## Development Tools
 
+### Testing
+
+Requires [Bun](https://bun.sh/). Install dependencies first: `bun install`
+
+```bash
+bun test                           # Run all tests (gdlint + functional + visual)
+bun tests/run-tests.ts visual_     # Run only visual regression tests
+```
+
+Visual regression tests compare screenshots against baselines. On failure, diff images show exactly what changed in `tests/diffs/`.
+
+```bash
+bun tests/update-baselines.ts              # List baselines
+bun tests/update-baselines.ts title_screen # Update a baseline
+```
+
 ### Game CLI
 
-Control the running game via command line (requires [Bun](https://bun.sh/)):
+Control the running game via command line:
 
 ```bash
 bun game-cli.ts state              # Get game state
@@ -36,7 +52,7 @@ bun game-cli.ts action delete_cell '{"row": 0, "col": 1}'
 bun game-cli.ts screenshot /tmp/shot.png
 ```
 
-See `GAME_CLI.md` for full documentation.
+See `docs/GAME_CLI.md` for full documentation.
 
 ## Documentation
 

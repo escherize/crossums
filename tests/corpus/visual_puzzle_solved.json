@@ -1,0 +1,13 @@
+{
+  "name": "visual_puzzle_solved",
+  "description": "Visual test for solved puzzle state (all targets green)",
+  "setup": {
+    "action": "return_to_title"
+  },
+  "steps": [
+    {"action": "new_puzzle", "params": {"size": 3, "seed": 12345}},
+    {"action": "apply_solution"},
+    {"action": "wait_idle"},
+    {"visual": "puzzle_solved", "max_diff_pixels": 2000}
+  ]
+}

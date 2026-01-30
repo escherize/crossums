@@ -1,0 +1,12 @@
+{
+  "name": "visual_puzzle_grid",
+  "description": "Visual regression test for puzzle grid layout",
+  "setup": {
+    "action": "return_to_title"
+  },
+  "steps": [
+    {"action": "new_puzzle", "params": {"size": 3, "seed": 12345}},
+    {"action": "wait_idle"},
+    {"visual": "puzzle_3x3_initial", "max_diff_pixels": 2000}
+  ]
+}
