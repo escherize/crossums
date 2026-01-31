@@ -21,6 +21,7 @@ EventBus="*res://autoload/event_bus.gd"
 GameState="*res://autoload/game_state.gd"
 RunManager="*res://autoload/run_manager.gd"
 DebugServer="*res://autoload/debug_server.gd"
+SoundManager="*res://autoload/sound_manager.gd"
 
 [display]
 

@@ -12,14 +12,23 @@ Crossums is a Balatro-inspired roguelike number puzzle game built in Godot 4.5. 
 # Install dependencies (first time only)
 bun install
 
-# Run all tests (starts Godot automatically, runs gdlint + functional + visual)
+# Run all tests (lint + logic + visual)
 bun test
 
-# Run filtered tests
-bun tests/run-tests.ts solve_4x4    # Filter by name
-bun tests/run-tests.ts visual_      # Only visual regression tests
+# Run filtered/partial tests
+bun tests/run-tests.ts --lint-only       # Just gdlint (fast)
+bun tests/run-tests.ts --logic-only      # Logic tests only, no visual
+bun tests/run-tests.ts --visual-only     # Visual regression tests only
+bun tests/run-tests.ts --no-lint         # Skip lint, run all tests
+bun tests/run-tests.ts solve_4x4         # Filter by name
 
-# Lint GDScript
+# Test rubric - which to run when:
+#   After editing .gd files:    --lint-only     (fast, catches syntax/style)
+#   After logic changes:        --logic-only    (tests game mechanics)
+#   After UI/layout changes:    --visual-only   (catches visual regressions)
+#   Before commit:              (no flags)      full suite
+
+# Lint GDScript directly
 ~/Library/Python/3.9/bin/gdlint godot_app/**/*.gd
 
 # Run game CLI against running game (debug server on localhost:9999)
@@ -41,6 +50,7 @@ bun tests/update-baselines.ts --clean-diffs   # Remove diff images
 - **GameState** (`autoload/game_state.gd`) - Persistent game state
 - **RunManager** (`scripts/core/run_manager.gd`) - Run/stage progression
 - **DebugServer** (`autoload/debug_server.gd`) - TCP server for game-cli
+- **SoundManager** (`autoload/sound_manager.gd`) - SFX with configurable mappings
 
 ### Core Data Layer
 - **PuzzleState** (`scripts/core/puzzle_state.gd`) - Grid data, cell states, targets

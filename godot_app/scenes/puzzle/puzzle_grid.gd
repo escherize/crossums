@@ -283,7 +283,7 @@ func _on_cell_long_pressed(row: int, col: int) -> void:
 			# If not, circling it is a mistake (the cell must be deleted)
 			var can_be_in_solution := PuzzleLogic.has_solution_including_cell(puzzle_state, row, col)
 			if not can_be_in_solution:
-				cell.play_mistake_animation()
+				cell.play_error_animation()
 				EventBus.mistake_made.emit(row, col)
 				return
 

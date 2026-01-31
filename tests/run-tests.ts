@@ -3,8 +3,18 @@
  * Test runner for Crossums puzzle mechanics
  *
  * Usage:
- *   bun tests/run-tests.ts              # Run all tests
- *   bun tests/run-tests.ts basic_solve  # Run specific test
+ *   bun tests/run-tests.ts                  # Run all tests (lint + logic + visual)
+ *   bun tests/run-tests.ts basic_solve      # Run tests matching filter
+ *   bun tests/run-tests.ts --lint-only      # Only run gdlint
+ *   bun tests/run-tests.ts --no-lint        # Skip gdlint, run all tests
+ *   bun tests/run-tests.ts --logic-only     # Only run logic tests (no visual)
+ *   bun tests/run-tests.ts --visual-only    # Only run visual tests
+ *
+ * Rubric:
+ *   - After editing .gd files: --lint-only (fast, catches syntax/style)
+ *   - After logic changes: --logic-only (medium, tests game mechanics)
+ *   - After UI/layout changes: --visual-only (slow, catches visual regressions)
+ *   - Before commit: (no flags) full suite
  */
 
 import { spawn, spawnSync, type Subprocess } from "bun";
@@ -261,17 +271,33 @@ function runGdlint(): boolean {
   }
 }
 
-function loadTestCases(filter?: string): TestCase[] {
+interface TestFilter {
+  nameFilter?: string;
+  visualOnly?: boolean;
+  logicOnly?: boolean;
+}
+
+function isVisualTest(test: TestCase): boolean {
+  return test.steps.some(step => step.visual !== undefined);
+}
+
+function loadTestCases(filter: TestFilter): TestCase[] {
   const files = readdirSync(CORPUS_DIR).filter((f) => f.endsWith(".json"));
   const tests: TestCase[] = [];
 
   for (const file of files) {
     const name = basename(file, ".json");
-    if (filter && !name.includes(filter)) continue;
+    if (filter.nameFilter && !name.includes(filter.nameFilter)) continue;
 
     const content = readFileSync(join(CORPUS_DIR, file), "utf-8");
     const test = JSON.parse(content) as TestCase;
     test.name = test.name || name;
+
+    // Filter by test type
+    const isVisual = isVisualTest(test);
+    if (filter.visualOnly && !isVisual) continue;
+    if (filter.logicOnly && isVisual) continue;
+
     tests.push(test);
   }
 
@@ -279,21 +305,41 @@ function loadTestCases(filter?: string): TestCase[] {
 }
 
 async function main() {
-  const filter = process.argv[2];
+  // Parse arguments
+  const args = process.argv.slice(2);
+  const flags = {
+    lintOnly: args.includes("--lint-only"),
+    noLint: args.includes("--no-lint"),
+    visualOnly: args.includes("--visual-only"),
+    logicOnly: args.includes("--logic-only"),
+  };
+  const nameFilter = args.find(a => !a.startsWith("--"));
 
-  // Run gdlint first
-  if (!runGdlint()) {
-    process.exit(1);
+  // Run gdlint (unless skipped)
+  if (!flags.noLint) {
+    if (!runGdlint()) {
+      process.exit(1);
+    }
+  }
+
+  // Exit early if lint-only
+  if (flags.lintOnly) {
+    process.exit(0);
   }
 
   // Load test cases
-  const tests = loadTestCases(filter);
+  const tests = loadTestCases({
+    nameFilter,
+    visualOnly: flags.visualOnly,
+    logicOnly: flags.logicOnly,
+  });
   if (tests.length === 0) {
     console.error("No test cases found");
     process.exit(1);
   }
 
-  console.log(`Found ${tests.length} test(s)\n`);
+  const testType = flags.visualOnly ? "visual " : flags.logicOnly ? "logic " : "";
+  console.log(`Found ${tests.length} ${testType}test(s)\n`);
 
   // Start Godot
   if (!(await startGodot())) {
