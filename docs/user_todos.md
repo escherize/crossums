@@ -45,3 +45,12 @@ How will our test runner fit in with animations? will we need to wait in between
 (Like balatro), We eventually need a game mode that iteratively adds up players' scores, and shows how the final score came to be.
 
 As it is now it's quite tough to actually see what happened and why
+
+
+## Balance:
+
+decisions dont matter because I Can easily buy all known operators
+
+## circle misstep feedback:
+
+circling a non-critical cell should do the red throbbing animation that deleting a critical cell requires

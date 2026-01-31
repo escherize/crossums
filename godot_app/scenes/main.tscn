@@ -1,7 +1,10 @@
-[gd_scene load_steps=5 format=3 uid="uid://main001"]
+[gd_scene load_steps=6 format=3 uid="uid://main001"]
 
 [ext_resource type="Script" path="res://scenes/main.gd" id="1_main"]
 [ext_resource type="PackedScene" uid="uid://operator_display" path="res://scenes/ui/operator_display.tscn" id="2_opdisplay"]
+
+[sub_resource type="SystemFont" id="SystemFont_mono"]
+font_names = PackedStringArray("SF Mono", "Menlo", "Monaco", "Consolas", "DejaVu Sans Mono", "monospace")
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bg"]
 bg_color = Color(0.2, 0.22, 0.28, 1)
@@ -133,26 +136,31 @@ size_flags_horizontal = 0
 theme_override_constants/separation = 16
 alignment = 1
 
-[node name="TimerContainer" type="VBoxContainer" parent="SafeArea/MainLayout/RightPanel"]
+[node name="TimerContainer" type="HBoxContainer" parent="SafeArea/MainLayout/RightPanel"]
 layout_mode = 2
-theme_override_constants/separation = 4
+theme_override_constants/separation = 12
+alignment = 1
 
 [node name="TimerLabel" type="Label" parent="SafeArea/MainLayout/RightPanel/TimerContainer"]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(90, 0)
 layout_mode = 2
+theme_override_fonts/font = SubResource("SystemFont_mono")
 theme_override_font_sizes/font_size = 24
-text = "2.0x"
+text = "2.00x"
 horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="TimerBar" type="ProgressBar" parent="SafeArea/MainLayout/RightPanel/TimerContainer"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 16)
+custom_minimum_size = Vector2(36, 360)
 layout_mode = 2
 theme_override_styles/background = SubResource("StyleBoxFlat_bg")
 theme_override_styles/fill = SubResource("StyleBoxFlat_fill")
 max_value = 1.0
 value = 1.0
 show_percentage = false
+fill_mode = 3
 
 [node name="Spacer" type="Control" parent="SafeArea/MainLayout/RightPanel"]
 layout_mode = 2

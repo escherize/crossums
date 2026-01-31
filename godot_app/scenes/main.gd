@@ -105,7 +105,9 @@ func _update_time_multiplier() -> void:
 func _update_timer_display() -> void:
 	# Calculate progress (1.0 = full bonus, 0.0 = no bonus)
 	var mult_range := GameConfig.TIME_MULT_START - GameConfig.TIME_MULT_FLOOR
-	var progress := (time_multiplier - GameConfig.TIME_MULT_FLOOR) / mult_range if mult_range > 0 else 0.0
+	var progress := 0.0
+	if mult_range > 0:
+		progress = (time_multiplier - GameConfig.TIME_MULT_FLOOR) / mult_range
 
 	# Update bar value
 	timer_bar.value = progress
@@ -116,7 +118,7 @@ func _update_timer_display() -> void:
 	_timer_fill_style.bg_color = fill_color
 
 	# Update label
-	timer_label.text = "%.1fx" % time_multiplier
+	timer_label.text = "%.2fx" % time_multiplier
 
 
 func _refresh_hud() -> void:
@@ -189,13 +191,13 @@ func _on_puzzle_ready(_stage_config) -> void:
 	_refresh_hud()
 
 
-func _on_show_result(won: bool, score: int, target: int, reward: int) -> void:
+func _on_show_result(won: bool, breakdown, target: int, reward: int) -> void:
 	## Show result popup after puzzle completion
 	_clear_overlay()
 	var popup = ResultPopupScene.instantiate()
 	popup.continue_pressed.connect(_on_result_continue)
 	overlay_container.add_child(popup)
-	popup.show_result(won, score, target, reward)
+	popup.show_result(won, breakdown, target, reward)
 	_current_overlay = popup
 
 
@@ -280,6 +282,9 @@ func _on_mistake_made(_row: int, _col: int) -> void:
 	if GameState.run == null:
 		return
 
+	# Missteps count against precision (same as restores)
+	restore_count += 1
+
 	# Lose a life
 	var game_over_flag: bool = GameState.run.lose_life()
 
@@ -321,5 +326,5 @@ func _complete_puzzle() -> void:
 	)
 	_update_status("Score: %d  |  %s" % [breakdown.final_score, breakdown.get_summary()])
 
-	# Notify RunManager
-	RunManager.on_puzzle_complete(breakdown.final_score)
+	# Notify RunManager with full breakdown
+	RunManager.on_puzzle_complete(breakdown)

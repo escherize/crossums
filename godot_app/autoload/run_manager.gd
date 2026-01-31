@@ -8,7 +8,7 @@ extends Node
 
 signal state_changed(new_state: State)
 signal puzzle_ready(stage_config)
-signal show_result(won: bool, score: int, target: int, reward: int)
+signal show_result(won: bool, breakdown, target: int, reward: int)
 signal show_shop()
 signal show_game_over(total_score: int, stages_cleared: int)
 signal show_victory(total_score: int)
@@ -75,15 +75,27 @@ func _start_next_puzzle() -> void:
 	EventBus.puzzle_started.emit(GameState.run.puzzle_index + 1, false)
 
 
-func on_puzzle_complete(score: int) -> void:
+func on_puzzle_complete(breakdown_or_score) -> void:
 	## Called when player completes a puzzle.
 	## Scores accumulate across stage; gate check only on boss puzzle (index 2).
+	## breakdown_or_score: ScoringEngine.ScoreBreakdown or int (for testing)
 	if _current_stage_config == null:
 		push_error("No stage config for puzzle completion")
 		return
 
+	# Support both breakdown object and raw score (for tests)
+	var breakdown = breakdown_or_score
+	var score: int
+	var money_bonus: int = 0
+	if breakdown_or_score is int:
+		score = breakdown_or_score
+		breakdown = _create_mock_breakdown(score)
+	else:
+		score = breakdown.final_score
+		money_bonus = breakdown.money_bonus
+
 	_last_puzzle_score = score
-	var reward: int = _current_stage_config.money_reward
+	var reward: int = _current_stage_config.money_reward + money_bonus
 
 	# Always add score (no per-puzzle gate)
 	GameState.run.add_stage_score(score)
@@ -114,7 +126,7 @@ func on_puzzle_complete(score: int) -> void:
 	# Show result
 	current_state = State.PUZZLE_RESULT
 	state_changed.emit(current_state)
-	show_result.emit(true, score, _current_stage_config.score_target, reward)
+	show_result.emit(true, breakdown, _current_stage_config.score_target, reward)
 
 
 func continue_from_result() -> void:
@@ -174,4 +186,30 @@ func get_current_stage_config():
 
 
 func is_run_active() -> bool:
-	return current_state != State.IDLE and current_state != State.GAME_OVER and current_state != State.VICTORY
+	var inactive_states := [State.IDLE, State.GAME_OVER, State.VICTORY]
+	return current_state not in inactive_states
+
+
+# =============================================================================
+# HELPERS
+# =============================================================================
+
+func _create_mock_breakdown(score: int):
+	## Create a mock ScoreBreakdown for testing purposes
+	## Returns a simple object with the minimum fields needed
+	return {
+		"final_score": score,
+		"base_points": score,
+		"kept_bonus": 0,
+		"kept_count": 0,
+		"line_multiplier": 1.0,
+		"valid_lines": 0,
+		"total_lines": 0,
+		"operator_bonus": 0,
+		"operator_mult": 1.0,
+		"operator_details": [],
+		"time_multiplier": 1.0,
+		"precision_multiplier": 1.0,
+		"restore_count": 0,
+		"money_bonus": 0
+	}

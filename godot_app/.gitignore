@@ -2,3 +2,6 @@
 .godot/
 /android/
 /exports/
+
+# Unused sound packs (large, kept locally for reference)
+/assets/unused/

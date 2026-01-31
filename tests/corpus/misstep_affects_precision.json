@@ -1,0 +1,68 @@
+{
+  "name": "misstep_affects_precision",
+  "description": "Missteps (deleting critical cells) should hurt precision multiplier",
+  "setup": {
+    "size": 3,
+    "start_board": {
+      "size": 3,
+      "row_targets": [9, 5, 5],
+      "col_targets": [9, 5, 5],
+      "cells": [
+        [{"value": 9}, {"value": 1}, {"value": 1}],
+        [{"value": 1}, {"value": 5}, {"value": 1}],
+        [{"value": 1}, {"value": 1}, {"value": 5}]
+      ]
+    }
+  },
+  "steps": [
+    {
+      "comment": "The 9 in (0,0) is critical - deleting it is a misstep"
+    },
+    {
+      "action": "delete_cell",
+      "params": {"row": 0, "col": 0},
+      "expect_nested": {
+        "cell.was_mistake": true
+      }
+    },
+    {
+      "comment": "Now solve properly - delete non-critical cells"
+    },
+    {
+      "action": "delete_cell",
+      "params": {"row": 0, "col": 1}
+    },
+    {
+      "action": "delete_cell",
+      "params": {"row": 0, "col": 2}
+    },
+    {
+      "action": "delete_cell",
+      "params": {"row": 1, "col": 0}
+    },
+    {
+      "action": "delete_cell",
+      "params": {"row": 1, "col": 2}
+    },
+    {
+      "action": "delete_cell",
+      "params": {"row": 2, "col": 0}
+    },
+    {
+      "action": "delete_cell",
+      "params": {"row": 2, "col": 1}
+    },
+    {
+      "assert": "assert_valid"
+    },
+    {
+      "comment": "Precision should be 1.25 (1-2 errors) due to misstep, NOT 1.5 (perfect)"
+    },
+    {
+      "action": "get_score",
+      "expect": {
+        "precision_multiplier": 1.25
+      }
+    }
+  ]
+}
