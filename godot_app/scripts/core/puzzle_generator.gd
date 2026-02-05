@@ -1,20 +1,24 @@
 class_name PuzzleGenerator
 extends RefCounted
-## Generates puzzles with configurable solution counts.
+## Generates puzzles with two distinct strategies:
 ##
-## Primary strategy: Coincidental Sums (preserves math challenge)
-## - Fill grid with diverse values (1-9)
-## - Find targets where different number combinations happen to sum to the same value
-## - Example: Row [1,7,3,5] with target 8 allows {1,7} OR {3,5}
-## - Player must recognize BOTH pairs sum to 8 - math preserved, choice introduced
+## 1. Single-solution (boss boards): Random values, ~1 answer, no shuffle
+## 2. Multi-solution (normal): Exchange patterns + shuffle for player choice
 ##
-## Fallback strategies when coincidental sums are rare:
-## - Exchange patterns: 2x2 regions where both diagonals work
-## - Controlled diversity: Reduce value diversity (sacrifices math challenge)
+## Exchange patterns use 2x2 regions with uniform rows:
+##   [V][V]  where V != W
+##   [W][W]  Player can keep {a,d} OR {b,c} - both give same row sums
+##
+## Pattern count = size - 2 (minimum 1):
+##   3x3: 1 pattern → 2 solutions
+##   4x4: 2 patterns → 4 solutions
+##   5x5: 3 patterns → 8 solutions
+##   6x6: 4 patterns → 16 solutions
+##
+## After creating patterns, shuffle disperses them across the board.
 
 const MAX_SOLUTION_COUNT = 50
-const MAX_GENERATION_ATTEMPTS = 50
-const COINCIDENTAL_ATTEMPTS = 100  # More attempts since coincidences are rarer
+const MAX_GENERATION_ATTEMPTS = 100
 
 # =============================================================================
 # MAIN GENERATION API
@@ -25,171 +29,210 @@ static func generate(
 	target_solutions: int = 3,
 	rng: RandomNumberGenerator = null
 ) -> PuzzleState:
-	## Generate a puzzle targeting approximately `target_solutions` solutions.
-	## Returns puzzle with solution_count in range [2, target+3] for multi-solution,
-	## or exactly 1 for single-solution targets.
+	## Generate a puzzle. Uses single-solution for target<=1, multi-solution otherwise.
 
 	if rng == null:
 		rng = RandomNumberGenerator.new()
 		rng.randomize()
 
-	# For multi-solution puzzles, require at least 2 solutions
-	var min_solutions = 2 if target_solutions >= 2 else 1
-	var max_solutions = target_solutions + 3
-
-	# Try generation strategies in order of preference
-	# Coincidental sums first (best math challenge), then fallbacks
-	var strategies = [
-		_strategy_coincidental_sums,
-		_strategy_exchange_patterns,
-		_strategy_controlled_diversity,
-		_strategy_random_sampling,
-	]
-
-	for strategy in strategies:
-		var result = strategy.call(grid_size, min_solutions, max_solutions, rng)
-		if result != null:
-			# Shuffle rows and columns to break up visual patterns
-			# (keeps puzzle mathematically equivalent)
-			_shuffle_puzzle(result, rng)
-
-			var analysis = analyze(result)
-			print("[PuzzleGenerator] %s succeeded: %d solutions, diversity %.2f" % [
-				str(strategy).get_slice("::", 1),
-				analysis.solution_count,
-				analysis.diversity
-			])
-			return result
-		print("[PuzzleGenerator] %s failed" % str(strategy).get_slice("::", 1))
-
-	# Fallback: single-solution puzzle (better than nothing)
-	print("[PuzzleGenerator] All strategies failed, using single-solution fallback")
-	var fallback = _generate_single_solution(grid_size, rng)
-	_shuffle_puzzle(fallback, rng)
-	return fallback
+	if target_solutions <= 1:
+		return generate_single_solution(grid_size, rng)
+	return generate_multi_solution(grid_size, rng)
 
 
-# =============================================================================
-# STRATEGY 1: Coincidental Sums (Primary - preserves math challenge)
-# =============================================================================
-
-static func _strategy_coincidental_sums(
+static func generate_single_solution(
 	grid_size: Vector2i,
-	min_solutions: int,
-	max_solutions: int,
 	rng: RandomNumberGenerator
 ) -> PuzzleState:
-	## Find puzzles where different number combinations coincidentally sum to the same targets.
-	## Preserves full value diversity (1-9) so math challenge remains.
+	## Generate a puzzle with exactly 1 solution. Good for "boss boards".
+	## No shuffle - patterns don't need hiding.
 
-	for _attempt in range(COINCIDENTAL_ATTEMPTS):
+	for _attempt in range(MAX_GENERATION_ATTEMPTS):
 		var state = PuzzleState.new(grid_size)
 
-		# Fill grid with diverse values (1-9)
+		# Fill with random diverse values
 		for row in range(grid_size.y):
 			for col in range(grid_size.x):
 				state.get_cell(row, col).value = rng.randi_range(1, 9)
 
-		# Try to find good targets using sum partners
-		var result = _find_coincidental_targets(state, min_solutions, max_solutions, rng)
+		# Find targets that give exactly 1 solution
+		var result = _find_targets_with_solution_count(state, 1, 1, rng)
 		if result != null:
+			var analysis = analyze(result)
+			print("[PuzzleGenerator] single_solution: %d solutions, diversity %.2f" % [
+				analysis.solution_count, analysis.diversity
+			])
 			return result
 
-	return null
+	# Fallback: return any valid puzzle
+	print("[PuzzleGenerator] single_solution failed, using fallback")
+	return _generate_fallback(grid_size, rng)
 
 
-static func _find_coincidental_targets(
+static func generate_multi_solution(
+	grid_size: Vector2i,
+	rng: RandomNumberGenerator
+) -> PuzzleState:
+	## Generate a puzzle with multiple solutions using exchange patterns.
+	## Creates 2x2 regions where both diagonals work, then shuffles.
+
+	for _attempt in range(MAX_GENERATION_ATTEMPTS):
+		var state = PuzzleState.new(grid_size)
+
+		# Fill with random diverse values
+		for row in range(grid_size.y):
+			for col in range(grid_size.x):
+				state.get_cell(row, col).value = rng.randi_range(1, 9)
+
+		# Determine how many exchange patterns to create
+		var num_patterns = _get_pattern_count(grid_size)
+
+		# Create exchange patterns (modify values so diagonals are equal)
+		var patterns_created = _create_exchange_patterns(state, num_patterns, rng)
+		if patterns_created == 0:
+			continue
+
+		# Find valid targets
+		var result = _find_targets_with_solution_count(state, 2, 20, rng)
+		if result != null:
+			# Shuffle to disperse the exchange patterns
+			_shuffle_puzzle(result, rng)
+
+			var analysis = analyze(result)
+			print("[PuzzleGenerator] multi_solution: %d patterns, %d solutions, diversity %.2f" % [
+				patterns_created, analysis.solution_count, analysis.diversity
+			])
+			return result
+
+	# Fallback
+	print("[PuzzleGenerator] multi_solution failed, using fallback")
+	var fallback = _generate_fallback(grid_size, rng)
+	_shuffle_puzzle(fallback, rng)
+	return fallback
+
+
+static func _get_pattern_count(grid_size: Vector2i) -> int:
+	## Determine how many 2x2 exchange patterns to create based on grid size.
+	## Formula: size - 2 (so 3x3=1, 4x4=2, 5x5=3, 6x6=4)
+	var size = mini(grid_size.x, grid_size.y)
+	return maxi(1, size - 2)
+
+
+static func _create_exchange_patterns(
+	state: PuzzleState,
+	num_patterns: int,
+	rng: RandomNumberGenerator
+) -> int:
+	## Create non-overlapping 2x2 exchange patterns with uniform rows.
+	## Pattern: [V][V] / [W][W] - either diagonal gives same row/col sums.
+	## Returns number of patterns successfully created.
+
+	var used_cells: Dictionary = {}
+	var patterns_created = 0
+	var size = state.grid_size
+
+	for _i in range(num_patterns):
+		var found = false
+		for _try in range(20):
+			var r = rng.randi_range(0, size.y - 2)
+			var c = rng.randi_range(0, size.x - 2)
+
+			# Check if any cell is already used
+			var overlaps = false
+			for dr in range(2):
+				for dc in range(2):
+					if used_cells.has(Vector2i(c + dc, r + dr)):
+						overlaps = true
+						break
+				if overlaps:
+					break
+
+			if overlaps:
+				continue
+
+			# Create exchange pattern: uniform values per row, different between rows
+			# [V][V]
+			# [W][W]  where V != W (diagonals are different)
+			var v = rng.randi_range(1, 9)
+			var w = rng.randi_range(1, 9)
+			while w == v:
+				w = rng.randi_range(1, 9)
+
+			state.get_cell(r, c).value = v
+			state.get_cell(r, c + 1).value = v
+			state.get_cell(r + 1, c).value = w
+			state.get_cell(r + 1, c + 1).value = w
+
+			# Mark cells as used
+			for dr in range(2):
+				for dc in range(2):
+					used_cells[Vector2i(c + dc, r + dr)] = true
+
+			patterns_created += 1
+			found = true
+			break
+
+		if not found:
+			break
+
+	return patterns_created
+
+
+static func _find_targets_with_solution_count(
 	state: PuzzleState,
 	min_solutions: int,
 	max_solutions: int,
 	rng: RandomNumberGenerator
 ) -> PuzzleState:
-	## Find targets that allow multiple solutions via coincidental sums.
-	## Strategy: identify targets where rows/cols have "sum partners" (different subsets → same sum).
+	## Find targets that give solution count in [min, max] range.
 
 	var grid_size = state.grid_size
 
-	# Analyze sum partners for each row
-	var row_partners: Array = []  # Array of {sum: [[indices], ...]} per row
-	for row in range(grid_size.y):
-		var values: Array = []
-		for col in range(grid_size.x):
-			values.append({"col": col, "value": state.get_cell(row, col).value})
-		row_partners.append(_find_sum_partners(values))
+	for _attempt in range(50):
+		# Pick a random valid keep-set (30-70% of cells)
+		var keep_ratio = rng.randf_range(0.3, 0.7)
+		var keep_set: Dictionary = {}
 
-	# Analyze sum partners for each column
-	var col_partners: Array = []
-	for col in range(grid_size.x):
-		var values: Array = []
 		for row in range(grid_size.y):
-			values.append({"col": row, "value": state.get_cell(row, col).value})
-		col_partners.append(_find_sum_partners(values))
+			for col in range(grid_size.x):
+				if rng.randf() < keep_ratio:
+					keep_set[Vector2i(col, row)] = true
 
-	# Score candidate target sums by how many alternatives they provide
-	# Higher score = more subsets can achieve this sum
-	var row_target_candidates: Array = []  # Array of Array of {target, score}
-	for row in range(grid_size.y):
-		var candidates: Array = []
-		for target_sum in row_partners[row].keys():
-			var subsets = row_partners[row][target_sum]
-			# Score based on number of alternative subsets
-			candidates.append({"target": target_sum, "score": subsets.size(), "subsets": subsets})
-		# Sort by score (more alternatives = better)
-		candidates.sort_custom(func(a, b): return a.score > b.score)
-		row_target_candidates.append(candidates)
-
-	# Try different combinations of row targets, prioritizing those with more alternatives
-	for _target_attempt in range(30):
-		# For each row, pick a target (weighted towards those with more alternatives)
-		var row_targets: Array[int] = []
-		var row_keep_sets: Array = []  # One possible keep-set per row
-
-		var valid_config = true
+		# Ensure at least one cell per row and column
 		for row in range(grid_size.y):
-			var candidates = row_target_candidates[row]
-			if candidates.is_empty():
-				valid_config = false
-				break
-
-			# Weighted selection: prefer targets with more alternatives
-			var total_score = 0
-			for c in candidates:
-				total_score += c.score
-			var pick = rng.randi() % total_score
-			var running = 0
-			var chosen = candidates[0]
-			for c in candidates:
-				running += c.score
-				if pick < running:
-					chosen = c
+			var has_cell = false
+			for col in range(grid_size.x):
+				if keep_set.has(Vector2i(col, row)):
+					has_cell = true
 					break
+			if not has_cell:
+				keep_set[Vector2i(rng.randi_range(0, grid_size.x - 1), row)] = true
 
-			row_targets.append(chosen.target)
-			# Pick a random subset from the alternatives
-			var subset_idx = rng.randi() % chosen.subsets.size()
-			row_keep_sets.append(chosen.subsets[subset_idx])
+		for col in range(grid_size.x):
+			var has_cell = false
+			for row in range(grid_size.y):
+				if keep_set.has(Vector2i(col, row)):
+					has_cell = true
+					break
+			if not has_cell:
+				keep_set[Vector2i(col, rng.randi_range(0, grid_size.y - 1))] = true
 
-		if not valid_config:
-			continue
-
-		# Set row targets
+		# Calculate targets from keep-set
 		for row in range(grid_size.y):
-			state.row_targets[row] = row_targets[row]
-
-		# Calculate column targets from chosen keep-set
-		var keep_dict: Dictionary = {}
-		for row in range(grid_size.y):
-			for col in row_keep_sets[row]:
-				keep_dict[Vector2i(col, row)] = true
+			var row_sum = 0
+			for col in range(grid_size.x):
+				if keep_set.has(Vector2i(col, row)):
+					row_sum += state.get_cell(row, col).value
+			state.row_targets[row] = row_sum
 
 		for col in range(grid_size.x):
 			var col_sum = 0
 			for row in range(grid_size.y):
-				if keep_dict.has(Vector2i(col, row)):
+				if keep_set.has(Vector2i(col, row)):
 					col_sum += state.get_cell(row, col).value
 			state.col_targets[col] = col_sum
 
-		# Count actual solutions
+		# Count solutions
 		var solution_count = count_solutions(state, max_solutions + 1)
 
 		if solution_count >= min_solutions and solution_count <= max_solutions:
@@ -199,237 +242,26 @@ static func _find_coincidental_targets(
 	return null
 
 
-static func _find_sum_partners(cells: Array) -> Dictionary:
-	## Find all subsets that sum to each possible total.
-	## Returns {sum: [[indices that produce it], ...]}
-	## "Sum partners" are sums with multiple ways to achieve them.
+static func _generate_fallback(grid_size: Vector2i, rng: RandomNumberGenerator) -> PuzzleState:
+	## Generate any valid puzzle as fallback.
+	var config = PuzzleLogic.PuzzleConfig.new()
+	config.grid_size = grid_size
+	config.puzzle_seed = rng.randi()
+	return PuzzleLogic.generate_puzzle(config)
 
-	var sum_groups: Dictionary = {}
 
-	# Generate all non-empty subsets
-	var n = cells.size()
-	var total_subsets = 1 << n  # 2^n
+# Legacy strategies moved to docs/LEGACY_PUZZLE_STRATEGIES.md
 
-	for mask in range(1, total_subsets):  # Skip empty subset
-		var subset_indices: Array = []
-		var subset_sum = 0
 
-		for i in range(n):
-			if mask & (1 << i):
-				subset_indices.append(cells[i].col)
-				subset_sum += cells[i].value
-
-		if not sum_groups.has(subset_sum):
-			sum_groups[subset_sum] = []
-		sum_groups[subset_sum].append(subset_indices)
-
-	return sum_groups
+# Legacy strategies documented in docs/LEGACY_PUZZLE_STRATEGIES.md
 
 
 # =============================================================================
-# STRATEGY 2: Controlled Value Diversity (Fallback - reduces math challenge)
+# TARGET FINDING (used by legacy code, kept for _find_good_targets)
 # =============================================================================
 
-static func _strategy_controlled_diversity(
-	grid_size: Vector2i,
-	min_solutions: int,
-	max_solutions: int,
-	rng: RandomNumberGenerator
-) -> PuzzleState:
-	## Control solution count by controlling value diversity.
-	## More repeated values → more solutions.
-
-	var total_cells = grid_size.x * grid_size.y
-
-	# Map target solution range to diversity level
-	# diversity 0.0 = all same value, 1.0 = all different
-	var target_mid = (min_solutions + max_solutions) / 2.0
-	var diversity = _solutions_to_diversity(target_mid, total_cells)
-
-	for _attempt in range(MAX_GENERATION_ATTEMPTS):
-		var state = PuzzleState.new(grid_size)
-
-		# Generate values with controlled diversity
-		_fill_with_diversity(state, diversity, rng)
-
-		# Try to find targets that give solutions in range
-		var result = _find_good_targets(state, min_solutions, max_solutions, rng)
-		if result != null:
-			return result
-
-	return null
-
-
-static func _solutions_to_diversity(target_solutions: float, total_cells: int) -> float:
-	## Map target solution count to diversity level.
-	## Based on empirical observation:
-	## - All 1s with n×n grid, targets n-1 per row/col → ~n! solutions
-	## - Higher diversity → fewer solutions
-
-	# For a 3×3: all 1s can give 6 solutions, all different gives ~1
-	# For a 4×4: all 1s can give 24+ solutions
-	# For a 5×5: all 1s can give 120+ solutions
-
-	# Rough formula: diversity ≈ 1 - log(target) / log(max_possible)
-	var max_possible = mini(120, total_cells * total_cells)  # Cap estimate
-
-	if target_solutions <= 1:
-		return 0.9  # High diversity for single solution
-	if target_solutions >= max_possible:
-		return 0.0  # No diversity for max solutions
-
-	# Logarithmic mapping
-	var log_target = log(target_solutions)
-	var log_max = log(max_possible)
-	return clampf(1.0 - (log_target / log_max), 0.1, 0.9)
-
-
-static func _fill_with_diversity(
-	state: PuzzleState,
-	diversity: float,
-	rng: RandomNumberGenerator
-) -> void:
-	## Fill grid with values at specified diversity level.
-	## diversity 0 = all same, 1 = all different
-
-	var size = state.grid_size
-	var total = size.x * size.y
-
-	if diversity < 0.2:
-		# Very low diversity: mostly same value with slight variation
-		var base_value = rng.randi_range(1, 3)
-		for row in range(size.y):
-			for col in range(size.x):
-				var value = base_value
-				if rng.randf() < diversity * 2:
-					value = rng.randi_range(1, 4)
-				state.get_cell(row, col).value = value
-
-	elif diversity < 0.5:
-		# Medium-low diversity: 2-3 distinct values
-		var values = [rng.randi_range(1, 3), rng.randi_range(2, 5)]
-		if rng.randf() < diversity:
-			values.append(rng.randi_range(3, 6))
-		for row in range(size.y):
-			for col in range(size.x):
-				state.get_cell(row, col).value = values[rng.randi() % values.size()]
-
-	elif diversity < 0.7:
-		# Medium diversity: 3-5 distinct values
-		var values = []
-		for i in range(rng.randi_range(3, 5)):
-			values.append(rng.randi_range(1, 7))
-		for row in range(size.y):
-			for col in range(size.x):
-				state.get_cell(row, col).value = values[rng.randi() % values.size()]
-
-	else:
-		# High diversity: mostly different values
-		for row in range(size.y):
-			for col in range(size.x):
-				state.get_cell(row, col).value = rng.randi_range(1, 9)
-
-
 # =============================================================================
-# STRATEGY 3: Exchange Patterns (Fallback)
-# =============================================================================
-
-static func _strategy_exchange_patterns(
-	grid_size: Vector2i,
-	min_solutions: int,
-	max_solutions: int,
-	rng: RandomNumberGenerator
-) -> PuzzleState:
-	## Create puzzles with explicit exchange patterns.
-	## Each 2×2 with equal diagonals doubles solution count.
-
-	if grid_size.x < 3 or grid_size.y < 3:
-		return null
-
-	# Calculate how many exchange patterns we need
-	# 2^k solutions for k independent patterns
-	var target_mid = (min_solutions + max_solutions) / 2.0
-	var num_patterns = maxi(1, int(log(target_mid) / log(2)))
-	num_patterns = mini(num_patterns, (grid_size.x - 1) * (grid_size.y - 1) / 2)
-
-	for _attempt in range(MAX_GENERATION_ATTEMPTS / 2):
-		var state = PuzzleState.new(grid_size)
-
-		# Fill with base values
-		for row in range(grid_size.y):
-			for col in range(grid_size.x):
-				state.get_cell(row, col).value = rng.randi_range(1, 5)
-
-		# Create exchange patterns at random positions
-		var used_cells: Dictionary = {}
-		var patterns_created = 0
-
-		for _p in range(num_patterns * 3):  # Try more times than needed
-			if patterns_created >= num_patterns:
-				break
-
-			var r = rng.randi_range(0, grid_size.y - 2)
-			var c = rng.randi_range(0, grid_size.x - 2)
-
-			# Check cells not already used
-			var key = Vector2i(c, r)
-			if used_cells.has(key):
-				continue
-
-			# Create exchange pattern: make diagonals equal
-			var a = state.get_cell(r, c).value
-			var d = state.get_cell(r + 1, c + 1).value
-			var diag_sum = a + d
-
-			# Set b and c so b + c = a + d
-			var b = rng.randi_range(1, mini(diag_sum - 1, 9))
-			var c_val = diag_sum - b
-			if c_val >= 1 and c_val <= 9:
-				state.get_cell(r, c + 1).value = b
-				state.get_cell(r + 1, c).value = c_val
-				used_cells[key] = true
-				used_cells[Vector2i(c + 1, r)] = true
-				used_cells[Vector2i(c, r + 1)] = true
-				used_cells[Vector2i(c + 1, r + 1)] = true
-				patterns_created += 1
-
-		# Find targets
-		var result = _find_good_targets(state, min_solutions, max_solutions, rng)
-		if result != null:
-			return result
-
-	return null
-
-
-# =============================================================================
-# STRATEGY 4: Random Sampling (Last resort)
-# =============================================================================
-
-static func _strategy_random_sampling(
-	grid_size: Vector2i,
-	min_solutions: int,
-	max_solutions: int,
-	rng: RandomNumberGenerator
-) -> PuzzleState:
-	## Original algorithm: random values, sample keep-sets as targets.
-
-	for _attempt in range(MAX_GENERATION_ATTEMPTS):
-		var state = PuzzleState.new(grid_size)
-
-		# Fill with random values
-		for row in range(grid_size.y):
-			for col in range(grid_size.x):
-				state.get_cell(row, col).value = rng.randi_range(1, 9)
-
-		var result = _find_good_targets(state, min_solutions, max_solutions, rng)
-		if result != null:
-			return result
-
-	return null
-
-
-# =============================================================================
-# TARGET FINDING (Shared by all strategies)
+# SHARED UTILITIES
 # =============================================================================
 
 static func _find_good_targets(
