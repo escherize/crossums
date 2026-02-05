@@ -212,11 +212,19 @@ func _update_all_targets() -> void:
 	for row in range(puzzle_state.grid_size.y):
 		var current_sum = puzzle_state.get_current_row_sum(row)
 		row_targets[row].update_current_sum(current_sum)
+		row_targets[row].update_circled_sum(puzzle_state.get_circled_row_sum(row))
 
 	# Update column targets
 	for col in range(puzzle_state.grid_size.x):
 		var current_sum = puzzle_state.get_current_col_sum(col)
 		col_targets[col].update_current_sum(current_sum)
+		col_targets[col].update_circled_sum(puzzle_state.get_circled_col_sum(col))
+
+
+func simulate_click(row: int, col: int) -> void:
+	## Simulate a cell click (for operator auto-actions)
+	_on_cell_clicked(row, col)
+
 
 # =============================================================================
 # SIGNAL HANDLERS
@@ -263,6 +271,7 @@ func _on_cell_clicked(row: int, col: int) -> void:
 			if puzzle_state.uncircle_cell(row, col):
 				cell.set_cell_state(PuzzleState.CellState.ACTIVE)
 				cell.play_circle_animation()
+				_update_all_targets()
 				EventBus.cell_uncircled.emit(row, col)
 
 		_:
@@ -291,6 +300,7 @@ func _on_cell_long_pressed(row: int, col: int) -> void:
 			if puzzle_state.circle_cell(row, col):
 				cell.set_cell_state(PuzzleState.CellState.CIRCLED)
 				cell.play_circle_animation()
+				_update_all_targets()
 				EventBus.cell_circled.emit(row, col)
 
 		PuzzleState.CellState.CIRCLED:
@@ -298,6 +308,7 @@ func _on_cell_long_pressed(row: int, col: int) -> void:
 			if puzzle_state.uncircle_cell(row, col):
 				cell.set_cell_state(PuzzleState.CellState.ACTIVE)
 				cell.play_circle_animation()
+				_update_all_targets()
 				EventBus.cell_uncircled.emit(row, col)
 
 		_:

@@ -17,6 +17,8 @@ const COLOR_EXACT := Color(0.2, 0.6, 0.3)       # Green (matches!)
 const TEXT_COLOR := Color(0.95, 0.95, 0.95)
 const DEFAULT_SIZE := Vector2(96, 96)  # Default, can be overridden
 const FONT_SIZE := 32
+const CIRC_FONT_SIZE := 16  # Half of main font size
+const CIRC_TEXT_COLOR := Color(0.6, 0.9, 0.95)  # Cyan to match circled cells
 
 # =============================================================================
 # PROPERTIES
@@ -28,6 +30,7 @@ var target: int = 0
 var current_sum: int = 0
 var status: int = STATUS_WRONG
 var label: Label
+var circ_label: Label  ## Shows sum of circled cells
 
 # =============================================================================
 # LIFECYCLE
@@ -42,13 +45,26 @@ func _ready() -> void:
 	# Set pivot to center for scale animations (use actual size)
 	pivot_offset = custom_minimum_size / 2
 
-	# Create label
+	# Create main target label (centered)
 	label = Label.new()
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.add_theme_font_size_override("font_size", FONT_SIZE)
 	label.add_theme_color_override("font_color", TEXT_COLOR)
 	add_child(label)
+
+	# Create circled sum label (top-right corner)
+	circ_label = Label.new()
+	circ_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	circ_label.vertical_alignment = VERTICAL_ALIGNMENT_TOP
+	circ_label.add_theme_font_size_override("font_size", CIRC_FONT_SIZE)
+	circ_label.add_theme_color_override("font_color", CIRC_TEXT_COLOR)
+	circ_label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	circ_label.offset_left = -30
+	circ_label.offset_right = -4
+	circ_label.offset_top = 2
+	circ_label.offset_bottom = 20
+	add_child(circ_label)
 
 	# Now we're in the tree, apply initial appearance
 	_update_status()
@@ -70,6 +86,11 @@ func update_current_sum(new_sum: int) -> void:
 	current_sum = new_sum
 	_update_status()
 	_update_appearance()
+
+
+func update_circled_sum(sum: int) -> void:
+	if circ_label:
+		circ_label.text = "" if sum == 0 else str(sum)
 
 # =============================================================================
 # PRIVATE METHODS
