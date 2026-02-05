@@ -1,0 +1,31 @@
+{
+  "name": "op_gimme",
+  "description": "Gimme auto-clicks when exactly 1 row and 1 column remain incomplete",
+  "setup": {
+    "start_board": {
+      "size": 3,
+      "seed": 200,
+      "row_targets": [2, 2, 0],
+      "col_targets": [2, 2, 0],
+      "cells": [
+        [{"value": 1}, {"value": 1}, {"value": 9}],
+        [{"value": 1}, {"value": 1}, {"value": 9}],
+        [{"value": 9}, {"value": 9}, {"value": 9}]
+      ]
+    }
+  },
+  "steps": [
+    {"action": "clear_operators"},
+    {"action": "add_operator", "params": {"id": "gimme"}},
+    {"comment": "Delete cells to set up Gimme trigger: 1 red row, 1 red col remaining"},
+    {"action": "delete_cell", "params": {"row": 0, "col": 2}},
+    {"action": "delete_cell", "params": {"row": 1, "col": 2}},
+    {"action": "delete_cell", "params": {"row": 2, "col": 0}},
+    {"action": "delete_cell", "params": {"row": 2, "col": 1}},
+    {"comment": "After these deletions: row 2 and col 2 are red, intersection is (2,2)"},
+    {"comment": "Gimme should auto-click (2,2), solving the puzzle"},
+    {"action": "wait_idle"},
+    {"action": "wait_idle"},
+    {"assert": "assert_valid"}
+  ]
+}

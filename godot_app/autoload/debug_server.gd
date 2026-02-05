@@ -16,12 +16,9 @@ var _enabled: bool = false
 
 
 func _ready() -> void:
-	# Start TCP server when:
-	# 1. CS_DEBUG_SERVER env var is set (for tests to ensure correct instance)
-	# 2. Debug build (development convenience)
-	# 3. Command line feature flag
-	var env_enabled := OS.get_environment("CS_DEBUG_SERVER") != ""
-	if env_enabled or OS.is_debug_build() or OS.has_feature("debug_server"):
+	# Start TCP server only when CS_DEBUG_SERVER env var is set
+	var env_val := OS.get_environment("CS_DEBUG_SERVER").to_lower()
+	if env_val in ["1", "true", "yes"]:
 		_start_server()
 
 
@@ -1333,11 +1330,8 @@ func _action_get_score(params: Dictionary) -> Dictionary:
 		"operator_bonus": breakdown.operator_bonus,
 		"operator_mult": breakdown.operator_mult,
 		"operator_details": breakdown.operator_details,
-		"line_multiplier": breakdown.line_multiplier,
 		"time_multiplier": breakdown.time_multiplier,
 		"precision_multiplier": breakdown.precision_multiplier,
-		"valid_lines": breakdown.valid_lines,
-		"total_lines": breakdown.total_lines,
 		"money_bonus": breakdown.money_bonus,
 	}
 

@@ -13,16 +13,12 @@ class ScoreBreakdown:
 	var kept_count: int = 0
 	var total_cells: int = 0
 	var deleted_count: int = 0
-	var valid_lines: int = 0  # Rows + columns that hit target
-	var total_lines: int = 0
-	var line_multiplier: float = 1.0
-	var subtotal: int = 0  # Before multiplier
-	var line_score: int = 0  # After line multiplier, before time/precision
+	var subtotal: int = 0  # base + kept bonus
 	var time_multiplier: float = 1.0
 	var precision_multiplier: float = 1.0
 	var restore_count: int = 0
 	var final_score: int = 0
-	# Operator bonuses (Sprint 2)
+	# Operator bonuses
 	var operator_bonus: int = 0
 	var operator_mult: float = 1.0
 	var money_bonus: int = 0
@@ -31,7 +27,6 @@ class ScoreBreakdown:
 	func get_summary() -> String:
 		var parts: Array[String] = []
 		parts.append("Kept %d/%d" % [kept_count, total_cells])
-		parts.append("%.1fx line" % line_multiplier)
 		if operator_bonus > 0:
 			parts.append("+%d ops" % operator_bonus)
 		if operator_mult != 1.0:
@@ -57,10 +52,10 @@ static func calculate_score(
 	operators: Array = []
 ) -> ScoreBreakdown:
 	var breakdown = ScoreBreakdown.new()
-	var grid_size = puzzle.grid_size.x
+	var dim = puzzle.grid_size.x
 
-	# Base points by grid size
-	breakdown.base_points = GameConfig.BASE_POINTS.get(grid_size, 100)
+	# Base points: dimension × dimension × 10
+	breakdown.base_points = dim * dim * GameConfig.BASE_POINTS_PER_CELL
 
 	# Cell counts
 	breakdown.total_cells = puzzle.grid_size.x * puzzle.grid_size.y
@@ -70,16 +65,8 @@ static func calculate_score(
 	# Kept bonus: per kept number (rewards optimization)
 	breakdown.kept_bonus = breakdown.kept_count * GameConfig.KEPT_BONUS_PER_CELL
 
-	# Count valid lines (rows + columns)
-	breakdown.total_lines = puzzle.grid_size.x + puzzle.grid_size.y
-	breakdown.valid_lines = _count_valid_lines(puzzle)
-
-	# Line multiplier: 1.0 + X per valid line
-	breakdown.line_multiplier = 1.0 + (breakdown.valid_lines * GameConfig.LINE_MULT_PER_VALID)
-
-	# Calculate score after line multiplier
+	# Subtotal before multipliers
 	breakdown.subtotal = breakdown.base_points + breakdown.kept_bonus
-	breakdown.line_score = int(breakdown.subtotal * breakdown.line_multiplier)
 
 	# Time multiplier (passed in from timer)
 	breakdown.time_multiplier = time_mult
@@ -144,25 +131,10 @@ static func calculate_score(
 	breakdown.operator_mult = 1.0 + op_mult_bonus
 	breakdown.money_bonus = op_money_bonus
 
-	# Final score with all multipliers (now including operators)
-	var score_before_mult = breakdown.line_score + breakdown.operator_bonus
-	var total_mult = breakdown.time_multiplier * breakdown.precision_multiplier * breakdown.operator_mult
+	# Final score with all multipliers
+	var score_before_mult = breakdown.subtotal + breakdown.operator_bonus
+	var total_mult = breakdown.time_multiplier * breakdown.precision_multiplier
+	total_mult *= breakdown.operator_mult
 	breakdown.final_score = int(score_before_mult * total_mult)
 
 	return breakdown
-
-
-static func _count_valid_lines(puzzle: PuzzleState) -> int:
-	var count := 0
-
-	# Check rows
-	for row in range(puzzle.grid_size.y):
-		if puzzle.get_current_row_sum(row) == puzzle.row_targets[row]:
-			count += 1
-
-	# Check columns
-	for col in range(puzzle.grid_size.x):
-		if puzzle.get_current_col_sum(col) == puzzle.col_targets[col]:
-			count += 1
-
-	return count

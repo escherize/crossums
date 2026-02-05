@@ -7,25 +7,17 @@ extends RefCounted
 # VERSION (bumped by deploy.sh)
 # =============================================================================
 
-const VERSION := "0.2.20"
+const VERSION := "0.2.21"
 
 # =============================================================================
 # SCORING - BASE POINTS
 # =============================================================================
 
-## Base points awarded by grid size
-static var BASE_POINTS := {
-	3: 100,
-	4: 200,
-	5: 350,
-	6: 500,
-}
+## Base points per cell (base = dimension × dimension × this)
+static var BASE_POINTS_PER_CELL := 10
 
 ## Bonus points per kept cell (rewards optimization)
 static var KEPT_BONUS_PER_CELL := 25
-
-## Multiplier added per valid row/column
-static var LINE_MULT_PER_VALID := 0.2
 
 # =============================================================================
 # TIME MULTIPLIER
@@ -108,9 +100,8 @@ static var STREAK_MULT_CAP := 1.0
 
 ## Reset all values to defaults (useful for testing or new runs)
 static func reset_to_defaults() -> void:
-	BASE_POINTS = { 3: 100, 4: 200, 5: 350, 6: 500 }
+	BASE_POINTS_PER_CELL = 10
 	KEPT_BONUS_PER_CELL = 25
-	LINE_MULT_PER_VALID = 0.2
 	TIME_MULT_START = 2.0
 	TIME_MULT_FLOOR = 1.0
 	TIME_MULT_DECAY_SECONDS = 60.0

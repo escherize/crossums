@@ -265,6 +265,7 @@ func _on_cell_deleted(row: int, col: int, value: int) -> void:
 		return
 	_update_status("Deleted %d at row %d, col %d" % [value, row + 1, col + 1])
 	_check_auto_win()
+	_check_operator_auto_actions()
 
 
 func _on_cell_restored(row: int, col: int, value: int) -> void:
@@ -273,6 +274,7 @@ func _on_cell_restored(row: int, col: int, value: int) -> void:
 	restore_count += 1
 	_update_status("Restored %d at row %d, col %d" % [value, row + 1, col + 1])
 	_check_auto_win()
+	_check_operator_auto_actions()
 
 
 func _on_mistake_made(_row: int, _col: int) -> void:
@@ -313,6 +315,27 @@ func _check_auto_win() -> void:
 	# Win condition 2: Circled cells alone match targets
 	if GameState.puzzle.is_solved_by_circles():
 		_complete_puzzle()
+
+
+func _check_operator_auto_actions() -> void:
+	## Check operators for auto-actions (e.g., Gimme auto-click)
+	if puzzle_solved:
+		return
+	if not GameState.puzzle or not puzzle_grid:
+		return
+	if GameState.operators.is_empty():
+		return
+
+	for op in GameState.operators:
+		var action = op.get_auto_action(GameState.puzzle)
+		if action.has("auto_delete"):
+			var pos: Vector2i = action.auto_delete
+			# Delay slightly so animations don't overlap
+			await get_tree().create_timer(0.15).timeout
+			if puzzle_solved:
+				return
+			puzzle_grid.simulate_click(pos.y, pos.x)  # row, col
+			return  # Only one auto-action per frame
 
 
 func _complete_puzzle() -> void:

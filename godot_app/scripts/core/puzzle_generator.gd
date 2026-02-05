@@ -53,7 +53,7 @@ static func generate_single_solution(
 		# Fill with random diverse values
 		for row in range(grid_size.y):
 			for col in range(grid_size.x):
-				state.get_cell(row, col).value = rng.randi_range(1, 9)
+				state.get_cell(row, col).value = rng.randi_range(0, 9)
 
 		# Find targets that give exactly 1 solution
 		var result = _find_targets_with_solution_count(state, 1, 1, rng)
@@ -82,7 +82,7 @@ static func generate_multi_solution(
 		# Fill with random diverse values
 		for row in range(grid_size.y):
 			for col in range(grid_size.x):
-				state.get_cell(row, col).value = rng.randi_range(1, 9)
+				state.get_cell(row, col).value = rng.randi_range(0, 9)
 
 		# Determine how many exchange patterns to create
 		var num_patterns = _get_pattern_count(grid_size)
@@ -153,10 +153,10 @@ static func _create_exchange_patterns(
 			# Create exchange pattern: uniform values per row, different between rows
 			# [V][V]
 			# [W][W]  where V != W (diagonals are different)
-			var v = rng.randi_range(1, 9)
-			var w = rng.randi_range(1, 9)
+			var v = rng.randi_range(0, 9)
+			var w = rng.randi_range(0, 9)
 			while w == v:
-				w = rng.randi_range(1, 9)
+				w = rng.randi_range(0, 9)
 
 			state.get_cell(r, c).value = v
 			state.get_cell(r, c + 1).value = v
@@ -187,10 +187,16 @@ static func _find_targets_with_solution_count(
 	## Find targets that give solution count in [min, max] range.
 
 	var grid_size = state.grid_size
+	var total_cells = grid_size.x * grid_size.y
+
+	# Ensure at least 35% of cells are deleted (prevent trivial puzzles)
+	var min_delete = maxi(3, int(total_cells * 0.35))
+	var max_keep = total_cells - min_delete
+	var max_keep_ratio = float(max_keep) / total_cells
 
 	for _attempt in range(50):
-		# Pick a random valid keep-set (30-70% of cells)
-		var keep_ratio = rng.randf_range(0.3, 0.7)
+		# Pick a random valid keep-set (30% to max_keep_ratio)
+		var keep_ratio = rng.randf_range(0.3, max_keep_ratio)
 		var keep_set: Dictionary = {}
 
 		for row in range(grid_size.y):

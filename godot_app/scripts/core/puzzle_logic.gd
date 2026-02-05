@@ -8,7 +8,7 @@ extends RefCounted
 
 class PuzzleConfig:
 	var grid_size: Vector2i = Vector2i(3, 3)
-	var min_cell_value: int = 1
+	var min_cell_value: int = 0
 	var max_cell_value: int = 9
 	var cells_to_delete_ratio: float = 0.35  ## ~35% of cells should be deleted
 	var puzzle_seed: int = 0  ## 0 = random seed

@@ -45,6 +45,12 @@ func on_puzzle_end(_puzzle: PuzzleState) -> Dictionary:
 func on_puzzle_start(_puzzle: PuzzleState) -> void:
 	pass
 
+
+## Called after each action to check for auto-actions
+## Return: {"auto_delete": Vector2i(col, row)} to auto-delete a cell
+func get_auto_action(_puzzle: PuzzleState) -> Dictionary:
+	return {}
+
 # =============================================================================
 # SERIALIZATION
 # =============================================================================

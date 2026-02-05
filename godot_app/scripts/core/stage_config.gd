@@ -8,7 +8,7 @@ extends RefCounted
 # =============================================================================
 
 ## Score targets per stage (1-8) - cumulative across 3 puzzles
-const SCORE_TARGETS := [900, 1500, 2400, 3600, 6000, 10500, 18000, 30000]
+const SCORE_TARGETS := [400, 600, 900, 1200, 1800, 2500, 3500, 5000]
 
 ## Grid sizes per stage: 3,3,4,4,5,5,6,6
 const GRID_SIZES := [3, 3, 4, 4, 5, 5, 6, 6]

@@ -101,16 +101,15 @@ func _precreate_breakdown_lines(steps: Array) -> void:
 
 
 func _animate_breakdown_reveal(steps: Array) -> void:
-	## Reveal pre-created breakdown lines one by one
-	var running_total := 0
-	var running_mult := 1.0
+	## Reveal pre-created breakdown lines one by one.
+	## Uses pre-calculated display values to match actual scoring formula.
+	var display_values = _calculate_display_values()
 	var children = breakdown_container.get_children()
 
 	for i in range(steps.size()):
 		if _skip_requested:
 			break
 
-		var step = steps[i]
 		var line = children[i] if i < children.size() else null
 
 		if line:
@@ -118,21 +117,9 @@ func _animate_breakdown_reveal(steps: Array) -> void:
 			_current_tween = create_tween()
 			_current_tween.tween_property(line, "modulate:a", 1.0, 0.2)
 
-		# Update running total based on step type
-		if step.type == "add":
-			running_total += step.value
-		elif step.type == "mult":
-			running_mult *= step.value
-		elif step.type == "set":
-			running_total = step.value
-
-		# Animate running total countup
-		var display_total: int
-		if step.apply_mult:
-			display_total = int(running_total * running_mult)
-		else:
-			display_total = running_total
-		_animate_total(display_total)
+		# Animate to the correct display value for this step
+		if i < display_values.size():
+			_animate_total(display_values[i])
 
 		await get_tree().create_timer(STEP_DELAY).timeout
 
@@ -141,6 +128,45 @@ func _animate_breakdown_reveal(steps: Array) -> void:
 
 	if not _skip_requested:
 		_show_final_state()
+
+
+func _calculate_display_values() -> Array[int]:
+	## Pre-calculate correct display values at each animation step.
+	## Must match the actual scoring formula in ScoringEngine.
+	var b = _breakdown
+	var values: Array[int] = []
+
+	# Phase 1: Base and kept bonus
+	var subtotal = b.base_points
+	values.append(subtotal)  # After base
+
+	if b.kept_bonus > 0:
+		subtotal += b.kept_bonus
+		values.append(subtotal)  # After kept bonus
+
+	# Phase 2: Operator bonuses added
+	var score_with_ops = subtotal
+	for op_detail in b.operator_details:
+		score_with_ops += op_detail.bonus
+		values.append(score_with_ops)  # After each operator bonus
+
+	# Phase 3: Operator multiplier (if not 1.0)
+	var current_mult = 1.0
+	if b.operator_mult != 1.0:
+		current_mult *= b.operator_mult
+		values.append(int(score_with_ops * current_mult))
+
+	# Phase 4: Time multiplier
+	if b.time_multiplier != 1.0:
+		current_mult *= b.time_multiplier
+		values.append(int(score_with_ops * current_mult))
+
+	# Phase 5: Precision multiplier
+	if b.precision_multiplier != 1.0:
+		current_mult *= b.precision_multiplier
+		values.append(int(score_with_ops * current_mult))
+
+	return values
 
 
 func _build_breakdown_steps() -> Array:
@@ -159,25 +185,17 @@ func _build_breakdown_steps() -> Array:
 
 	# 2. Kept bonus
 	if b.kept_bonus > 0:
+		var kept_text = "+%d cells kept (%d × %d)" % [
+			b.kept_bonus, b.kept_count, GameConfig.KEPT_BONUS_PER_CELL]
 		steps.append({
-			"text": "+%d cells kept (%d × %d)" % [b.kept_bonus, b.kept_count, GameConfig.KEPT_BONUS_PER_CELL],
+			"text": kept_text,
 			"type": "add",
 			"value": b.kept_bonus,
 			"apply_mult": false,
 			"color": Color(0.5, 0.8, 1.0)  # Light blue
 		})
 
-	# 3. Line multiplier
-	if b.line_multiplier != 1.0:
-		steps.append({
-			"text": "×%.1f lines solved (%d/%d)" % [b.line_multiplier, b.valid_lines, b.total_lines],
-			"type": "mult",
-			"value": b.line_multiplier,
-			"apply_mult": true,
-			"color": Color(1.0, 0.9, 0.4)  # Gold
-		})
-
-	# 4. Operator bonuses (show each individually)
+	# 3. Operator bonuses (show each individually)
 	for op_detail in b.operator_details:
 		steps.append({
 			"text": "+%d %s" % [op_detail.bonus, op_detail.name],
