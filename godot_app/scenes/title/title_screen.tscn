@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3 uid="uid://title_screen"]
+[gd_scene load_steps=3 format=3 uid="uid://title_screen"]
 
 [ext_resource type="Script" path="res://scenes/title/title_screen.gd" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://main_background" path="res://assets/images/main_background.png" id="2_background"]
 
 [node name="TitleScreen" type="Control"]
 layout_mode = 3
@@ -11,14 +12,16 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_script")
 
-[node name="Background" type="ColorRect" parent="."]
+[node name="Background" type="TextureRect" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.1, 0.12, 0.15, 1)
+texture = ExtResource("2_background")
+expand_mode = 1
+stretch_mode = 6
 
 [node name="VBoxContainer" type="VBoxContainer" parent="."]
 layout_mode = 1
@@ -46,7 +49,9 @@ vertical_alignment = 1
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
-theme_override_colors/font_color = Color(0.6, 0.65, 0.7, 1)
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 3
 text = "A Number Puzzle Roguelike  v0.2"
 horizontal_alignment = 1
 vertical_alignment = 1
