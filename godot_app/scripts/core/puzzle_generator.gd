@@ -26,13 +26,15 @@ static func generate(
 	rng: RandomNumberGenerator = null
 ) -> PuzzleState:
 	## Generate a puzzle targeting approximately `target_solutions` solutions.
-	## Returns puzzle with solution_count in range [max(1, target-2), target+2].
+	## Returns puzzle with solution_count in range [2, target+3] for multi-solution,
+	## or exactly 1 for single-solution targets.
 
 	if rng == null:
 		rng = RandomNumberGenerator.new()
 		rng.randomize()
 
-	var min_solutions = maxi(1, target_solutions - 2)
+	# For multi-solution puzzles, require at least 2 solutions
+	var min_solutions = 2 if target_solutions >= 2 else 1
 	var max_solutions = target_solutions + 3
 
 	# Try generation strategies in order of preference
@@ -47,10 +49,24 @@ static func generate(
 	for strategy in strategies:
 		var result = strategy.call(grid_size, min_solutions, max_solutions, rng)
 		if result != null:
-			return result
+			# Shuffle rows and columns to break up visual patterns
+			# (keeps puzzle mathematically equivalent)
+			_shuffle_puzzle(result, rng)
 
-	# Fallback: single-solution puzzle
-	return _generate_single_solution(grid_size, rng)
+			var analysis = analyze(result)
+			print("[PuzzleGenerator] %s succeeded: %d solutions, diversity %.2f" % [
+				str(strategy).get_slice("::", 1),
+				analysis.solution_count,
+				analysis.diversity
+			])
+			return result
+		print("[PuzzleGenerator] %s failed" % str(strategy).get_slice("::", 1))
+
+	# Fallback: single-solution puzzle (better than nothing)
+	print("[PuzzleGenerator] All strategies failed, using single-solution fallback")
+	var fallback = _generate_single_solution(grid_size, rng)
+	_shuffle_puzzle(fallback, rng)
+	return fallback
 
 
 # =============================================================================
@@ -749,3 +765,68 @@ static func _find_all_backtrack(
 
 		if solutions.size() >= max_solutions:
 			return
+
+
+# =============================================================================
+# PUZZLE SHUFFLING
+# =============================================================================
+
+static func _shuffle_puzzle(state: PuzzleState, rng: RandomNumberGenerator) -> void:
+	## Shuffle rows and columns to break up visual patterns.
+	## This preserves the puzzle's mathematical properties because
+	## permuting rows/columns with their targets is an invariant operation.
+
+	var size = state.grid_size
+
+	# Generate random row and column permutations
+	var row_perm: Array[int] = []
+	var col_perm: Array[int] = []
+	for i in range(size.y):
+		row_perm.append(i)
+	for i in range(size.x):
+		col_perm.append(i)
+
+	# Fisher-Yates shuffle
+	for i in range(size.y - 1, 0, -1):
+		var j = rng.randi_range(0, i)
+		var tmp = row_perm[i]
+		row_perm[i] = row_perm[j]
+		row_perm[j] = tmp
+
+	for i in range(size.x - 1, 0, -1):
+		var j = rng.randi_range(0, i)
+		var tmp = col_perm[i]
+		col_perm[i] = col_perm[j]
+		col_perm[j] = tmp
+
+	# Create new cell values array with shuffled positions
+	var new_values: Array = []
+	for _row in range(size.y):
+		var row_vals: Array[int] = []
+		row_vals.resize(size.x)
+		new_values.append(row_vals)
+
+	for old_row in range(size.y):
+		for old_col in range(size.x):
+			var new_row = row_perm[old_row]
+			var new_col = col_perm[old_col]
+			new_values[new_row][new_col] = state.get_cell(old_row, old_col).value
+
+	# Apply new values
+	for row in range(size.y):
+		for col in range(size.x):
+			state.get_cell(row, col).value = new_values[row][col]
+
+	# Shuffle targets to match
+	var new_row_targets: Array[int] = []
+	var new_col_targets: Array[int] = []
+	new_row_targets.resize(size.y)
+	new_col_targets.resize(size.x)
+
+	for old_idx in range(size.y):
+		new_row_targets[row_perm[old_idx]] = state.row_targets[old_idx]
+	for old_idx in range(size.x):
+		new_col_targets[col_perm[old_idx]] = state.col_targets[old_idx]
+
+	state.row_targets = new_row_targets
+	state.col_targets = new_col_targets
