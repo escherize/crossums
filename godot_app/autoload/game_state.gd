@@ -3,7 +3,11 @@ extends Node
 ## Holds all game data for serialization, save/load, and testing.
 
 const RunStateScript = preload("res://scripts/core/run_state.gd")
+const PuzzleGeneratorScript = preload("res://scripts/core/puzzle_generator.gd")
 const MAX_OPERATORS := 5
+
+# Target number of solutions for generated puzzles (enables player choice)
+const TARGET_SOLUTIONS := 3
 
 # =============================================================================
 # STATE
@@ -40,7 +44,15 @@ func start_new_puzzle(config: PuzzleLogic.PuzzleConfig) -> void:
 	if run and config.puzzle_seed == 0:
 		config.puzzle_seed = run.get_puzzle_seed()
 
-	puzzle = PuzzleLogic.generate_puzzle(config)
+	# Use PuzzleGenerator for multi-solution puzzles (preserves math challenge)
+	var rng = RandomNumberGenerator.new()
+	if config.puzzle_seed != 0:
+		rng.seed = config.puzzle_seed
+	else:
+		rng.randomize()
+
+	puzzle = PuzzleGeneratorScript.generate(config.grid_size, TARGET_SOLUTIONS, rng)
+
 	# Notify operators of puzzle start
 	for op in operators:
 		op.on_puzzle_start(puzzle)

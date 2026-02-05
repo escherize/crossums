@@ -88,6 +88,10 @@ async function startGodot(): Promise<boolean> {
   godotProcess = spawn(["godot", "--path", GODOT_PROJECT], {
     stdout: "ignore",
     stderr: "ignore",
+    env: {
+      ...process.env,
+      CS_DEBUG_SERVER: "1",  // Ensure test instance starts the TCP server
+    },
   });
 
   // Wait for server to be ready

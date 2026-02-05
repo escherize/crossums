@@ -7,6 +7,7 @@ const PORT: int = 9999
 const BIND_ADDRESS: String = "127.0.0.1"
 const MAIN_SCENE: PackedScene = preload("res://scenes/main.tscn")
 const API_VERSION: String = "1.0.0"
+const PuzzleGeneratorScript = preload("res://scripts/core/puzzle_generator.gd")
 
 var _server: TCPServer = null
 var _connection: StreamPeerTCP = null
@@ -15,8 +16,12 @@ var _enabled: bool = false
 
 
 func _ready() -> void:
-	# Only start in debug builds or with explicit command line flag
-	if OS.is_debug_build() or OS.has_feature("debug_server"):
+	# Start TCP server when:
+	# 1. CS_DEBUG_SERVER env var is set (for tests to ensure correct instance)
+	# 2. Debug build (development convenience)
+	# 3. Command line feature flag
+	var env_enabled := OS.get_environment("CS_DEBUG_SERVER") != ""
+	if env_enabled or OS.is_debug_build() or OS.has_feature("debug_server"):
 		_start_server()
 
 
@@ -279,6 +284,12 @@ func _execute_action(action: String, params: Dictionary):
 
 		"check_solvable":
 			return _action_check_solvable(params)
+
+		"test_generator":
+			return _action_test_generator(params)
+
+		"analyze_puzzle":
+			return _action_analyze_puzzle(params)
 
 		_:
 			return {"error": "not_implemented", "message": "Action '%s' not yet implemented" % action}
@@ -1752,6 +1763,86 @@ func _action_check_solvable(_params: Dictionary) -> Dictionary:
 	return {
 		"has_any_solution": has_any,
 		"grid_size": puzzle_state.grid_size.x
+	}
+
+
+func _action_test_generator(params: Dictionary) -> Dictionary:
+	## Test the multi-solution puzzle generator
+	var grid_size: int = params.get("size", 3)
+	var target_solutions: int = params.get("target_solutions", 3)
+	var count: int = params.get("count", 5)
+
+	var results: Array = []
+	var rng = RandomNumberGenerator.new()
+	rng.randomize()
+
+	# Expected range is [target-2, target+3]
+	var min_expected = maxi(1, target_solutions - 2)
+	var max_expected = target_solutions + 3
+
+	for i in range(count):
+		var start_time = Time.get_ticks_msec()
+		var puzzle = PuzzleGeneratorScript.generate(
+			Vector2i(grid_size, grid_size),
+			target_solutions,
+			rng
+		)
+		var gen_time = Time.get_ticks_msec() - start_time
+
+		if puzzle == null:
+			results.append({"error": "generation_failed"})
+			continue
+
+		var analysis = PuzzleGeneratorScript.analyze(puzzle)
+		var in_range = analysis.solution_count >= min_expected
+		in_range = in_range and analysis.solution_count <= max_expected
+
+		results.append({
+			"seed": puzzle.puzzle_seed,
+			"solution_count": analysis.solution_count,
+			"diversity": analysis.diversity,
+			"in_range": in_range,
+			"gen_time_ms": gen_time,
+			"row_targets": Array(puzzle.row_targets),
+			"col_targets": Array(puzzle.col_targets)
+		})
+
+	var success_count = results.filter(func(r): return r.get("in_range", false)).size()
+
+	return {
+		"grid_size": grid_size,
+		"target_solutions": target_solutions,
+		"expected_range": [min_expected, max_expected],
+		"tested": count,
+		"success_count": success_count,
+		"success_rate": float(success_count) / count if count > 0 else 0.0,
+		"results": results
+	}
+
+
+func _action_analyze_puzzle(_params: Dictionary) -> Dictionary:
+	## Analyze current puzzle for solution count
+	var puzzle_state: PuzzleState = GameState.puzzle
+	if puzzle_state == null:
+		return {"error": "no_puzzle", "message": "No active puzzle"}
+
+	var analysis = PuzzleGeneratorScript.analyze(puzzle_state)
+	var solutions = PuzzleGeneratorScript.find_all_solutions(puzzle_state, 10)
+
+	# Format solutions for output
+	var formatted_solutions: Array = []
+	for sol in solutions:
+		var cells: Array = []
+		for pos in sol:
+			cells.append({"row": pos.y, "col": pos.x})
+		formatted_solutions.append(cells)
+
+	return {
+		"solution_count": analysis.solution_count,
+		"diversity": analysis.diversity,
+		"unique_values": analysis.unique_values,
+		"capped": analysis.capped,
+		"solutions": formatted_solutions
 	}
 
 
