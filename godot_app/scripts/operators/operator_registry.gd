@@ -4,20 +4,12 @@ extends RefCounted
 ## All operators must be registered here to be usable.
 
 const OPERATORS := {
-	# Original operators
 	"counter": preload("res://scripts/operators/impl/op_counter.gd"),
-	"lucky_seven": preload("res://scripts/operators/impl/op_lucky_seven.gd"),
-	"prime_time": preload("res://scripts/operators/impl/op_prime_time.gd"),
 	"row_master": preload("res://scripts/operators/impl/op_row_master.gd"),
-	"corner_keeper": preload("res://scripts/operators/impl/op_corner_keeper.gd"),
-	# New operators
 	"column_master": preload("res://scripts/operators/impl/op_column_master.gd"),
-	"zero_hero": preload("res://scripts/operators/impl/op_zero_hero.gd"),
-	"flipper": preload("res://scripts/operators/impl/op_flipper.gd"),
 	"circlicious": preload("res://scripts/operators/impl/op_circlicious.gd"),
 	"elite_delete": preload("res://scripts/operators/impl/op_elite_delete.gd"),
 	"purist": preload("res://scripts/operators/impl/op_purist.gd"),
-	"square_peg": preload("res://scripts/operators/impl/op_square_peg.gd"),
 	"gimme": preload("res://scripts/operators/impl/op_gimme.gd"),
 }
 
