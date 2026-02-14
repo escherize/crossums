@@ -1,7 +1,7 @@
 # Master Todo List
 
 > Consolidated from: user_todos.md, next_steps.md, priorities.md, mvp.md, implementation_status.md, GAME_DESIGN_IDEAS.md, crosssums-design-doc.md, OPERATORS.md, GTM_STRATEGY.md, visual_identity.md
-> Last updated: 2026-01-30
+> Last updated: 2026-02-14
 
 ---
 
@@ -20,8 +20,7 @@
 ## Priority 1: MVP Blockers
 
 ### 1.1 Sound Effects
-**Status:** ❌ Not started
-**Impact:** HIGH | **Effort:** LOW-MEDIUM
+**Status:** Done with decent sound effects
 
 The game is completely silent. This is the most noticeable gap.
 
@@ -79,10 +78,10 @@ Implemented step-by-step score breakdown reveal.
 ---
 
 ### 1.5 More Operators (10 minimum)
-**Status:** 🚧 Have 12, need variety
+**Status:** 🚧 Have 7, need more
 **Impact:** HIGH | **Effort:** MEDIUM
 
-Recent commit added operators. Need to verify count and variety.
+Need more operators for variety. Note: Several operators were removed because they conflicted with single-solution puzzle design (rewarding keeping specific cells when there's no choice).
 
 **Acceptance Criteria:**
 - [ ] At least 10 distinct operators in registry
@@ -91,8 +90,8 @@ Recent commit added operators. Need to verify count and variety.
 - [ ] All operators have tests
 - [ ] Shop shows variety in typical run
 
-**Current operators (12):**
-1. Counter, 2. Lucky Seven, 3. Prime Time, 4. Row Master, 5. Corner Keeper, 6. Column Master, 7. Zero Hero, 8. Circlicious, 9. Elite Delete, 10. Flipper, 11. Purist, 12. Square Peg
+**Current operators (7):**
+1. Counter (+10 per kept), 2. Row Master (+50 per row), 3. Column Master (+50 per col), 4. Circlicious (+$2 circled/-$1 deleted), 5. Elite Delete (+$2 deleted/-$1 circled), 6. Purist (+300 if no circles), 7. Gimme (auto-solve last cell)
 
 ---
 

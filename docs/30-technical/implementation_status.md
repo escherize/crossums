@@ -1,7 +1,7 @@
 # Implementation Status
 
 > Cross-reference of design docs vs actual code implementation
-> Last updated: 2026-01-27
+> Last updated: 2026-02-14
 
 ---
 
@@ -25,7 +25,7 @@
 | Auto-win detection | ✅ | Both deletion-based and circle-based |
 | Undo functionality | ✅ | Undo button + history tracking |
 | Solution validation | ✅ | `PuzzleLogic.validate()` |
-| Multiple valid solutions | ✅ | Generation allows multiple solutions |
+| Single-solution puzzles | ✅ | Each puzzle has exactly one valid solution |
 | Negative numbers | ❌ | `allow_negatives` flag exists but not enabled |
 | Locked cells (boss constraint) | ❌ | `CellState.LOCKED` enum exists, not used |
 
@@ -60,12 +60,14 @@
 | Feature | Status | Notes |
 |---------|--------|-------|
 | Operator base class | ✅ | `Operator.gd` with hooks |
-| Operator registry | ✅ | `OperatorRegistry.gd` with 5 operators |
+| Operator registry | ✅ | `OperatorRegistry.gd` with 7 operators |
 | Counter (+10 per kept) | ✅ | Working |
-| Lucky Seven (+77 per 7) | ✅ | Working |
-| Prime Time (+30 per prime) | ✅ | Working |
 | Row Master (+50 per row) | ✅ | Working |
-| Corner Keeper (+200 if all corners) | ✅ | Working |
+| Column Master (+50 per col) | ✅ | Working |
+| Circlicious (+$2 circled/-$1 deleted) | ✅ | Working |
+| Elite Delete (+$2 deleted/-$1 circled) | ✅ | Working |
+| Purist (+300 if no circles) | ✅ | Working |
+| Gimme (auto-solve last cell) | ✅ | Working |
 | Transformation operators (Flipper, Doubler) | ❌ | Not implemented |
 | Economy operators (Calculator, Banker) | ❌ | Not implemented |
 | Rule-breaking operators (Overflow, Skip Row) | ❌ | Not implemented |
