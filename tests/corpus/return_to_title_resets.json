@@ -14,7 +14,7 @@
     {
       "action": "add_operator",
       "params": {
-        "id": "lucky_seven"
+        "id": "counter"
       },
       "expect": {
         "success": true

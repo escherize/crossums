@@ -66,25 +66,25 @@
     {
       "action": "add_operator",
       "params": {
-        "id": "lucky_seven"
-      }
-    },
-    {
-      "action": "add_operator",
-      "params": {
-        "id": "prime_time"
-      }
-    },
-    {
-      "action": "add_operator",
-      "params": {
         "id": "row_master"
       }
     },
     {
       "action": "add_operator",
       "params": {
-        "id": "corner_keeper"
+        "id": "column_master"
+      }
+    },
+    {
+      "action": "add_operator",
+      "params": {
+        "id": "circlicious"
+      }
+    },
+    {
+      "action": "add_operator",
+      "params": {
+        "id": "purist"
       }
     },
     {

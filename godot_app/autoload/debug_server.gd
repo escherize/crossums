@@ -1409,7 +1409,8 @@ func _get_stage_config_info() -> Variant:
 		"puzzle_index": config.puzzle_index,
 		"grid_size": config.grid_size,
 		"score_target": config.score_target,
-		"allow_negatives": config.allow_negatives,
+		"min_cell_value": config.min_cell_value,
+		"max_cell_value": config.max_cell_value,
 		"money_reward": config.money_reward
 	}
 
@@ -1760,24 +1761,18 @@ func _action_check_solvable(_params: Dictionary) -> Dictionary:
 
 
 func _action_test_generator(params: Dictionary) -> Dictionary:
-	## Test the multi-solution puzzle generator
+	## Test the single-solution puzzle generator
 	var grid_size: int = params.get("size", 3)
-	var target_solutions: int = params.get("target_solutions", 3)
 	var count: int = params.get("count", 5)
 
 	var results: Array = []
 	var rng = RandomNumberGenerator.new()
 	rng.randomize()
 
-	# Expected range is [target-2, target+3]
-	var min_expected = maxi(1, target_solutions - 2)
-	var max_expected = target_solutions + 3
-
 	for i in range(count):
 		var start_time = Time.get_ticks_msec()
 		var puzzle = PuzzleGeneratorScript.generate(
 			Vector2i(grid_size, grid_size),
-			target_solutions,
 			rng
 		)
 		var gen_time = Time.get_ticks_msec() - start_time
@@ -1787,27 +1782,25 @@ func _action_test_generator(params: Dictionary) -> Dictionary:
 			continue
 
 		var analysis = PuzzleGeneratorScript.analyze(puzzle)
-		var in_range = analysis.solution_count >= min_expected
-		in_range = in_range and analysis.solution_count <= max_expected
+		# All puzzles should have exactly 1 solution now
+		var is_single = analysis.solution_count == 1
 
 		results.append({
 			"seed": puzzle.puzzle_seed,
 			"solution_count": analysis.solution_count,
 			"diversity": analysis.diversity,
-			"in_range": in_range,
+			"is_single_solution": is_single,
 			"gen_time_ms": gen_time,
 			"row_targets": Array(puzzle.row_targets),
 			"col_targets": Array(puzzle.col_targets)
 		})
 
-	var success_count = results.filter(func(r): return r.get("in_range", false)).size()
+	var success_count = results.filter(func(r): return r.get("is_single_solution", false)).size()
 
 	return {
 		"grid_size": grid_size,
-		"target_solutions": target_solutions,
-		"expected_range": [min_expected, max_expected],
 		"tested": count,
-		"success_count": success_count,
+		"single_solution_count": success_count,
 		"success_rate": float(success_count) / count if count > 0 else 0.0,
 		"results": results
 	}
