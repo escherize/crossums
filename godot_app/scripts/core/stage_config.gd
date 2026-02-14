@@ -36,7 +36,6 @@ var grid_size: int
 var score_target: int
 var min_cell_value: int
 var max_cell_value: int
-var slack: float
 var money_reward: int
 
 # =============================================================================
@@ -61,13 +60,6 @@ static func get_config(p_stage: int, p_puzzle_index: int):
 	config.min_cell_value = VALUE_RANGES[value_idx][0]
 	config.max_cell_value = VALUE_RANGES[value_idx][1]
 
-	# Slack: tight → loose within each stage (boss has most room for optimization)
-	# Base slack decreases with stage progression
-	var base_slack := clampf(0.7 - (p_stage - 1) * 0.06, 0.2, 0.7)
-	# Increase slack for later puzzles (boss = loosest)
-	var puzzle_adjustment := p_puzzle_index * 0.15  # 0, 0.15, 0.30
-	config.slack = clampf(base_slack + puzzle_adjustment, 0.2, 0.85)
-
 	# Money reward increases with stage
 	config.money_reward = 3 + p_stage
 
@@ -84,9 +76,6 @@ func to_puzzle_config() -> PuzzleLogic.PuzzleConfig:
 	pc.grid_size = Vector2i(grid_size, grid_size)
 	pc.min_cell_value = min_cell_value
 	pc.max_cell_value = max_cell_value
-	# High slack → low deletion ratio (more cells, more solutions, easier)
-	# Low slack → high deletion ratio (fewer cells, tighter constraints)
-	pc.cells_to_delete_ratio = clampf(0.55 - (slack - 0.2) * 0.4, 0.25, 0.55)
 	return pc
 
 

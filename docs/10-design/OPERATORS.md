@@ -30,26 +30,35 @@ Each operator can implement these hooks:
 
 ## Planned Operators
 
-> **Note:** Many originally planned operators were removed because they conflict with single-solution puzzle design. Operators that reward "keeping specific cells" (like Corner Keeper, Lucky Seven) don't work when there's only one valid solution.
+> **Note:** Many originally planned operators were removed because they conflict with single-solution puzzle design. See "Rejected" section below for details.
 
 ### Viable Candidates
 
-| ID | Name | Effect | Rarity | Hook | Notes |
-|----|------|--------|--------|------|-------|
-| `banker` | Banker | +10% interest on money after each puzzle | Rare | puzzle_end | Passive economy |
-| `thrifty` | Thrifty | -1 cost for all shop items | Uncommon | passive | Passive economy |
-| `gold_finder` | Gold Finder | +$1 for each row with no mistakes | Common | puzzle_end | Rewards precision |
-| `perfectionist` | Perfectionist | ×3 score if no restores used | Legendary | puzzle_end | Rewards precision |
-| `speed_demon` | Speed Demon | +100 points if solved under 10 seconds | Rare | puzzle_end | Rewards speed |
-| `combo_king` | Combo King | +25 points per cell deleted in a row without undo | Uncommon | cell_deleted | Rewards flow |
+These work because they reward *how* you play, not *what* the puzzle contains:
+
+| ID | Name | Effect | Rarity | Hook | Why it works |
+|----|------|--------|--------|------|--------------|
+| `banker` | Banker | +10% interest on money | Rare | puzzle_end | Passive; doesn't affect puzzle |
+| `thrifty` | Thrifty | -1 cost for shop items | Uncommon | passive | Passive; doesn't affect puzzle |
+| `gold_finder` | Gold Finder | +$1 per row with no mistakes | Common | puzzle_end | Rewards precision (player skill) |
+| `perfectionist` | Perfectionist | ×3 score if no restores | Legendary | puzzle_end | Rewards precision (player skill) |
+| `speed_demon` | Speed Demon | +100 if solved under 10s | Rare | puzzle_end | Rewards speed (player skill) |
+| `combo_king` | Combo King | +25 per cell without undo | Uncommon | cell_deleted | Rewards flow (player skill) |
 
 ### Rejected (Conflict with Single-Solution)
 
-These were removed because they reward keeping specific cell values/patterns, but single-solution puzzles don't give players that choice:
+Single-solution puzzles mean there's exactly one set of cells to keep. Operators that worked with multi-solution puzzles fall into three rejection categories:
 
-- Lucky Seven, Prime Time, Corner Keeper, Even Steven, Odd Job, Big Ten, Sequence, Pair Bonus, Calculator
-- Transformation operators (Flipper, Doubler, etc.) - change valid solutions
-- Rule-breaking operators (Overflow, Skip Row, etc.) - change valid solutions
+**"Keep X" operators** - Reward keeping specific values/patterns, but you can't choose what to keep:
+- Lucky Seven (+77 per 7), Prime Time (+30 per prime), Even Steven, Odd Job, Big Ten
+- Corner Keeper (keep all corners), Sequence (consecutive numbers), Pair Bonus
+- Calculator (+$2 per unique digit) - digits are fixed by the puzzle
+
+**Transformation operators** - Change cell values, creating new solutions that break determinism:
+- Flipper (6↔9), Doubler, Negative Zone, Wildcard
+
+**Rule-breaking operators** - Allow invalid sums, undermining the core puzzle:
+- Overflow/Underflow (±10% tolerance), Skip Row, Column Blind
 
 ---
 

@@ -7,7 +7,7 @@ extends RefCounted
 # VERSION (bumped by deploy.sh)
 # =============================================================================
 
-const VERSION := "0.2.21"
+const VERSION := "0.2.24"
 
 # =============================================================================
 # SCORING - BASE POINTS
@@ -49,20 +49,7 @@ static var PRECISION_BASE := 1.0
 static var PRECISION_GOOD_THRESHOLD := 2
 
 # =============================================================================
-# PUZZLE GENERATION
-# =============================================================================
-
-## Ratio of cells to mark for deletion in generated puzzles
-static var CELLS_TO_DELETE_RATIO := 0.5
-
-## Minimum value for generated cell numbers
-static var CELL_VALUE_MIN := 1
-
-## Maximum value for generated cell numbers
-static var CELL_VALUE_MAX := 9
-
-# =============================================================================
-# FUTURE: ECONOMY
+# ECONOMY
 # =============================================================================
 
 ## Starting money for a run
@@ -109,9 +96,6 @@ static func reset_to_defaults() -> void:
 	PRECISION_GOOD = 1.25
 	PRECISION_BASE = 1.0
 	PRECISION_GOOD_THRESHOLD = 2
-	CELLS_TO_DELETE_RATIO = 0.5
-	CELL_VALUE_MIN = 1
-	CELL_VALUE_MAX = 9
 	STARTING_MONEY = 10
 	INTEREST_RATE = 1
 	INTEREST_CAP = 5

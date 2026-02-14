@@ -613,7 +613,6 @@ func _action_new_puzzle(params: Dictionary):
 	# Create puzzle config
 	var config := PuzzleLogic.PuzzleConfig.new()
 	config.grid_size = Vector2i(grid_size, grid_size)
-	config.cells_to_delete_ratio = 0.5
 	if seed_val != 0:
 		config.puzzle_seed = seed_val
 

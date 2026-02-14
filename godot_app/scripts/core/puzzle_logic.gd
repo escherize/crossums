@@ -10,41 +10,8 @@ class PuzzleConfig:
 	var grid_size: Vector2i = Vector2i(3, 3)
 	var min_cell_value: int = 1  ## No zeros - they don't make sense in the game
 	var max_cell_value: int = 9
-	var cells_to_delete_ratio: float = 0.35  ## ~35% of cells should be deleted
+	var cells_to_delete_ratio: float = 0.4  ## Used by fallback generator only
 	var puzzle_seed: int = 0  ## 0 = random seed
-
-	static func for_stage(stage: int) -> PuzzleConfig:
-		var config = PuzzleConfig.new()
-
-		match stage:
-			1:
-				config.grid_size = Vector2i(3, 3)
-				config.cells_to_delete_ratio = 0.3
-			2:
-				config.grid_size = Vector2i(3, 3)
-				config.cells_to_delete_ratio = 0.35
-			3:
-				config.grid_size = Vector2i(4, 4)
-				config.cells_to_delete_ratio = 0.35
-			4:
-				config.grid_size = Vector2i(4, 4)
-				config.cells_to_delete_ratio = 0.4
-			5:
-				config.grid_size = Vector2i(5, 5)
-				config.cells_to_delete_ratio = 0.4
-			6:
-				config.grid_size = Vector2i(5, 5)
-				config.cells_to_delete_ratio = 0.45
-			7:
-				config.grid_size = Vector2i(6, 6)
-				config.cells_to_delete_ratio = 0.45
-			8:
-				config.grid_size = Vector2i(6, 6)
-				config.cells_to_delete_ratio = 0.5
-			_:
-				pass
-
-		return config
 
 # =============================================================================
 # VALIDATION RESULT
