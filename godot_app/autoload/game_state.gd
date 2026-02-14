@@ -6,8 +6,9 @@ const RunStateScript = preload("res://scripts/core/run_state.gd")
 const PuzzleGeneratorScript = preload("res://scripts/core/puzzle_generator.gd")
 const MAX_OPERATORS := 5
 
-# Boss stages use single-solution puzzles, others use multi-solution
-const BOSS_STAGE_INTERVAL := 3  # Stages 3, 6, 9... are boss stages
+# All puzzles are now single-solution (deterministic)
+# Multi-solution puzzles were removed because the game is highly deterministic
+# about which cells must be deleted, making "choice" operators frustrating.
 
 # =============================================================================
 # STATE
@@ -50,12 +51,9 @@ func start_new_puzzle(config: PuzzleLogic.PuzzleConfig) -> void:
 	else:
 		rng.randomize()
 
-	# Boss stages (3, 6, 9...) get single-solution puzzles
-	var is_boss = run and run.stage % BOSS_STAGE_INTERVAL == 0
-	if is_boss:
-		puzzle = PuzzleGeneratorScript.generate_single_solution(config.grid_size, rng)
-	else:
-		puzzle = PuzzleGeneratorScript.generate_multi_solution(config.grid_size, rng)
+	# All puzzles use single-solution generation (deterministic)
+	# Multi-solution was removed - see design notes in memory file
+	puzzle = PuzzleGeneratorScript.generate_single_solution(config.grid_size, rng)
 
 	# Notify operators of puzzle start
 	for op in operators:

@@ -1,21 +1,10 @@
 class_name PuzzleGenerator
 extends RefCounted
-## Generates puzzles with two distinct strategies:
+## Generates deterministic single-solution puzzles.
 ##
-## 1. Single-solution (boss boards): Random values, ~1 answer, no shuffle
-## 2. Multi-solution (normal): Exchange patterns + shuffle for player choice
-##
-## Exchange patterns use 2x2 regions with uniform rows:
-##   [V][V]  where V != W
-##   [W][W]  Player can keep {a,d} OR {b,c} - both give same row sums
-##
-## Pattern count = size - 2 (minimum 1):
-##   3x3: 1 pattern → 2 solutions
-##   4x4: 2 patterns → 4 solutions
-##   5x5: 3 patterns → 8 solutions
-##   6x6: 4 patterns → 16 solutions
-##
-## After creating patterns, shuffle disperses them across the board.
+## Multi-solution generation was removed because the game is highly
+## deterministic about which cells must be deleted, making "choice"
+## operators (keep corners, keep 7s, etc.) frustrating rather than fun.
 
 const MAX_SOLUTION_COUNT = 50
 const MAX_GENERATION_ATTEMPTS = 100
@@ -26,18 +15,16 @@ const MAX_GENERATION_ATTEMPTS = 100
 
 static func generate(
 	grid_size: Vector2i,
-	target_solutions: int = 3,
+	_target_solutions: int = 1,
 	rng: RandomNumberGenerator = null
 ) -> PuzzleState:
-	## Generate a puzzle. Uses single-solution for target<=1, multi-solution otherwise.
+	## Generate a puzzle. Always uses single-solution (deterministic).
 
 	if rng == null:
 		rng = RandomNumberGenerator.new()
 		rng.randomize()
 
-	if target_solutions <= 1:
-		return generate_single_solution(grid_size, rng)
-	return generate_multi_solution(grid_size, rng)
+	return generate_single_solution(grid_size, rng)
 
 
 static func generate_single_solution(
@@ -69,113 +56,15 @@ static func generate_single_solution(
 	return _generate_fallback(grid_size, rng)
 
 
-static func generate_multi_solution(
-	grid_size: Vector2i,
-	rng: RandomNumberGenerator
-) -> PuzzleState:
-	## Generate a puzzle with multiple solutions using exchange patterns.
-	## Creates 2x2 regions where both diagonals work, then shuffles.
-
-	for _attempt in range(MAX_GENERATION_ATTEMPTS):
-		var state = PuzzleState.new(grid_size)
-
-		# Fill with random diverse values
-		for row in range(grid_size.y):
-			for col in range(grid_size.x):
-				state.get_cell(row, col).value = rng.randi_range(0, 9)
-
-		# Determine how many exchange patterns to create
-		var num_patterns = _get_pattern_count(grid_size)
-
-		# Create exchange patterns (modify values so diagonals are equal)
-		var patterns_created = _create_exchange_patterns(state, num_patterns, rng)
-		if patterns_created == 0:
-			continue
-
-		# Find valid targets
-		var result = _find_targets_with_solution_count(state, 2, 20, rng)
-		if result != null:
-			# Shuffle to disperse the exchange patterns
-			_shuffle_puzzle(result, rng)
-
-			var analysis = analyze(result)
-			print("[PuzzleGenerator] multi_solution: %d patterns, %d solutions, diversity %.2f" % [
-				patterns_created, analysis.solution_count, analysis.diversity
-			])
-			return result
-
-	# Fallback
-	print("[PuzzleGenerator] multi_solution failed, using fallback")
-	var fallback = _generate_fallback(grid_size, rng)
-	_shuffle_puzzle(fallback, rng)
-	return fallback
+# Multi-solution generation removed - all puzzles are now deterministic.
+# See design notes: operators that rewarded keeping specific cells conflicted
+# with the deterministic nature of puzzle solving.
+#
+# static func generate_multi_solution(grid_size, rng) -> PuzzleState:
+#     ... removed ...
 
 
-static func _get_pattern_count(grid_size: Vector2i) -> int:
-	## Determine how many 2x2 exchange patterns to create based on grid size.
-	## Formula: size - 2 (so 3x3=1, 4x4=2, 5x5=3, 6x6=4)
-	var size = mini(grid_size.x, grid_size.y)
-	return maxi(1, size - 2)
-
-
-static func _create_exchange_patterns(
-	state: PuzzleState,
-	num_patterns: int,
-	rng: RandomNumberGenerator
-) -> int:
-	## Create non-overlapping 2x2 exchange patterns with uniform rows.
-	## Pattern: [V][V] / [W][W] - either diagonal gives same row/col sums.
-	## Returns number of patterns successfully created.
-
-	var used_cells: Dictionary = {}
-	var patterns_created = 0
-	var size = state.grid_size
-
-	for _i in range(num_patterns):
-		var found = false
-		for _try in range(20):
-			var r = rng.randi_range(0, size.y - 2)
-			var c = rng.randi_range(0, size.x - 2)
-
-			# Check if any cell is already used
-			var overlaps = false
-			for dr in range(2):
-				for dc in range(2):
-					if used_cells.has(Vector2i(c + dc, r + dr)):
-						overlaps = true
-						break
-				if overlaps:
-					break
-
-			if overlaps:
-				continue
-
-			# Create exchange pattern: uniform values per row, different between rows
-			# [V][V]
-			# [W][W]  where V != W (diagonals are different)
-			var v = rng.randi_range(0, 9)
-			var w = rng.randi_range(0, 9)
-			while w == v:
-				w = rng.randi_range(0, 9)
-
-			state.get_cell(r, c).value = v
-			state.get_cell(r, c + 1).value = v
-			state.get_cell(r + 1, c).value = w
-			state.get_cell(r + 1, c + 1).value = w
-
-			# Mark cells as used
-			for dr in range(2):
-				for dc in range(2):
-					used_cells[Vector2i(c + dc, r + dr)] = true
-
-			patterns_created += 1
-			found = true
-			break
-
-		if not found:
-			break
-
-	return patterns_created
+# Exchange pattern helpers removed (were only used by multi-solution generation)
 
 
 static func _find_targets_with_solution_count(
