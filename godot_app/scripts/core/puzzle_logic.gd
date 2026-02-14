@@ -8,7 +8,7 @@ extends RefCounted
 
 class PuzzleConfig:
 	var grid_size: Vector2i = Vector2i(3, 3)
-	var min_cell_value: int = 0
+	var min_cell_value: int = 1  ## No zeros - they don't make sense in the game
 	var max_cell_value: int = 9
 	var cells_to_delete_ratio: float = 0.35  ## ~35% of cells should be deleted
 	var puzzle_seed: int = 0  ## 0 = random seed
@@ -166,10 +166,10 @@ static func generate_puzzle(config: PuzzleConfig) -> PuzzleState:
 	for i in range(additional_decoys_needed, remaining_positions.size()):
 		solution_cells[remaining_positions[i]] = true
 
-	# Step 2: Fill ALL cells with random numbers
+	# Step 2: Fill ALL cells with random numbers (excluding zero)
 	for row in range(grid_size.y):
 		for col in range(grid_size.x):
-			var value = rng.randi_range(config.min_cell_value, config.max_cell_value)
+			var value = _random_nonzero(rng, config.min_cell_value, config.max_cell_value)
 			var cell = state.get_cell(row, col)
 			cell.value = value
 
@@ -191,6 +191,19 @@ static func generate_puzzle(config: PuzzleConfig) -> PuzzleState:
 		state.col_targets[col] = col_sum
 
 	return state
+
+
+static func _random_nonzero(rng: RandomNumberGenerator, min_val: int, max_val: int) -> int:
+	## Generate a random value in [min_val, max_val] but never 0.
+	if min_val > 0 or max_val < 0:
+		# Range doesn't include 0
+		return rng.randi_range(min_val, max_val)
+
+	# Range includes 0 - skip it
+	var value = rng.randi_range(min_val, max_val - 1)
+	if value >= 0:
+		value += 1
+	return value
 
 # =============================================================================
 # VALIDATION

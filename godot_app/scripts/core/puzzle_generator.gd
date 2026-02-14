@@ -15,8 +15,9 @@ const MAX_GENERATION_ATTEMPTS = 100
 
 static func generate(
 	grid_size: Vector2i,
-	_target_solutions: int = 1,
-	rng: RandomNumberGenerator = null
+	rng: RandomNumberGenerator = null,
+	min_value: int = 1,
+	max_value: int = 9
 ) -> PuzzleState:
 	## Generate a puzzle. Always uses single-solution (deterministic).
 
@@ -24,23 +25,26 @@ static func generate(
 		rng = RandomNumberGenerator.new()
 		rng.randomize()
 
-	return generate_single_solution(grid_size, rng)
+	return generate_single_solution(grid_size, rng, min_value, max_value)
 
 
 static func generate_single_solution(
 	grid_size: Vector2i,
-	rng: RandomNumberGenerator
+	rng: RandomNumberGenerator,
+	min_value: int = 1,
+	max_value: int = 9
 ) -> PuzzleState:
-	## Generate a puzzle with exactly 1 solution. Good for "boss boards".
-	## No shuffle - patterns don't need hiding.
+	## Generate a puzzle with exactly 1 solution.
+	## Cell values will be in range [min_value, max_value], excluding 0.
 
 	for _attempt in range(MAX_GENERATION_ATTEMPTS):
 		var state = PuzzleState.new(grid_size)
 
-		# Fill with random diverse values
+		# Fill with random values in configured range (no zeros)
 		for row in range(grid_size.y):
 			for col in range(grid_size.x):
-				state.get_cell(row, col).value = rng.randi_range(0, 9)
+				var value = _random_nonzero(rng, min_value, max_value)
+				state.get_cell(row, col).value = value
 
 		# Find targets that give exactly 1 solution
 		var result = _find_targets_with_solution_count(state, 1, 1, rng)
@@ -53,7 +57,22 @@ static func generate_single_solution(
 
 	# Fallback: return any valid puzzle
 	print("[PuzzleGenerator] single_solution failed, using fallback")
-	return _generate_fallback(grid_size, rng)
+	return _generate_fallback(grid_size, rng, min_value, max_value)
+
+
+static func _random_nonzero(rng: RandomNumberGenerator, min_val: int, max_val: int) -> int:
+	## Generate a random value in [min_val, max_val] but never 0.
+	## If range includes 0, skip it.
+	if min_val > 0 or max_val < 0:
+		# Range doesn't include 0, just return random
+		return rng.randi_range(min_val, max_val)
+
+	# Range includes 0 - need to skip it
+	# e.g. [-3, 5] has 9 values, we want 8 (excluding 0)
+	var value = rng.randi_range(min_val, max_val - 1)
+	if value >= 0:
+		value += 1  # Shift positive values up to skip 0
+	return value
 
 
 # Multi-solution generation removed - all puzzles are now deterministic.
@@ -137,10 +156,17 @@ static func _find_targets_with_solution_count(
 	return null
 
 
-static func _generate_fallback(grid_size: Vector2i, rng: RandomNumberGenerator) -> PuzzleState:
+static func _generate_fallback(
+	grid_size: Vector2i,
+	rng: RandomNumberGenerator,
+	min_value: int = 1,
+	max_value: int = 9
+) -> PuzzleState:
 	## Generate any valid puzzle as fallback.
 	var config = PuzzleLogic.PuzzleConfig.new()
 	config.grid_size = grid_size
+	config.min_cell_value = min_value
+	config.max_cell_value = max_value
 	config.puzzle_seed = rng.randi()
 	return PuzzleLogic.generate_puzzle(config)
 

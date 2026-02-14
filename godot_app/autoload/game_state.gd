@@ -53,7 +53,9 @@ func start_new_puzzle(config: PuzzleLogic.PuzzleConfig) -> void:
 
 	# All puzzles use single-solution generation (deterministic)
 	# Multi-solution was removed - see design notes in memory file
-	puzzle = PuzzleGeneratorScript.generate_single_solution(config.grid_size, rng)
+	puzzle = PuzzleGeneratorScript.generate_single_solution(
+		config.grid_size, rng, config.min_cell_value, config.max_cell_value
+	)
 
 	# Notify operators of puzzle start
 	for op in operators:

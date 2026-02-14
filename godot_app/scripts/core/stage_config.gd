@@ -13,6 +13,19 @@ const SCORE_TARGETS := [400, 600, 900, 1200, 1800, 2500, 3500, 5000]
 ## Grid sizes per stage: 3,3,4,4,5,5,6,6
 const GRID_SIZES := [3, 3, 4, 4, 5, 5, 6, 6]
 
+## Cell value ranges per stage [min, max] - difficulty ramps up
+## Early: small positive numbers. Late: wider range including negatives.
+const VALUE_RANGES := [
+	[1, 3],   # Stage 1: very simple
+	[1, 4],   # Stage 2: still easy
+	[1, 5],   # Stage 3
+	[1, 6],   # Stage 4
+	[1, 7],   # Stage 5
+	[1, 9],   # Stage 6: full positive range
+	[-2, 9],  # Stage 7: introduce negatives
+	[-5, 9],  # Stage 8: full range
+]
+
 # =============================================================================
 # CONFIGURATION VALUES
 # =============================================================================
@@ -21,7 +34,8 @@ var stage: int
 var puzzle_index: int
 var grid_size: int
 var score_target: int
-var allow_negatives: bool
+var min_cell_value: int
+var max_cell_value: int
 var slack: float
 var money_reward: int
 
@@ -42,8 +56,10 @@ static func get_config(p_stage: int, p_puzzle_index: int):
 	# Score target per stage
 	config.score_target = SCORE_TARGETS[stage_idx]
 
-	# Negatives enabled from stage 4+
-	config.allow_negatives = p_stage >= 4
+	# Cell value range per stage
+	var value_idx := clampi(p_stage - 1, 0, VALUE_RANGES.size() - 1)
+	config.min_cell_value = VALUE_RANGES[value_idx][0]
+	config.max_cell_value = VALUE_RANGES[value_idx][1]
 
 	# Slack: tight → loose within each stage (boss has most room for optimization)
 	# Base slack decreases with stage progression
@@ -66,6 +82,8 @@ func to_puzzle_config() -> PuzzleLogic.PuzzleConfig:
 	## Convert to PuzzleLogic.PuzzleConfig for puzzle generation
 	var pc = PuzzleLogic.PuzzleConfig.new()
 	pc.grid_size = Vector2i(grid_size, grid_size)
+	pc.min_cell_value = min_cell_value
+	pc.max_cell_value = max_cell_value
 	# High slack → low deletion ratio (more cells, more solutions, easier)
 	# Low slack → high deletion ratio (fewer cells, tighter constraints)
 	pc.cells_to_delete_ratio = clampf(0.55 - (slack - 0.2) * 0.4, 0.25, 0.55)
