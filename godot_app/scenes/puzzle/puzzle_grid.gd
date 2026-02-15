@@ -29,6 +29,10 @@ var row_targets: Array[TargetDisplay] = []
 var col_targets: Array[TargetDisplay] = []
 var circle_mode_active: bool = false  ## When true, taps circle instead of delete
 
+# Touch tracking for multitouch support
+var _active_touches: Dictionary = {}  ## touch_index -> GridCell
+var _touch_handled_cells: Dictionary = {}  ## "row,col" -> true (cells handled by touch this frame)
+
 # =============================================================================
 # NODE REFERENCES
 # =============================================================================
@@ -60,13 +64,30 @@ func _input(event: InputEvent) -> void:
 
 	if event is InputEventScreenTouch:
 		var touch := event as InputEventScreenTouch
-		var touched_cell := _get_cell_at_position(touch.position)
-		if touched_cell:
-			# Act on touch UP (release) to match standard button behavior
-			if not touch.pressed:
-				_on_cell_clicked(touched_cell.row, touched_cell.col)
-			# Consume BOTH touch down and up to prevent Button double-handling
-			get_viewport().set_input_as_handled()
+
+		if touch.pressed:
+			# Touch DOWN - track which cell this finger started on
+			var touched_cell := _get_cell_at_position(touch.position)
+			if touched_cell:
+				_active_touches[touch.index] = touched_cell
+		else:
+			# Touch UP - act on the cell we started on (if any)
+			if _active_touches.has(touch.index):
+				var cell: GridCell = _active_touches[touch.index]
+				_active_touches.erase(touch.index)
+				# Check finger is still roughly on the same cell (allow drag-to-cancel)
+				var up_cell := _get_cell_at_position(touch.position)
+				if up_cell == cell:
+					# Mark as handled to prevent Button's pressed signal from double-triggering
+					var key := "%d,%d" % [cell.row, cell.col]
+					_touch_handled_cells[key] = true
+					_handle_cell_click(cell.row, cell.col)
+					# Clear the flag next frame
+					_clear_touch_handled.call_deferred()
+
+
+func _clear_touch_handled() -> void:
+	_touch_handled_cells.clear()
 
 
 func _get_cell_at_position(global_pos: Vector2) -> GridCell:
@@ -285,7 +306,7 @@ func _update_all_targets() -> void:
 
 func simulate_click(row: int, col: int) -> void:
 	## Simulate a cell click (for operator auto-actions)
-	_on_cell_clicked(row, col)
+	_handle_cell_click(row, col)
 
 
 func set_circle_mode(active: bool) -> void:
@@ -311,6 +332,14 @@ func _update_circle_mode_visuals() -> void:
 # =============================================================================
 
 func _on_cell_clicked(row: int, col: int) -> void:
+	## Called from Button's pressed signal - check if touch already handled this
+	var key := "%d,%d" % [row, col]
+	if _touch_handled_cells.has(key):
+		return
+	_handle_cell_click(row, col)
+
+
+func _handle_cell_click(row: int, col: int) -> void:
 	## Toggle cell state on click
 	## If circle_mode_active, taps circle instead of delete
 	if not puzzle_state:
