@@ -106,8 +106,8 @@ func _update_time_multiplier() -> void:
 	var elapsed_sec := (Time.get_ticks_msec() - puzzle_start_time) / 1000.0
 	var time_remaining := current_time_limit - elapsed_sec
 
-	# Check for timeout
-	if time_remaining <= 0:
+	# Check for timeout (but not if puzzle already solved - prevents race condition)
+	if time_remaining <= 0 and not puzzle_solved:
 		_on_time_expired()
 		return
 
