@@ -51,8 +51,8 @@ func _input(event: InputEvent) -> void:
 	# Handle touch events (multitouch aware)
 	if event is InputEventScreenTouch:
 		var touch := event as InputEventScreenTouch
-		var local_pos := make_input_local(event).position
-		var in_bounds := Rect2(Vector2.ZERO, size).has_point(local_pos)
+		var local_event := make_input_local(event) as InputEventScreenTouch
+		var in_bounds := Rect2(Vector2.ZERO, size).has_point(local_event.position)
 
 		if touch.pressed and in_bounds and not is_active:
 			# This finger pressed on the button - activate and track it
