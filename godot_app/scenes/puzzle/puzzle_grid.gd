@@ -60,12 +60,13 @@ func _input(event: InputEvent) -> void:
 
 	if event is InputEventScreenTouch:
 		var touch := event as InputEventScreenTouch
-		if touch.pressed:
-			# Find which cell was touched (if any)
-			var touched_cell := _get_cell_at_position(touch.position)
-			if touched_cell:
+		var touched_cell := _get_cell_at_position(touch.position)
+		if touched_cell:
+			# Act on touch UP (release) to match standard button behavior
+			if not touch.pressed:
 				_on_cell_clicked(touched_cell.row, touched_cell.col)
-				get_viewport().set_input_as_handled()
+			# Consume BOTH touch down and up to prevent Button double-handling
+			get_viewport().set_input_as_handled()
 
 
 func _get_cell_at_position(global_pos: Vector2) -> GridCell:
