@@ -1,7 +1,8 @@
-[gd_scene load_steps=6 format=3 uid="uid://main001"]
+[gd_scene load_steps=7 format=3 uid="uid://main001"]
 
 [ext_resource type="Script" path="res://scenes/main.gd" id="1_main"]
 [ext_resource type="PackedScene" uid="uid://operator_display" path="res://scenes/ui/operator_display.tscn" id="2_opdisplay"]
+[ext_resource type="Script" path="res://scenes/ui/circle_mode_button.gd" id="3_circlemode"]
 
 [sub_resource type="SystemFont" id="SystemFont_mono"]
 font_names = PackedStringArray("SF Mono", "Menlo", "Monaco", "Consolas", "DejaVu Sans Mono", "monospace")
@@ -187,3 +188,19 @@ autowrap_mode = 2
 [node name="OverlayContainer" type="CanvasLayer" parent="."]
 unique_name_in_owner = true
 layer = 10
+
+[node name="CircleModeButton" type="Button" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 6
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = -80
+offset_top = -50
+offset_right = -10
+offset_bottom = 50
+grow_horizontal = 0
+grow_vertical = 2
+script = ExtResource("3_circlemode")

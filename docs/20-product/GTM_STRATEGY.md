@@ -113,15 +113,15 @@ Balatro's success (2M+ copies, GOTY nominations, cultural phenomenon) created a 
 
 ### 3.2 Differentiation Matrix
 
-| Feature | Crosssums | Balatro | Luck Be a Landlord | Math Games |
-|---------|-----------|---------|-------------------|------------|
-| Core mechanic | Grid sums | Poker hands | Slot machine | Varies |
-| Skill ceiling | High | High | Medium | Low |
-| Roguelike depth | Full | Full | Partial | None |
-| Score scaling | Millions | Millions | Thousands | Linear |
-| Synergy complexity | 150+ operators | 150+ jokers | ~50 items | None |
-| "Break the game" moments | Yes | Yes | Sometimes | No |
-| Educational value | Stealth | None | None | Explicit |
+| Feature                  | Crosssums      | Balatro     | Luck Be a Landlord | Math Games |
+|--------------------------|----------------|-------------|--------------------|------------|
+| Core mechanic            | Grid sums      | Poker hands | Slot machine       | Varies     |
+| Skill ceiling            | High           | High        | Medium             | Low        |
+| Roguelike depth          | Full           | Full        | Partial            | None       |
+| Score scaling            | Millions       | Millions    | Thousands          | Linear     |
+| Synergy complexity       | 150+ operators | 150+ jokers | ~50 items          | None       |
+| "Break the game" moments | Yes            | Yes         | Sometimes          | No         |
+| Educational value        | Stealth        | None        | None               | Explicit   |
 
 ### 3.3 Unique Value Propositions
 
@@ -130,8 +130,6 @@ Balatro's success (2M+ copies, GOTY nominations, cultural phenomenon) created a 
 3. **Synergy Explosion** - Operator combinations create emergent strategies
 4. **Visible Math** - See exactly how your millions-point score was calculated
 5. **Stealth Depth** - Looks simple, reveals complexity through play
-
----
 
 ## 4. Brand & Messaging
 
@@ -193,9 +191,9 @@ The following terms **kill games**. Never use them in marketing:
 | Action | Deliverable | Success Metric |
 |--------|-------------|----------------|
 | Paper prototype testing | Playtest report | Core loop validated |
-| Create Discord server | Community hub | 100 founding members |
-| Twitter/X account | @CrosssumsGame | 500 followers |
-| Announce project | Dev log #1 | 10K impressions |
+| Create Discord server   | Community hub   | 100 founding members |
+| Twitter/X account       | @CrosssumsGame  | 500 followers |
+| Announce project        | Dev log #1      | 10K impressions |
 
 ### Phase 1: Prototype & Validation (Months 3-4)
 
@@ -270,11 +268,11 @@ The following terms **kill games**. Never use them in marketing:
 
 ### 6.1 Channel Priority Matrix
 
-| Channel | Priority | Investment | Expected ROI |
-|---------|----------|------------|--------------|
-| Steam (organic) | Critical | Time | Highest |
-| Discord | Critical | Time | High |
-| Twitter/X | High | Time | Medium-High |
+| Channel            | Priority | Investment | Expected ROI |
+|--------------------|----------|------------|--------------|
+| Steam (organic)    | Critical | Time | Highest |
+| Discord            | Critical | Time | High |
+| Twitter/X          | High | Time | Medium-High |
 | YouTube (creators) | High | Keys + $ | High |
 | TikTok | High | Time | Variable (viral potential) |
 | Reddit | Medium | Time | Medium |

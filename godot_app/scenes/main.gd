@@ -42,6 +42,7 @@ var _current_overlay: Control = null
 @onready var money_label: Label = %MoneyLabel
 @onready var score_label: Label = %ScoreLabel
 @onready var target_label: Label = %TargetLabel
+@onready var circle_mode_button: Button = %CircleModeButton
 
 # =============================================================================
 # LIFECYCLE
@@ -72,6 +73,10 @@ func _setup_ui() -> void:
 
 func _connect_signals() -> void:
 	undo_button.pressed.connect(_on_undo_pressed)
+
+	# Circle mode button (touchscreen only - hidden on desktop)
+	if circle_mode_button.visible:
+		circle_mode_button.circle_mode_changed.connect(_on_circle_mode_changed)
 
 	# EventBus connections
 	EventBus.cell_deleted.connect(_on_cell_deleted)
@@ -258,6 +263,12 @@ func _on_undo_pressed() -> void:
 	if pos.x >= 0:
 		puzzle_grid.refresh()
 		_update_status("Undid deletion at (%d, %d)" % [pos.x + 1, pos.y + 1])
+
+
+func _on_circle_mode_changed(active: bool) -> void:
+	## Called when circle mode button is pressed/released
+	if puzzle_grid:
+		puzzle_grid.set_circle_mode(active)
 
 
 func _on_cell_deleted(row: int, col: int, value: int) -> void:

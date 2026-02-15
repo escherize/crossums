@@ -27,6 +27,7 @@ var puzzle_state: PuzzleState = null
 var grid_cells: Array = []  ## 2D array of GridCell nodes
 var row_targets: Array[TargetDisplay] = []
 var col_targets: Array[TargetDisplay] = []
+var circle_mode_active: bool = false  ## When true, taps circle instead of delete
 
 # =============================================================================
 # NODE REFERENCES
@@ -208,17 +209,47 @@ func _update_all_targets() -> void:
 	if not puzzle_state:
 		return
 
+	# Check operator states
+	var show_circled_sums := GameState.has_operator("sum_sight")
+	var show_safety_net := GameState.has_operator("safety_net")
+
+	# Track which rows/cols are solved (for Safety Net)
+	var solved_rows: Array[bool] = []
+	var solved_cols: Array[bool] = []
+
 	# Update row targets
 	for row in range(puzzle_state.grid_size.y):
 		var current_sum = puzzle_state.get_current_row_sum(row)
 		row_targets[row].update_current_sum(current_sum)
-		row_targets[row].update_circled_sum(puzzle_state.get_circled_row_sum(row))
+		solved_rows.append(current_sum == puzzle_state.row_targets[row])
+		if show_circled_sums:
+			row_targets[row].update_circled_sum(puzzle_state.get_circled_row_sum(row))
+		else:
+			row_targets[row].update_circled_sum(0)
 
 	# Update column targets
 	for col in range(puzzle_state.grid_size.x):
 		var current_sum = puzzle_state.get_current_col_sum(col)
 		col_targets[col].update_current_sum(current_sum)
-		col_targets[col].update_circled_sum(puzzle_state.get_circled_col_sum(col))
+		solved_cols.append(current_sum == puzzle_state.col_targets[col])
+		if show_circled_sums:
+			col_targets[col].update_circled_sum(puzzle_state.get_circled_col_sum(col))
+		else:
+			col_targets[col].update_circled_sum(0)
+
+	# Apply Safety Net visual effect
+	if show_safety_net:
+		for row in range(puzzle_state.grid_size.y):
+			for col in range(puzzle_state.grid_size.x):
+				var cell = grid_cells[row][col] as GridCell
+				var protected = solved_rows[row] or solved_cols[col]
+				cell.set_protected(protected)
+	else:
+		# Clear all protected states
+		for row in range(puzzle_state.grid_size.y):
+			for col in range(puzzle_state.grid_size.x):
+				var cell = grid_cells[row][col] as GridCell
+				cell.set_protected(false)
 
 
 func simulate_click(row: int, col: int) -> void:
@@ -226,13 +257,37 @@ func simulate_click(row: int, col: int) -> void:
 	_on_cell_clicked(row, col)
 
 
+func set_circle_mode(active: bool) -> void:
+	## Enable/disable circle mode (shift-key button)
+	if circle_mode_active == active:
+		return
+	circle_mode_active = active
+	_update_circle_mode_visuals()
+
+
+func _update_circle_mode_visuals() -> void:
+	## Update all cells to show circle mode hint
+	if not puzzle_state:
+		return
+	for row in range(puzzle_state.grid_size.y):
+		for col in range(puzzle_state.grid_size.x):
+			var cell = grid_cells[row][col] as GridCell
+			cell.set_circle_mode_hint(circle_mode_active)
+
+
 # =============================================================================
 # SIGNAL HANDLERS
 # =============================================================================
 
 func _on_cell_clicked(row: int, col: int) -> void:
-	## Toggle cell state on click (touch-friendly: no right-click needed)
+	## Toggle cell state on click
+	## If circle_mode_active, taps circle instead of delete
 	if not puzzle_state:
+		return
+
+	# Circle mode: redirect to circle logic
+	if circle_mode_active:
+		_on_cell_long_pressed(row, col)
 		return
 
 	var cell_data = puzzle_state.get_cell(row, col)

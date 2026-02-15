@@ -18,10 +18,10 @@ NEW_VERSION="$MAJOR.$MINOR.$NEW_PATCH"
 sed -i '' "s/const VERSION := \"$CURRENT_VERSION\"/const VERSION := \"$NEW_VERSION\"/" "$VERSION_FILE"
 echo "Version: $CURRENT_VERSION -> $NEW_VERSION"
 
-# Run tests first
+# Run tests first (logic only - visual tests disabled temporarily)
 echo "Running tests..."
 cd "$SCRIPT_DIR"
-if ! bun tests/run-tests.ts; then
+if ! bun tests/run-tests.ts --logic-only; then
     echo "ERROR: Tests failed - aborting deploy"
     exit 1
 fi

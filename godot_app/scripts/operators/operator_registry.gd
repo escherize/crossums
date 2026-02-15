@@ -11,6 +11,8 @@ const OPERATORS := {
 	"elite_delete": preload("res://scripts/operators/impl/op_elite_delete.gd"),
 	"purist": preload("res://scripts/operators/impl/op_purist.gd"),
 	"gimme": preload("res://scripts/operators/impl/op_gimme.gd"),
+	"sum_sight": preload("res://scripts/operators/impl/op_sum_sight.gd"),
+	"safety_net": preload("res://scripts/operators/impl/op_safety_net.gd"),
 }
 
 

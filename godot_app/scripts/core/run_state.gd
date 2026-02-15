@@ -18,7 +18,8 @@ const SEED_VERSION := 1
 ## shift puzzle sequences for existing seeds.
 ##
 ## When needed, refactor to isolated RNG streams:
-##   func get_puzzle_rng(stage, puzzle_index) -> RNG seeded by hash(run_seed + "_puzzle_" + stage + "_" + puzzle_index)
+##   func get_puzzle_rng(stage, puzzle_index) -> RNG seeded by
+##       hash(run_seed + "_puzzle_" + stage + "_" + puzzle_index)
 ##   func get_shop_rng(stage) -> RNG seeded by hash(run_seed + "_shop_" + stage)
 ##   func get_operator_rng() -> RNG seeded by hash(run_seed + "_operators")
 ##
@@ -106,14 +107,16 @@ func get_puzzle_seed() -> int:
 	return (run_seed * SEED_VERSION * 31337) + (stage * 997) + (puzzle_index * 13)
 
 
-func get_shop_rng() -> RandomNumberGenerator:
+func get_shop_rng(reroll_count: int = 0) -> RandomNumberGenerator:
 	## Get deterministic RNG for shop at current stage.
 	## Returns null if run_seed is 0 (random mode).
+	## reroll_count ensures different results on each reroll.
 	if run_seed == 0:
 		return null
 	var rng = RandomNumberGenerator.new()
 	# Isolated seed stream for shop - doesn't affect puzzles
-	rng.seed = (run_seed * SEED_VERSION * 7919) + (stage * 1009) + 999999
+	# Include reroll_count to get different results on reroll
+	rng.seed = (run_seed * SEED_VERSION * 7919) + (stage * 1009) + (reroll_count * 17) + 999999
 	return rng
 
 # =============================================================================

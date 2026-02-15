@@ -174,6 +174,10 @@ func _execute_action(action: String, params: Dictionary):
 			return _action_uncircle_cell(params)
 		"restore_cell":
 			return _action_restore_cell(params)
+		"click_cell":
+			return _action_click_cell(params)
+		"set_circle_mode":
+			return _action_set_circle_mode(params)
 
 		# Undo/redo actions
 		"undo":
@@ -417,6 +421,68 @@ func _action_restore_cell(params: Dictionary) -> Dictionary:
 		EventBus.cell_restored.emit(row, col, cell_data.value)
 		return {"cell": {"row": row, "col": col, "value": cell_data.value, "state": "active"}}
 	return {"error": "restore_failed", "message": "Failed to restore cell at (%d, %d)" % [row, col]}
+
+
+func _action_click_cell(params: Dictionary) -> Dictionary:
+	## Simulate clicking a cell (respects circle mode if active)
+	var main_scene := _get_main_scene()
+	if main_scene == null:
+		return {"error": "no_game", "message": "Game not running"}
+
+	var puzzle_grid = main_scene.get("puzzle_grid")
+	if puzzle_grid == null:
+		return {"error": "no_grid", "message": "No puzzle grid found"}
+
+	var row := int(params.get("row", -1))
+	var col := int(params.get("col", -1))
+
+	var puzzle_state: PuzzleState = GameState.puzzle
+	if puzzle_state == null:
+		return {"error": "no_puzzle", "message": "No active puzzle"}
+
+	if not _is_valid_cell(puzzle_state, row, col):
+		return {"error": "invalid_cell", "message": "Invalid cell position: (%d, %d)" % [row, col]}
+
+	# Use simulate_click which respects circle mode state
+	if puzzle_grid.has_method("simulate_click"):
+		puzzle_grid.simulate_click(row, col)
+	else:
+		return {"error": "no_method", "message": "puzzle_grid.simulate_click not found"}
+
+	# Return updated cell state
+	var cell_data := puzzle_state.get_cell(row, col)
+	return {
+		"cell": {
+			"row": row,
+			"col": col,
+			"value": cell_data.value,
+			"state": _cell_state_to_string(cell_data.state)
+		},
+		"circle_mode": puzzle_grid.get("circle_mode_active") if puzzle_grid else false
+	}
+
+
+func _action_set_circle_mode(params: Dictionary) -> Dictionary:
+	## Enable or disable circle mode on the puzzle grid
+	var main_scene := _get_main_scene()
+	if main_scene == null:
+		return {"error": "no_game", "message": "Game not running"}
+
+	var puzzle_grid = main_scene.get("puzzle_grid")
+	if puzzle_grid == null:
+		return {"error": "no_grid", "message": "No puzzle grid found"}
+
+	var active: bool = params.get("active", false)
+
+	if puzzle_grid.has_method("set_circle_mode"):
+		puzzle_grid.set_circle_mode(active)
+	else:
+		return {"error": "no_method", "message": "puzzle_grid.set_circle_mode not found"}
+
+	return {
+		"circle_mode": active,
+		"message": "Circle mode %s" % ("enabled" if active else "disabled")
+	}
 
 
 # =============================================================================

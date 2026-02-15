@@ -485,3 +485,54 @@ These docs have overlapping content and should be consolidated:
 ---
 
 *This document is the single source of truth for what to work on. Other planning docs should be considered archived.*
+
+# User Feedback (2-15-26)
+
+## need more operators
+
+game design
+
+The philosophy is: give the user operators that make their choices matter.
+
+acceptnace criteria: 25 new operator ideas. each one has a rationale about why it is fun, and how it will affect user choices
+
+## New operator idea:
+
+game design
+
+operators can help users understand the board and make better decisions.
+
+acceptnace criteria: 25 new operator ideas that augment a player's ability to read the board. each one has a rationale about how it feels like a super power, and how it will help players make better choices during gameplay
+
+### move the current ""circle shows target sum" into an opaerator 
+We should make the circle -> <show circled sums on the target cells> into an operator instead of just using itch
+
+Also the sum on the target cells should go in the top right corner (North East) - currently it is on the east part of a cell, aka right hand side
+
+acceptnace criteria: a new oprerator + tests
+
+### saftey net operator
+We should add an operator that does a light green highlight (or makes them unclickable, and stone effect?) for solved rows and columns (all cells below a top row target cell, and all cells in the same row as a left hand side target
+
+acceptnace criteria: a new oprerator + tests
+
+
+### We need to figure out how missing a target works
+
+acceptnace criteria: a document exploring 5 options for what happens when we miss a target
+
+### UX: circling cells
+
+the hold is OK but not discoverable. how can we explain it to users better?
+
+on web build (mouse / trackpad) we can do right click 
+
+explore the idea of having a touchscreen button, kind of like shift, where while you hold the button down you get "circle mode" instead of deleting a cell. This would make it quicker to actually circle cells. (Time is of the essense and holding to circle feels a little awkward).
+
+acceptnace criteria: UX analysis about the "hold to circle" button.
+
+# MVP analysis
+
+What do we need to be able to actually make this into an app on the appstore?
+
+acceptnace criteria: actionable steps we need to take. there is some existing. synthesize our new analysis with what is in the docs directory

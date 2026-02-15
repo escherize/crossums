@@ -26,9 +26,13 @@ func generate() -> void:
 	# Use seeded RNG if run has a seed, otherwise random
 	var rng: RandomNumberGenerator = null
 	if GameState.run:
-		rng = GameState.run.get_shop_rng()
+		rng = GameState.run.get_shop_rng(reroll_count)
 
 	operator_slots = OperatorRegistry.get_random_operators(OPERATOR_SLOTS, owned_ids, rng)
+
+
+func reset_reroll() -> void:
+	## Reset reroll state (called when entering shop)
 	reroll_count = 0
 	reroll_cost = REROLL_BASE_COST
 

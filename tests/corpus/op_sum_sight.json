@@ -1,0 +1,17 @@
+{
+  "name": "op_sum_sight",
+  "description": "Sum Sight enables circled sum display on targets (visual effect)",
+  "setup": {
+    "size": 3,
+    "seed": 100
+  },
+  "steps": [
+    {"action": "clear_operators"},
+    {"action": "add_operator", "params": {"id": "sum_sight"}},
+    {"comment": "Circle some cells - with Sum Sight, targets show circled sum"},
+    {"action": "circle_cell", "params": {"row": 0, "col": 0}},
+    {"action": "circle_cell", "params": {"row": 0, "col": 1}},
+    {"action": "wait_idle"},
+    {"comment": "Sum Sight is a visual operator - verify no crash/error"}
+  ]
+}

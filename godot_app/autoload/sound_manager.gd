@@ -59,6 +59,11 @@ func _ready() -> void:
 		add_child(player)
 		_players.append(player)
 
+	# Reduce volume in test mode
+	var env_val := OS.get_environment("CS_DEBUG_SERVER").to_lower()
+	if env_val in ["1", "true", "yes"]:
+		_master_volume = 0.1
+
 	# Preload all sounds
 	_preload_sounds()
 
@@ -190,5 +195,8 @@ func _on_score_step(_source: String, _value: Variant, step_type: String) -> void
 		play("score_tick", 0.4)
 
 
-func _on_operator_triggered(_operator_id: String, _effect_value: Variant) -> void:
-	play("multiplier_apply", 0.5)
+func _on_operator_triggered(operator_id: String, _effect_value: Variant) -> void:
+	if operator_id == "gimme":
+		play("coin_gain", 0.7)
+	else:
+		play("multiplier_apply", 0.5)

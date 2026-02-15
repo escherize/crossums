@@ -25,6 +25,8 @@ Each operator can implement these hooks:
 | `elite_delete` | Elite Delete | +$2 per deleted, -$1 per circled | Uncommon | 6 | puzzle_end |
 | `purist` | Purist | +300 points if no circles used | Uncommon | 7 | puzzle_end |
 | `gimme` | Gimme | Auto-solves when 1 row & 1 col remain | Uncommon | 6 | auto_action |
+| `sum_sight` | Sum Sight | Circled cells show sum on targets | Common | 4 | passive |
+| `safety_net` | Safety Net | Cells in solved rows/cols glow green | Uncommon | 5 | passive |
 
 ---
 

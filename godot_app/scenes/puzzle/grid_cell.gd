@@ -22,6 +22,7 @@ const COLOR_DELETED := Color(0.15, 0.15, 0.15)     # Dark gray
 const COLOR_CIRCLED := Color(0.2, 0.25, 0.35)      # Same as active (border shows state)
 const COLOR_CIRCLED_BORDER := Color(0.3, 0.7, 0.9) # Cyan border for circled
 const COLOR_LOCKED := Color(0.35, 0.25, 0.2)       # Dark brown
+const COLOR_PROTECTED_TINT := Color(0.6, 1.0, 0.6) # Light green tint for safety net
 
 const TEXT_COLOR_ACTIVE := Color(0.95, 0.95, 0.95) # White
 const TEXT_COLOR_DELETED := Color(0.4, 0.4, 0.4)   # Gray
@@ -44,6 +45,12 @@ var value: int = 0
 
 ## Current visual state
 var cell_state: PuzzleState.CellState = PuzzleState.CellState.ACTIVE
+
+## Protected state (Safety Net operator) - visual only, doesn't affect logic
+var is_protected: bool = false
+
+## Circle mode hint (shift-key button held) - visual only
+var circle_mode_hint: bool = false
 
 # Long press tracking
 var _press_start_time: int = 0
@@ -123,6 +130,20 @@ func set_value(new_value: int) -> void:
 	_update_appearance()
 
 
+func set_protected(protected: bool) -> void:
+	## Set protected visual state (Safety Net operator)
+	if is_protected != protected:
+		is_protected = protected
+		_update_appearance()
+
+
+func set_circle_mode_hint(active: bool) -> void:
+	## Set circle mode visual hint (shift-key button held)
+	if circle_mode_hint != active:
+		circle_mode_hint = active
+		_update_appearance()
+
+
 func play_delete_animation() -> void:
 	var tween = create_tween()
 	tween.tween_property(self, "scale", Vector2(0.8, 0.8), 0.1)
@@ -190,6 +211,14 @@ func _update_appearance() -> void:
 			bg_color = COLOR_LOCKED
 			text_color = TEXT_COLOR_ACTIVE
 			disabled = true
+
+	# Apply protected tint (Safety Net operator)
+	if is_protected and cell_state != PuzzleState.CellState.DELETED:
+		bg_color = bg_color.lerp(COLOR_PROTECTED_TINT, 0.3)
+
+	# Apply circle mode hint (shift-key button held)
+	if circle_mode_hint and cell_state == PuzzleState.CellState.ACTIVE:
+		bg_color = bg_color.lerp(COLOR_CIRCLED_BORDER, 0.2)
 
 	# Apply colors using a StyleBoxFlat
 	var style = StyleBoxFlat.new()

@@ -53,17 +53,17 @@ func _ready() -> void:
 	label.add_theme_color_override("font_color", TEXT_COLOR)
 	add_child(label)
 
-	# Create circled sum label (top-right corner)
+	# Create circled sum label (NE corner - top right)
 	circ_label = Label.new()
 	circ_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	circ_label.vertical_alignment = VERTICAL_ALIGNMENT_TOP
 	circ_label.add_theme_font_size_override("font_size", CIRC_FONT_SIZE)
 	circ_label.add_theme_color_override("font_color", CIRC_TEXT_COLOR)
 	circ_label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	circ_label.offset_left = -30
-	circ_label.offset_right = -4
+	circ_label.offset_left = -32
+	circ_label.offset_right = -2
 	circ_label.offset_top = 2
-	circ_label.offset_bottom = 20
+	circ_label.offset_bottom = 18
 	add_child(circ_label)
 
 	# Now we're in the tree, apply initial appearance

@@ -1,0 +1,16 @@
+{
+  "name": "op_safety_net",
+  "description": "Safety Net highlights cells in solved rows/columns with green tint",
+  "setup": {
+    "size": 3,
+    "seed": 100
+  },
+  "steps": [
+    {"action": "clear_operators"},
+    {"action": "add_operator", "params": {"id": "safety_net"}},
+    {"comment": "Safety Net is visual - cells in solved rows/cols get green tint"},
+    {"comment": "Delete some cells to solve a row/column"},
+    {"action": "wait_idle"},
+    {"comment": "Visual effect is applied - verify no errors"}
+  ]
+}

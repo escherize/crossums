@@ -23,6 +23,7 @@ func _ready() -> void:
 
 func _setup_shop() -> void:
 	shop_state = ShopStateScript.new()
+	shop_state.reset_reroll()
 	shop_state.generate()
 	_refresh_display()
 
@@ -106,6 +107,34 @@ func _create_shop_slot(index: int, op: Operator) -> Control:
 
 		var buy_button = Button.new()
 		buy_button.text = "Buy $%d" % op.price
+		buy_button.custom_minimum_size = Vector2(0, 32)
+		buy_button.add_theme_font_size_override("font_size", 16)
+		buy_button.add_theme_color_override("font_color", Color.WHITE)
+		# Green background for buy button
+		var style = StyleBoxFlat.new()
+		style.bg_color = Color(0.2, 0.6, 0.3)
+		style.corner_radius_top_left = 4
+		style.corner_radius_top_right = 4
+		style.corner_radius_bottom_left = 4
+		style.corner_radius_bottom_right = 4
+		style.content_margin_left = 8
+		style.content_margin_right = 8
+		style.content_margin_top = 4
+		style.content_margin_bottom = 4
+		buy_button.add_theme_stylebox_override("normal", style)
+		# Lighter green for hover
+		var hover_style = style.duplicate()
+		hover_style.bg_color = Color(0.25, 0.7, 0.35)
+		buy_button.add_theme_stylebox_override("hover", hover_style)
+		# Darker for pressed
+		var pressed_style = style.duplicate()
+		pressed_style.bg_color = Color(0.15, 0.5, 0.25)
+		buy_button.add_theme_stylebox_override("pressed", pressed_style)
+		# Grey when disabled
+		var disabled_style = style.duplicate()
+		disabled_style.bg_color = Color(0.3, 0.3, 0.3)
+		buy_button.add_theme_stylebox_override("disabled", disabled_style)
+		buy_button.add_theme_color_override("font_disabled_color", Color(0.5, 0.5, 0.5))
 		buy_button.disabled = not shop_state.can_buy(index)
 		buy_button.pressed.connect(_on_buy_pressed.bind(index))
 		content.add_child(buy_button)
