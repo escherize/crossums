@@ -296,22 +296,12 @@ func _on_cell_clicked(row: int, col: int) -> void:
 
 	match cell_data.state:
 		PuzzleState.CellState.ACTIVE:
-			# Check if deleting this cell would make the puzzle unsolvable
-			cell_data.state = PuzzleState.CellState.DELETED
-			var still_solvable := PuzzleLogic.has_any_solution(puzzle_state)
-			cell_data.state = PuzzleState.CellState.ACTIVE
-
-			if not still_solvable:
-				# Deleting this cell would make puzzle unsolvable - it's a mistake
-				EventBus.mistake_made.emit(row, col)
-				cell.play_error_animation()
-			else:
-				# Safe to delete - puzzle remains solvable
-				if puzzle_state.delete_cell(row, col):
-					cell.set_cell_state(PuzzleState.CellState.DELETED)
-					cell.play_delete_animation()
-					_update_all_targets()
-					EventBus.cell_deleted.emit(row, col, value)
+			# Delete the cell (no solvability check - timer is the fail condition)
+			if puzzle_state.delete_cell(row, col):
+				cell.set_cell_state(PuzzleState.CellState.DELETED)
+				cell.play_delete_animation()
+				_update_all_targets()
+				EventBus.cell_deleted.emit(row, col, value)
 
 		PuzzleState.CellState.DELETED:
 			# Restore the cell
@@ -343,15 +333,7 @@ func _on_cell_long_pressed(row: int, col: int) -> void:
 
 	match cell_data.state:
 		PuzzleState.CellState.ACTIVE:
-			# Check if any valid solution includes this cell
-			# If not, circling it is a mistake (the cell must be deleted)
-			var can_be_in_solution := PuzzleLogic.has_solution_including_cell(puzzle_state, row, col)
-			if not can_be_in_solution:
-				cell.play_error_animation()
-				EventBus.mistake_made.emit(row, col)
-				return
-
-			# Circle the cell
+			# Circle the cell (no validation - circling is a player tool, not a testable action)
 			if puzzle_state.circle_cell(row, col):
 				cell.set_cell_state(PuzzleState.CellState.CIRCLED)
 				cell.play_circle_animation()

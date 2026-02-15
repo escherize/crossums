@@ -86,8 +86,8 @@ func _connect_events() -> void:
 	EventBus.cell_restored.connect(_on_cell_restored)
 	EventBus.cell_circled.connect(_on_cell_circled)
 
-	# Mistakes and feedback
-	EventBus.mistake_made.connect(_on_mistake_made)
+	# Feedback
+	EventBus.puzzle_timeout.connect(_on_puzzle_timeout)
 	EventBus.life_lost.connect(_on_life_lost)
 
 	# Puzzle state
@@ -168,8 +168,8 @@ func _on_cell_circled(_row: int, _col: int) -> void:
 	play("cell_click", 0.7)  # Quieter click for circle
 
 
-func _on_mistake_made(_row: int, _col: int) -> void:
-	play("mistake")
+func _on_puzzle_timeout() -> void:
+	play("life_lost")  # Use life_lost sound for timeout
 
 
 func _on_life_lost(_remaining: int) -> void:

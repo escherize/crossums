@@ -319,22 +319,11 @@ func _action_delete_cell(params: Dictionary) -> Dictionary:
 	if cell_data.state != PuzzleState.CellState.ACTIVE:
 		return {"error": "invalid_state", "message": "Cell at (%d, %d) is not active (current: %s)" % [row, col, _cell_state_to_string(cell_data.state)]}
 
-	# Check if deleting this cell would make the puzzle unsolvable
-	# Temporarily delete the cell to test
-	cell_data.state = PuzzleState.CellState.DELETED
-	var still_solvable := PuzzleLogic.has_any_solution(puzzle_state)
-	cell_data.state = PuzzleState.CellState.ACTIVE  # Restore for now
-
-	if not still_solvable:
-		# Deleting this cell would make puzzle unsolvable - it's a mistake
-		EventBus.mistake_made.emit(row, col)
-		return {"cell": {"row": row, "col": col, "value": cell_data.value, "state": "active", "was_mistake": true}}
-
-	# Safe to delete - puzzle remains solvable
+	# Delete the cell (no solvability check - timer is the fail condition)
 	if puzzle_state.delete_cell(row, col):
 		_refresh_puzzle_grid(main_scene)
 		EventBus.cell_deleted.emit(row, col, cell_data.value)
-		return {"cell": {"row": row, "col": col, "value": cell_data.value, "state": "deleted", "was_mistake": false}}
+		return {"cell": {"row": row, "col": col, "value": cell_data.value, "state": "deleted"}}
 	return {"error": "delete_failed", "message": "Failed to delete cell at (%d, %d)" % [row, col]}
 
 
@@ -357,17 +346,11 @@ func _action_circle_cell(params: Dictionary) -> Dictionary:
 	if cell_data.state != PuzzleState.CellState.ACTIVE:
 		return {"error": "invalid_state", "message": "Cell at (%d, %d) is not active (current: %s)" % [row, col, _cell_state_to_string(cell_data.state)]}
 
-	# Check if any valid solution includes this cell
-	# If not, circling it is a mistake (the cell must be deleted)
-	var can_be_in_solution := PuzzleLogic.has_solution_including_cell(puzzle_state, row, col)
-	if not can_be_in_solution:
-		EventBus.mistake_made.emit(row, col)
-		return {"cell": {"row": row, "col": col, "value": cell_data.value, "state": "active", "was_mistake": true}}
-
+	# Circle the cell (no validation - circling is a player tool)
 	if puzzle_state.circle_cell(row, col):
 		_refresh_puzzle_grid(main_scene)
 		EventBus.cell_circled.emit(row, col)
-		return {"cell": {"row": row, "col": col, "value": cell_data.value, "state": "circled", "was_mistake": false}}
+		return {"cell": {"row": row, "col": col, "value": cell_data.value, "state": "circled"}}
 	return {"error": "circle_failed", "message": "Failed to circle cell at (%d, %d)" % [row, col]}
 
 

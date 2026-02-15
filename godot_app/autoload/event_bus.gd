@@ -65,8 +65,11 @@ signal run_ended(victory: bool, final_score: int)
 ## Emitted when a life is lost
 signal life_lost(remaining: int)
 
-## Emitted when player makes a mistake (deletes a solution cell)
+## Emitted when player makes a mistake (legacy - kept for potential future use)
 signal mistake_made(row: int, col: int)
+
+## Emitted when puzzle timer expires
+signal puzzle_timeout()
 
 ## Emitted when game over occurs
 signal game_over()

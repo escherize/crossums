@@ -20,7 +20,30 @@ static var BASE_POINTS_PER_CELL := 10
 static var KEPT_BONUS_PER_CELL := 25
 
 # =============================================================================
-# TIME MULTIPLIER
+# TIME LIMIT (Timer-as-fail-condition)
+# =============================================================================
+
+## Base time limit for stage 1 (seconds)
+static var TIME_LIMIT_BASE := 75.0
+
+## Time reduction per stage (seconds)
+static var TIME_LIMIT_STAGE_REDUCTION := 5.0
+
+## Minimum time limit (floor)
+static var TIME_LIMIT_FLOOR := 45.0
+
+## Extra time for boss puzzles (puzzle index 2)
+static var TIME_LIMIT_BOSS_BONUS := 15.0
+
+## Calculate time limit for a given stage and puzzle
+static func get_time_limit(stage: int, puzzle_index: int) -> float:
+	var base := TIME_LIMIT_BASE
+	var stage_reduction := (stage - 1) * TIME_LIMIT_STAGE_REDUCTION
+	var boss_bonus := TIME_LIMIT_BOSS_BONUS if puzzle_index == 2 else 0.0
+	return maxf(base - stage_reduction + boss_bonus, TIME_LIMIT_FLOOR)
+
+# =============================================================================
+# TIME MULTIPLIER (score bonus for speed)
 # =============================================================================
 
 ## Starting time multiplier (max bonus for instant solve)
@@ -29,7 +52,7 @@ static var TIME_MULT_START := 2.0
 ## Floor time multiplier (no penalty, just no bonus)
 static var TIME_MULT_FLOOR := 1.0
 
-## Seconds for multiplier to decay from start to floor
+## Seconds for multiplier to decay from start to floor (now relative to time limit)
 static var TIME_MULT_DECAY_SECONDS := 60.0
 
 # =============================================================================
@@ -89,6 +112,10 @@ static var STREAK_MULT_CAP := 1.0
 static func reset_to_defaults() -> void:
 	BASE_POINTS_PER_CELL = 10
 	KEPT_BONUS_PER_CELL = 25
+	TIME_LIMIT_BASE = 75.0
+	TIME_LIMIT_STAGE_REDUCTION = 5.0
+	TIME_LIMIT_FLOOR = 45.0
+	TIME_LIMIT_BOSS_BONUS = 15.0
 	TIME_MULT_START = 2.0
 	TIME_MULT_FLOOR = 1.0
 	TIME_MULT_DECAY_SECONDS = 60.0

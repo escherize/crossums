@@ -20,6 +20,7 @@ const VictoryScene = preload("res://scenes/ui/victory.tscn")
 var puzzle_grid: PuzzleGrid = null
 var puzzle_solved: bool = false
 var puzzle_start_time: int = 0
+var current_time_limit: float = 75.0  # Set per puzzle based on stage
 var time_multiplier: float = GameConfig.TIME_MULT_START
 var restore_count: int = 0
 var _timer_fill_style: StyleBoxFlat
@@ -103,27 +104,54 @@ func _process(_delta: float) -> void:
 
 func _update_time_multiplier() -> void:
 	var elapsed_sec := (Time.get_ticks_msec() - puzzle_start_time) / 1000.0
-	var decay_progress := clampf(elapsed_sec / GameConfig.TIME_MULT_DECAY_SECONDS, 0.0, 1.0)
-	time_multiplier = lerpf(GameConfig.TIME_MULT_START, GameConfig.TIME_MULT_FLOOR, decay_progress)
+	var time_remaining := current_time_limit - elapsed_sec
+
+	# Check for timeout
+	if time_remaining <= 0:
+		_on_time_expired()
+		return
+
+	# Calculate time multiplier based on how much time is left relative to limit
+	# Faster solve = higher multiplier (2.0x at start, 1.0x when time runs out)
+	var time_progress := clampf(elapsed_sec / current_time_limit, 0.0, 1.0)
+	time_multiplier = lerpf(GameConfig.TIME_MULT_START, GameConfig.TIME_MULT_FLOOR, time_progress)
 
 
 func _update_timer_display() -> void:
-	# Calculate progress (1.0 = full bonus, 0.0 = no bonus)
-	var mult_range := GameConfig.TIME_MULT_START - GameConfig.TIME_MULT_FLOOR
-	var progress := 0.0
-	if mult_range > 0:
-		progress = (time_multiplier - GameConfig.TIME_MULT_FLOOR) / mult_range
+	# In test mode, freeze timer display for deterministic visual tests
+	var is_test_mode := OS.get_environment("CS_DEBUG_SERVER").to_lower() in ["1", "true", "yes"]
+	if is_test_mode:
+		timer_bar.value = 1.0
+		_timer_fill_style.bg_color = Color(0.4, 0.8, 0.9, 1.0)  # Cyan
+		timer_label.text = "1:15"
+		return
+
+	var elapsed_sec := (Time.get_ticks_msec() - puzzle_start_time) / 1000.0
+	var time_remaining := maxf(current_time_limit - elapsed_sec, 0.0)
+
+	# Calculate progress (1.0 = full time, 0.0 = no time)
+	var progress := time_remaining / current_time_limit if current_time_limit > 0 else 0.0
 
 	# Update bar value
 	timer_bar.value = progress
 
-	# Update bar fill color: cyan (full) → white (empty)
+	# Update bar fill color: cyan (lots of time) → red (low time)
 	var cyan := Color(0.4, 0.8, 0.9, 1.0)
-	var fill_color := cyan.lerp(Color.WHITE, 1.0 - progress)
+	var red := Color(0.9, 0.3, 0.3, 1.0)
+	var fill_color: Color
+	if progress > 0.3:
+		# Cyan → White transition (100% → 30%)
+		var t := (progress - 0.3) / 0.7
+		fill_color = cyan.lerp(Color.WHITE, 1.0 - t)
+	else:
+		# White → Red transition (30% → 0%)
+		var t := progress / 0.3
+		fill_color = red.lerp(Color.WHITE, t)
 	_timer_fill_style.bg_color = fill_color
 
-	# Update label
-	timer_label.text = "%.2fx" % time_multiplier
+	# Update label to show remaining time
+	var secs := int(time_remaining)
+	timer_label.text = "%d:%02d" % [secs / 60, secs % 60]
 
 
 func _refresh_hud() -> void:
@@ -161,6 +189,14 @@ func _load_puzzle_grid() -> void:
 	# Wait a frame for the grid to initialize, then load puzzle
 	await get_tree().process_frame
 	await puzzle_grid.load_puzzle(GameState.puzzle)
+
+	# Calculate time limit based on stage and puzzle index
+	var stage := 1
+	var puzzle_index := 0
+	if GameState.run:
+		stage = GameState.run.stage
+		puzzle_index = GameState.run.puzzle_index
+	current_time_limit = GameConfig.get_time_limit(stage, puzzle_index)
 
 	# Reset timer and precision tracking
 	puzzle_start_time = Time.get_ticks_msec()
@@ -289,26 +325,39 @@ func _on_cell_restored(row: int, col: int, value: int) -> void:
 
 
 func _on_mistake_made(_row: int, _col: int) -> void:
-	## Called when player deletes a solution cell (mistake)
+	## Legacy handler - mistakes no longer cause life loss
+	## Kept for potential future use (e.g., time penalties)
+	pass
+
+
+func _on_time_expired() -> void:
+	## Called when puzzle timer runs out
 	if puzzle_solved:
 		return
 	if GameState.run == null:
 		return
 
-	# Missteps count against precision (same as restores)
-	restore_count += 1
+	puzzle_solved = true  # Stop further input
+	_update_status("Time's up!")
+	EventBus.puzzle_timeout.emit()
 
 	# Lose a life
 	var game_over_flag: bool = GameState.run.lose_life()
 
 	if game_over_flag:
-		# Immediate game over - no more lives
-		puzzle_solved = true  # Stop further input
+		# No more lives - game over
 		EventBus.game_over.emit()
 		RunManager._end_run(false)
 	else:
-		# Still have lives - show feedback
-		_update_status("Mistake! Lives: %d" % GameState.run.lives)
+		# Still have lives - show result with 0 score
+		var breakdown = ScoringEngineScript.calculate_score(
+			GameState.puzzle,
+			0.0,  # No time bonus
+			restore_count,
+			GameState.operators
+		)
+		breakdown.final_score = 0  # Timeout = 0 points
+		RunManager.on_puzzle_complete(breakdown)
 
 
 func _check_auto_win() -> void:
