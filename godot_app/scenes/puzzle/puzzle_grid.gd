@@ -49,6 +49,36 @@ func _ready() -> void:
 	_build_layout()
 
 
+func _input(event: InputEvent) -> void:
+	## Handle touch input directly for multitouch support.
+	## Button's built-in pressed signal doesn't work well with multitouch
+	## (e.g., holding circle mode button while tapping cells).
+	if not puzzle_state:
+		return
+	if grid_cells.is_empty():
+		return
+
+	if event is InputEventScreenTouch:
+		var touch := event as InputEventScreenTouch
+		if touch.pressed:
+			# Find which cell was touched (if any)
+			var touched_cell := _get_cell_at_position(touch.position)
+			if touched_cell:
+				_on_cell_clicked(touched_cell.row, touched_cell.col)
+				get_viewport().set_input_as_handled()
+
+
+func _get_cell_at_position(global_pos: Vector2) -> GridCell:
+	## Find which cell contains the given global position
+	for row in range(puzzle_state.grid_size.y):
+		for col in range(puzzle_state.grid_size.x):
+			var cell := grid_cells[row][col] as GridCell
+			var cell_rect := cell.get_global_rect()
+			if cell_rect.has_point(global_pos):
+				return cell
+	return null
+
+
 # =============================================================================
 # PUBLIC METHODS
 # =============================================================================
