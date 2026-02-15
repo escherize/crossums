@@ -18,7 +18,7 @@ const SOUND_MAP := {
 
 	# Feedback
 	"mistake": "res://assets/audio/sfx/mistake.wav",
-	"life_lost": "res://assets/audio/sfx/life_lost.wav",
+	"timeout": "res://assets/audio/sfx/life_lost.wav",  # Reuse life_lost.wav for timeout
 
 	# Economy
 	"coin_gain": "res://assets/audio/sfx/coin_gain.wav",
@@ -88,7 +88,6 @@ func _connect_events() -> void:
 
 	# Feedback
 	EventBus.puzzle_timeout.connect(_on_puzzle_timeout)
-	EventBus.life_lost.connect(_on_life_lost)
 
 	# Puzzle state
 	EventBus.puzzle_completed.connect(_on_puzzle_completed)
@@ -169,11 +168,7 @@ func _on_cell_circled(_row: int, _col: int) -> void:
 
 
 func _on_puzzle_timeout() -> void:
-	play("life_lost")  # Use life_lost sound for timeout
-
-
-func _on_life_lost(_remaining: int) -> void:
-	play("life_lost")
+	play("timeout")
 
 
 func _on_puzzle_completed(success: bool, _score: int, _reward: int) -> void:

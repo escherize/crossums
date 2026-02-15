@@ -39,7 +39,6 @@ var _current_overlay: Control = null
 @onready var title_label: Label = %Title
 @onready var stage_label: Label = %StageLabel
 @onready var puzzle_label: Label = %PuzzleLabel
-@onready var lives_label: Label = %LivesLabel
 @onready var money_label: Label = %MoneyLabel
 @onready var score_label: Label = %ScoreLabel
 @onready var target_label: Label = %TargetLabel
@@ -86,7 +85,6 @@ func _connect_signals() -> void:
 	EventBus.mistake_made.connect(_on_mistake_made)
 	EventBus.state_changed.connect(_refresh_hud)
 	EventBus.money_changed.connect(func(_a, _b): _refresh_hud())
-	EventBus.life_lost.connect(func(_a): _refresh_hud())
 
 	# RunManager connections
 	RunManager.puzzle_ready.connect(_on_puzzle_ready)
@@ -160,7 +158,6 @@ func _refresh_hud() -> void:
 	var run = GameState.run
 	stage_label.text = "Stage %d" % run.stage
 	puzzle_label.text = "Puzzle %d/3" % (run.puzzle_index + 1)
-	lives_label.text = "Lives: %d/%d" % [run.lives, run.max_lives]
 	money_label.text = "$%d" % run.money
 	score_label.text = "Score: %d" % run.total_score
 	var config = RunManager.get_current_stage_config()
@@ -331,7 +328,7 @@ func _on_mistake_made(_row: int, _col: int) -> void:
 
 
 func _on_time_expired() -> void:
-	## Called when puzzle timer runs out
+	## Called when puzzle timer runs out - instant game over
 	if puzzle_solved:
 		return
 	if GameState.run == null:
@@ -340,24 +337,8 @@ func _on_time_expired() -> void:
 	puzzle_solved = true  # Stop further input
 	_update_status("Time's up!")
 	EventBus.puzzle_timeout.emit()
-
-	# Lose a life
-	var game_over_flag: bool = GameState.run.lose_life()
-
-	if game_over_flag:
-		# No more lives - game over
-		EventBus.game_over.emit()
-		RunManager._end_run(false)
-	else:
-		# Still have lives - show result with 0 score
-		var breakdown = ScoringEngineScript.calculate_score(
-			GameState.puzzle,
-			0.0,  # No time bonus
-			restore_count,
-			GameState.operators
-		)
-		breakdown.final_score = 0  # Timeout = 0 points
-		RunManager.on_puzzle_complete(breakdown)
+	EventBus.game_over.emit()
+	RunManager._end_run(false)
 
 
 func _check_auto_win() -> void:

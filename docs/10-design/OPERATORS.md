@@ -46,6 +46,8 @@ These work because they reward *how* you play, not *what* the puzzle contains:
 | `perfectionist` | Perfectionist | ×3 score if no restores | Legendary | puzzle_end | Rewards precision (player skill) |
 | `speed_demon` | Speed Demon | +100 if solved under 10s | Rare | puzzle_end | Rewards speed (player skill) |
 | `combo_king` | Combo King | +25 per cell without undo | Uncommon | cell_deleted | Rewards flow (player skill) |
+| `second_wind` | Second Wind | On timeout: restore timer to 50%, consume this operator | Legendary | on_timeout | Acts as a "life" - one-time save |
+| `phoenix` | Phoenix | On timeout: reset puzzle + timer, consume this operator | Legendary | on_timeout | Acts as a "life" - fresh start |
 
 ### Rejected (Conflict with Single-Solution)
 

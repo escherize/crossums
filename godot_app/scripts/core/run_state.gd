@@ -39,8 +39,6 @@ var run_seed: int = 0           # 0 = random, else deterministic
 # RESOURCES
 # =============================================================================
 
-var lives: int = 5
-var max_lives: int = 5
 var money: int = 0
 var total_score: int = 0
 var stage_score: int = 0  # Accumulated score within current stage
@@ -64,12 +62,6 @@ func advance_puzzle() -> void:
 	if puzzle_index >= 3:
 		puzzle_index = 0
 		stage += 1
-
-
-func lose_life() -> bool:
-	lives -= 1
-	EventBus.life_lost.emit(lives)
-	return lives <= 0  # Returns true if game over
 
 
 func add_money(amount: int) -> void:
@@ -127,8 +119,6 @@ func serialize() -> Dictionary:
 	return {
 		"stage": stage,
 		"puzzle_index": puzzle_index,
-		"lives": lives,
-		"max_lives": max_lives,
 		"money": money,
 		"total_score": total_score,
 		"stage_score": stage_score,
@@ -141,8 +131,6 @@ static func deserialize(data: Dictionary):
 	var rs = script.new()
 	rs.stage = data.get("stage", 1)
 	rs.puzzle_index = data.get("puzzle_index", 0)
-	rs.lives = data.get("lives", 5)
-	rs.max_lives = data.get("max_lives", 5)
 	rs.money = data.get("money", 0)
 	rs.total_score = data.get("total_score", 0)
 	rs.stage_score = data.get("stage_score", 0)

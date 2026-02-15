@@ -7,12 +7,6 @@
   "steps": [
     {
       "action": "get_run_info",
-      "expect_nested": {
-        "run.lives": 5
-      }
-    },
-    {
-      "action": "get_run_info",
       "expect": {
         "state": "PUZZLE_ACTIVE"
       }

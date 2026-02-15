@@ -17,7 +17,6 @@
       "expect_nested": {
         "run.stage": 1,
         "run.puzzle_index": 0,
-        "run.lives": 5,
         "run.money": 0,
         "run.total_score": 0,
         "run.stage_score": 0

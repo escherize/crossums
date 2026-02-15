@@ -7,7 +7,7 @@ extends RefCounted
 # VERSION (bumped by deploy.sh)
 # =============================================================================
 
-const VERSION := "0.2.26"
+const VERSION := "0.2.29"
 
 # =============================================================================
 # SCORING - BASE POINTS
@@ -85,16 +85,6 @@ static var INTEREST_RATE := 1
 static var INTEREST_CAP := 5
 
 # =============================================================================
-# FUTURE: LIVES
-# =============================================================================
-
-## Starting lives for a run
-static var STARTING_LIVES := 3
-
-## Max lives
-static var MAX_LIVES := 5
-
-# =============================================================================
 # FUTURE: STREAK
 # =============================================================================
 
@@ -126,7 +116,5 @@ static func reset_to_defaults() -> void:
 	STARTING_MONEY = 10
 	INTEREST_RATE = 1
 	INTEREST_CAP = 5
-	STARTING_LIVES = 3
-	MAX_LIVES = 5
 	STREAK_MULT_PER_WIN = 0.1
 	STREAK_MULT_CAP = 1.0

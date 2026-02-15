@@ -270,8 +270,6 @@ func _execute_action(action: String, params: Dictionary):
 			return await _action_start_run(params)
 		"get_run_info":
 			return _action_get_run_info(params)
-		"set_lives":
-			return _action_set_lives(params)
 		"set_stage":
 			return _action_set_stage(params)
 		"complete_puzzle":
@@ -1415,7 +1413,6 @@ func _action_start_run(params: Dictionary) -> Dictionary:
 		"run": {
 			"stage": GameState.run.stage,
 			"puzzle_index": GameState.run.puzzle_index,
-			"lives": GameState.run.lives,
 			"money": GameState.run.money,
 			"total_score": GameState.run.total_score,
 			"run_seed": GameState.run.run_seed
@@ -1438,7 +1435,6 @@ func _action_get_run_info(_params: Dictionary) -> Dictionary:
 		"run": {
 			"stage": GameState.run.stage,
 			"puzzle_index": GameState.run.puzzle_index,
-			"lives": GameState.run.lives,
 			"money": GameState.run.money,
 			"total_score": GameState.run.total_score,
 			"stage_score": GameState.run.stage_score,
@@ -1461,23 +1457,6 @@ func _get_stage_config_info() -> Variant:
 		"min_cell_value": config.min_cell_value,
 		"max_cell_value": config.max_cell_value,
 		"money_reward": config.money_reward
-	}
-
-
-func _action_set_lives(params: Dictionary) -> Dictionary:
-	## Set lives count for testing
-	if GameState.run == null:
-		return {"error": "no_run", "message": "No active run"}
-
-	var lives: int = params.get("lives", 3)
-	lives = clampi(lives, 0, 10)
-
-	GameState.run.lives = lives
-	EventBus.state_changed.emit()
-
-	return {
-		"success": true,
-		"lives": GameState.run.lives
 	}
 
 
@@ -1515,7 +1494,6 @@ func _action_complete_puzzle(params: Dictionary) -> Dictionary:
 	var score: int = params.get("score", 0)
 	var old_stage: int = GameState.run.stage
 	var old_puzzle: int = GameState.run.puzzle_index
-	var old_lives: int = GameState.run.lives
 
 	# Get target from stage config
 	var config = RunManager.get_current_stage_config()
@@ -1541,8 +1519,6 @@ func _action_complete_puzzle(params: Dictionary) -> Dictionary:
 		"old_puzzle": old_puzzle,
 		"new_stage": GameState.run.stage if GameState.run else old_stage,
 		"new_puzzle": GameState.run.puzzle_index if GameState.run else old_puzzle,
-		"old_lives": old_lives,
-		"new_lives": GameState.run.lives if GameState.run else 0,
 		"state": RunManager.State.keys()[RunManager.current_state]
 	}
 
