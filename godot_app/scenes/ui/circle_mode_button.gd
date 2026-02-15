@@ -20,6 +20,7 @@ const ICON_ACTIVE := "◉"
 # =============================================================================
 
 var is_active: bool = false
+var _active_touch_index: int = -1  # Track which finger is holding the button
 
 # =============================================================================
 # LIFECYCLE
@@ -47,18 +48,30 @@ func _input(event: InputEvent) -> void:
 	if not visible:
 		return
 
-	# Track touch/mouse press state for this button
-	if event is InputEventScreenTouch or event is InputEventMouseButton:
-		var pressed_now: bool = event.pressed if event is InputEventScreenTouch \
-			else (event as InputEventMouseButton).pressed
+	# Handle touch events (multitouch aware)
+	if event is InputEventScreenTouch:
+		var touch := event as InputEventScreenTouch
+		var local_pos := make_input_local(event).position
+		var in_bounds := Rect2(Vector2.ZERO, size).has_point(local_pos)
 
-		# Check if event is within our rect
-		var local_pos = get_local_mouse_position()
-		var in_bounds = Rect2(Vector2.ZERO, size).has_point(local_pos)
-
-		if pressed_now and in_bounds and not is_active:
+		if touch.pressed and in_bounds and not is_active:
+			# This finger pressed on the button - activate and track it
+			_active_touch_index = touch.index
 			_activate()
-		elif not pressed_now and is_active:
+		elif not touch.pressed and touch.index == _active_touch_index:
+			# The finger that was holding the button was released
+			_active_touch_index = -1
+			_deactivate()
+
+	# Handle mouse events (single pointer)
+	elif event is InputEventMouseButton:
+		var mouse := event as InputEventMouseButton
+		var local_pos := get_local_mouse_position()
+		var in_bounds := Rect2(Vector2.ZERO, size).has_point(local_pos)
+
+		if mouse.pressed and in_bounds and not is_active:
+			_activate()
+		elif not mouse.pressed and is_active and _active_touch_index == -1:
 			_deactivate()
 
 # =============================================================================
