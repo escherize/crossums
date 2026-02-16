@@ -29,9 +29,9 @@ var row_targets: Array[TargetDisplay] = []
 var col_targets: Array[TargetDisplay] = []
 var circle_mode_active: bool = false  ## When true, taps circle instead of delete
 
-# Touch tracking for multitouch support
-var _active_touches: Dictionary = {}  ## touch_index -> GridCell
-var _touch_handled_cells: Dictionary = {}  ## "row,col" -> true (cells handled by touch this frame)
+# Touch tracking for multitouch support (index > 0 only)
+# Touch index 0 uses Button's native mouse emulation
+var _multitouch_cells: Dictionary = {}  ## touch_index -> GridCell (for index > 0)
 
 # =============================================================================
 # NODE REFERENCES
@@ -54,9 +54,9 @@ func _ready() -> void:
 
 
 func _input(event: InputEvent) -> void:
-	## Handle touch input directly for multitouch support.
-	## Button's built-in pressed signal doesn't work well with multitouch
-	## (e.g., holding circle mode button while tapping cells).
+	## Handle MULTITOUCH input directly (touch index > 0).
+	## Touch index 0 uses Godot's touch-to-mouse emulation, handled by Button natively.
+	## This enables holding o-shift button (touch 0) while tapping cells (touch 1+).
 	if not puzzle_state:
 		return
 	if grid_cells.is_empty():
@@ -65,29 +65,22 @@ func _input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch:
 		var touch := event as InputEventScreenTouch
 
+		# Only handle multitouch (index > 0)
+		# Touch index 0 goes through mouse emulation -> Button -> _on_cell_clicked
+		if touch.index == 0:
+			return
+
 		if touch.pressed:
-			# Touch DOWN - track which cell this finger started on
+			# Multitouch DOWN - track which cell this finger is on
 			var touched_cell := _get_cell_at_position(touch.position)
 			if touched_cell:
-				_active_touches[touch.index] = touched_cell
+				_multitouch_cells[touch.index] = touched_cell
 		else:
-			# Touch UP - act on the cell we started on (if any)
-			if _active_touches.has(touch.index):
-				var cell: GridCell = _active_touches[touch.index]
-				_active_touches.erase(touch.index)
-				# Check finger is still roughly on the same cell (allow drag-to-cancel)
-				var up_cell := _get_cell_at_position(touch.position)
-				if up_cell == cell:
-					# Mark as handled to prevent Button's pressed signal from double-triggering
-					var key := "%d,%d" % [cell.row, cell.col]
-					_touch_handled_cells[key] = true
-					_handle_cell_click(cell.row, cell.col)
-					# Clear the flag next frame
-					_clear_touch_handled.call_deferred()
-
-
-func _clear_touch_handled() -> void:
-	_touch_handled_cells.clear()
+			# Multitouch UP - act on the tracked cell
+			if _multitouch_cells.has(touch.index):
+				var cell: GridCell = _multitouch_cells[touch.index]
+				_multitouch_cells.erase(touch.index)
+				_handle_cell_click(cell.row, cell.col)
 
 
 func _get_cell_at_position(global_pos: Vector2) -> GridCell:
@@ -332,10 +325,8 @@ func _update_circle_mode_visuals() -> void:
 # =============================================================================
 
 func _on_cell_clicked(row: int, col: int) -> void:
-	## Called from Button's pressed signal - check if touch already handled this
-	var key := "%d,%d" % [row, col]
-	if _touch_handled_cells.has(key):
-		return
+	## Called from Button's pressed signal (via mouse or touch-to-mouse emulation)
+	## This handles touch index 0 (single touch) and mouse clicks
 	_handle_cell_click(row, col)
 
 

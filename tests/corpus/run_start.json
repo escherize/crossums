@@ -6,6 +6,9 @@
   },
   "steps": [
     {
+      "assert": "assert_no_targets_satisfied"
+    },
+    {
       "action": "get_run_info",
       "expect": {
         "active": true,

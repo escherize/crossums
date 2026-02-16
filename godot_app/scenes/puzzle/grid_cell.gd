@@ -69,13 +69,11 @@ func _ready() -> void:
 	# Set pivot to center for scale animations (use actual size)
 	pivot_offset = custom_minimum_size / 2
 
-	# Connect signals
-	pressed.connect(_on_pressed)
+	# Connect signals - use button_up instead of pressed for reliable mobile support
+	# (pressed signal has known issues with ACTION_MODE_BUTTON_RELEASE on mobile)
+	button_up.connect(_on_button_up)
 	mouse_entered.connect(_on_mouse_entered)
 	mouse_exited.connect(_on_mouse_exited)
-
-	# Trigger on release (standard touch behavior - can drag out to cancel)
-	action_mode = BaseButton.ACTION_MODE_BUTTON_RELEASE
 
 	_update_appearance()
 
@@ -273,7 +271,7 @@ func _update_appearance() -> void:
 # SIGNAL HANDLERS
 # =============================================================================
 
-func _on_pressed() -> void:
+func _on_button_up() -> void:
 	# Don't emit click if long press was triggered
 	if _long_press_triggered:
 		_long_press_triggered = false

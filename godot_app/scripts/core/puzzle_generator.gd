@@ -6,8 +6,20 @@ extends RefCounted
 ## deterministic about which cells must be deleted, making "choice"
 ## operators (keep corners, keep 7s, etc.) frustrating rather than fun.
 
+# Maximum solutions to count before giving up (for performance).
+# Higher = more accurate solution counting but slower generation.
 const MAX_SOLUTION_COUNT = 50
+
+# How many times to retry generating a valid puzzle before falling back.
+# Higher = better chance of ideal puzzle but slower worst-case generation.
 const MAX_GENERATION_ATTEMPTS = 100
+
+# Default deletion ratios - what percentage of cells must be deleted to solve.
+# MIN_DELETE_RATIO: Lower = easier puzzles (fewer cells to delete)
+# MAX_DELETE_RATIO: Higher = harder puzzles (more cells to delete)
+# Range creates variety: some puzzles easy (40% deleted), some hard (80% deleted)
+const DEFAULT_MIN_DELETE_RATIO = 0.4  # At least 40% of cells must be deleted
+const DEFAULT_MAX_DELETE_RATIO = 0.8  # At most 80% of cells must be deleted
 
 # =============================================================================
 # MAIN GENERATION API
@@ -17,7 +29,9 @@ static func generate(
 	grid_size: Vector2i,
 	rng: RandomNumberGenerator = null,
 	min_value: int = 1,
-	max_value: int = 9
+	max_value: int = 9,
+	min_delete_ratio: float = DEFAULT_MIN_DELETE_RATIO,
+	max_delete_ratio: float = DEFAULT_MAX_DELETE_RATIO
 ) -> PuzzleState:
 	## Generate a puzzle. Always uses single-solution (deterministic).
 
@@ -25,17 +39,22 @@ static func generate(
 		rng = RandomNumberGenerator.new()
 		rng.randomize()
 
-	return generate_single_solution(grid_size, rng, min_value, max_value)
+	return generate_single_solution(
+		grid_size, rng, min_value, max_value, min_delete_ratio, max_delete_ratio
+	)
 
 
 static func generate_single_solution(
 	grid_size: Vector2i,
 	rng: RandomNumberGenerator,
 	min_value: int = 1,
-	max_value: int = 9
+	max_value: int = 9,
+	min_delete_ratio: float = DEFAULT_MIN_DELETE_RATIO,
+	max_delete_ratio: float = DEFAULT_MAX_DELETE_RATIO
 ) -> PuzzleState:
 	## Generate a puzzle with exactly 1 solution.
 	## Cell values will be in range [min_value, max_value], excluding 0.
+	## Deletion ratio controls how many cells must be deleted (0.4-0.8 = 40%-80%).
 
 	for _attempt in range(MAX_GENERATION_ATTEMPTS):
 		var state = PuzzleState.new(grid_size)
@@ -47,7 +66,9 @@ static func generate_single_solution(
 				state.get_cell(row, col).value = value
 
 		# Find targets that give exactly 1 solution
-		var result = _find_targets_with_solution_count(state, 1, 1, rng)
+		var result = _find_targets_with_solution_count(
+			state, 1, 1, rng, min_delete_ratio, max_delete_ratio
+		)
 		if result != null:
 			var analysis = analyze(result)
 			print("[PuzzleGenerator] single_solution: %d solutions, diversity %.2f" % [
@@ -90,21 +111,21 @@ static func _find_targets_with_solution_count(
 	state: PuzzleState,
 	min_solutions: int,
 	max_solutions: int,
-	rng: RandomNumberGenerator
+	rng: RandomNumberGenerator,
+	min_delete_ratio: float = DEFAULT_MIN_DELETE_RATIO,
+	max_delete_ratio: float = DEFAULT_MAX_DELETE_RATIO
 ) -> PuzzleState:
 	## Find targets that give solution count in [min, max] range.
 
 	var grid_size = state.grid_size
-	var total_cells = grid_size.x * grid_size.y
 
-	# Ensure at least 35% of cells are deleted (prevent trivial puzzles)
-	var min_delete = maxi(3, int(total_cells * 0.35))
-	var max_keep = total_cells - min_delete
-	var max_keep_ratio = float(max_keep) / total_cells
+	# Convert delete ratios to keep ratios
+	var min_keep_ratio = 1.0 - max_delete_ratio  # 0.2 (keep 20% = delete 80%)
+	var max_keep_ratio = 1.0 - min_delete_ratio  # 0.6 (keep 60% = delete 40%)
 
 	for _attempt in range(50):
-		# Pick a random valid keep-set (30% to max_keep_ratio)
-		var keep_ratio = rng.randf_range(0.3, max_keep_ratio)
+		# Pick a random keep ratio within the configured range
+		var keep_ratio = rng.randf_range(min_keep_ratio, max_keep_ratio)
 		var keep_set: Dictionary = {}
 
 		for row in range(grid_size.y):
@@ -146,6 +167,10 @@ static func _find_targets_with_solution_count(
 					col_sum += state.get_cell(row, col).value
 			state.col_targets[col] = col_sum
 
+		# Reject if any row/column starts satisfied (trivial puzzle)
+		if _has_satisfied_target_at_start(state):
+			continue
+
 		# Count solutions
 		var solution_count = count_solutions(state, max_solutions + 1)
 
@@ -154,6 +179,29 @@ static func _find_targets_with_solution_count(
 			return state
 
 	return null
+
+
+static func _has_satisfied_target_at_start(state: PuzzleState) -> bool:
+	## Check if any row or column has its target already satisfied
+	## when all cells are ACTIVE. This would make the puzzle trivial.
+
+	# Check rows
+	for row in range(state.grid_size.y):
+		var row_sum = 0
+		for col in range(state.grid_size.x):
+			row_sum += state.get_cell(row, col).value
+		if row_sum == state.row_targets[row]:
+			return true
+
+	# Check columns
+	for col in range(state.grid_size.x):
+		var col_sum = 0
+		for row in range(state.grid_size.y):
+			col_sum += state.get_cell(row, col).value
+		if col_sum == state.col_targets[col]:
+			return true
+
+	return false
 
 
 static func _generate_fallback(

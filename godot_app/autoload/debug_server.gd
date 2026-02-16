@@ -228,6 +228,8 @@ func _execute_action(action: String, params: Dictionary):
 			return _action_assert_invalid(params)
 		"assert_puzzle_complete":
 			return _action_assert_puzzle_complete(params)
+		"assert_no_targets_satisfied":
+			return _action_assert_no_targets_satisfied(params)
 
 		# Screenshot and utilities
 		"screenshot":
@@ -1177,6 +1179,41 @@ func _action_assert_puzzle_complete(_params: Dictionary) -> Dictionary:
 	return {
 		"pass": is_complete,
 		"message": "Puzzle is complete" if is_complete else "Puzzle is not complete"
+	}
+
+
+func _action_assert_no_targets_satisfied(_params: Dictionary) -> Dictionary:
+	## Assert that NO row or column targets are satisfied at start.
+	## This ensures puzzles require at least one deletion per row/column.
+	var puzzle_state: PuzzleState = GameState.puzzle
+	if puzzle_state == null:
+		return {"pass": false, "message": "No active puzzle"}
+
+	# Check rows: sum of ALL cell values should NOT equal target
+	for row in range(puzzle_state.grid_size.y):
+		var row_sum = 0
+		for col in range(puzzle_state.grid_size.x):
+			row_sum += puzzle_state.get_cell(row, col).value
+		if row_sum == puzzle_state.row_targets[row]:
+			return {
+				"pass": false,
+				"message": "Row %d is already satisfied (sum=%d)" % [row, row_sum]
+			}
+
+	# Check columns: sum of ALL cell values should NOT equal target
+	for col in range(puzzle_state.grid_size.x):
+		var col_sum = 0
+		for row in range(puzzle_state.grid_size.y):
+			col_sum += puzzle_state.get_cell(row, col).value
+		if col_sum == puzzle_state.col_targets[col]:
+			return {
+				"pass": false,
+				"message": "Col %d is already satisfied (sum=%d)" % [col, col_sum]
+			}
+
+	return {
+		"pass": true,
+		"message": "No targets satisfied at start (puzzle requires deletions)"
 	}
 
 

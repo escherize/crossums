@@ -6,6 +6,9 @@
   },
   "steps": [
     {
+      "assert": "assert_no_targets_satisfied"
+    },
+    {
       "action": "get_run_info",
       "expect_nested": {
         "run.stage": 1,
@@ -95,6 +98,9 @@
       "expect": {
         "state": "PUZZLE_ACTIVE"
       }
+    },
+    {
+      "assert": "assert_no_targets_satisfied"
     }
   ]
 }
