@@ -48,7 +48,7 @@ bun tests/update-baselines.ts --clean-diffs   # Remove diff images
 ### Singletons (Autoloads)
 - **EventBus** (`autoload/event_bus.gd`) - Decoupled signal communication
 - **GameState** (`autoload/game_state.gd`) - Persistent game state
-- **RunManager** (`scripts/core/run_manager.gd`) - Run/stage progression
+- **RunManager** (`autoload/run_manager.gd`) - Run/stage progression
 - **DebugServer** (`autoload/debug_server.gd`) - TCP server for game-cli
 - **SoundManager** (`autoload/sound_manager.gd`) - SFX with configurable mappings
 
@@ -145,5 +145,5 @@ Runs can be seeded for deterministic puzzle generation:
 ## Key Documentation
 
 - `godot_app/DEVELOPMENT.md` - Detailed architecture and data flow
-- `docs/GAME_CLI.md` - Full CLI reference
-- `docs/crosssums-design-doc.md` - Game design document
+- `docs/30-technical/GAME_CLI.md` - Full CLI reference
+- `docs/10-design/GAME_DESIGN_IDEAS.md` - Current game design decisions
