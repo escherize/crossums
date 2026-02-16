@@ -63,8 +63,7 @@
     {
       "action": "get_score",
       "params": {
-        "time_mult": 1,
-        "restore_count": 0
+        "time_mult": 1
       },
       "expect": {
         "operator_bonus": 0,
@@ -86,8 +85,7 @@
     {
       "action": "get_score",
       "params": {
-        "time_mult": 1,
-        "restore_count": 0
+        "time_mult": 1
       },
       "expect_gt": {
         "operator_bonus": 0

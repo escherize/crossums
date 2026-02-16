@@ -15,8 +15,6 @@ class ScoreBreakdown:
 	var deleted_count: int = 0
 	var subtotal: int = 0  # base + kept bonus
 	var time_multiplier: float = 1.0
-	var precision_multiplier: float = 1.0
-	var restore_count: int = 0
 	var final_score: int = 0
 	# Operator bonuses
 	var operator_bonus: int = 0
@@ -33,8 +31,6 @@ class ScoreBreakdown:
 			parts.append("%.1fx ops" % operator_mult)
 		if time_multiplier != 1.0:
 			parts.append("%.1fx time" % time_multiplier)
-		if precision_multiplier != 1.0:
-			parts.append("%.1fx precision" % precision_multiplier)
 		return " | ".join(parts)
 
 # =============================================================================
@@ -48,7 +44,6 @@ class ScoreBreakdown:
 static func calculate_score(
 	puzzle: PuzzleState,
 	time_mult: float = 1.0,
-	restore_count: int = 0,
 	operators: Array = []
 ) -> ScoreBreakdown:
 	var breakdown = ScoreBreakdown.new()
@@ -71,16 +66,7 @@ static func calculate_score(
 	# Time multiplier (passed in from timer)
 	breakdown.time_multiplier = time_mult
 
-	# Precision multiplier based on restore count
-	breakdown.restore_count = restore_count
-	if restore_count == 0:
-		breakdown.precision_multiplier = GameConfig.PRECISION_PERFECT
-	elif restore_count <= GameConfig.PRECISION_GOOD_THRESHOLD:
-		breakdown.precision_multiplier = GameConfig.PRECISION_GOOD
-	else:
-		breakdown.precision_multiplier = GameConfig.PRECISION_BASE
-
-	# Process operators (Sprint 2)
+	# Process operators
 	var op_score_bonus := 0
 	var op_mult_bonus := 0.0
 	var op_money_bonus := 0
@@ -133,8 +119,7 @@ static func calculate_score(
 
 	# Final score with all multipliers
 	var score_before_mult = breakdown.subtotal + breakdown.operator_bonus
-	var total_mult = breakdown.time_multiplier * breakdown.precision_multiplier
-	total_mult *= breakdown.operator_mult
+	var total_mult = breakdown.time_multiplier * breakdown.operator_mult
 	breakdown.final_score = int(score_before_mult * total_mult)
 
 	return breakdown

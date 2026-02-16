@@ -7,7 +7,7 @@ extends RefCounted
 # VERSION (bumped by deploy.sh)
 # =============================================================================
 
-const VERSION := "0.2.29"
+const VERSION := "0.2.31"
 
 # =============================================================================
 # SCORING - BASE POINTS
@@ -56,27 +56,15 @@ static var TIME_MULT_FLOOR := 1.0
 static var TIME_MULT_DECAY_SECONDS := 60.0
 
 # =============================================================================
-# PRECISION MULTIPLIER
-# =============================================================================
-
-## Multiplier for perfect solve (0 restores)
-static var PRECISION_PERFECT := 1.5
-
-## Multiplier for good solve (1-2 restores)
-static var PRECISION_GOOD := 1.25
-
-## Multiplier for base solve (3+ restores)
-static var PRECISION_BASE := 1.0
-
-## Threshold for "good" precision (restores <= this get PRECISION_GOOD)
-static var PRECISION_GOOD_THRESHOLD := 2
-
-# =============================================================================
 # ECONOMY
 # =============================================================================
 
 ## Starting money for a run
 static var STARTING_MONEY := 10
+
+## Score to money conversion: money = floor(score / divisor)
+## Lower = more money per puzzle. 100 means 500 points = $5.
+static var SCORE_TO_MONEY_DIVISOR := 100
 
 ## Interest rate ($ per $5 held)
 static var INTEREST_RATE := 1
@@ -109,10 +97,6 @@ static func reset_to_defaults() -> void:
 	TIME_MULT_START = 2.0
 	TIME_MULT_FLOOR = 1.0
 	TIME_MULT_DECAY_SECONDS = 60.0
-	PRECISION_PERFECT = 1.5
-	PRECISION_GOOD = 1.25
-	PRECISION_BASE = 1.0
-	PRECISION_GOOD_THRESHOLD = 2
 	STARTING_MONEY = 10
 	INTEREST_RATE = 1
 	INTEREST_CAP = 5

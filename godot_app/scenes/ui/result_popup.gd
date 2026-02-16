@@ -161,11 +161,6 @@ func _calculate_display_values() -> Array[int]:
 		current_mult *= b.time_multiplier
 		values.append(int(score_with_ops * current_mult))
 
-	# Phase 5: Precision multiplier
-	if b.precision_multiplier != 1.0:
-		current_mult *= b.precision_multiplier
-		values.append(int(score_with_ops * current_mult))
-
 	return values
 
 
@@ -224,20 +219,6 @@ func _build_breakdown_steps() -> Array:
 			"value": b.time_multiplier,
 			"apply_mult": true,
 			"color": time_color
-		})
-
-	# 7. Precision multiplier
-	if b.precision_multiplier != 1.0:
-		var precision_text = "×%.2f precision" % b.precision_multiplier
-		if b.restore_count == 0:
-			precision_text += " (perfect!)"
-		var precision_color = Color(0.4, 1.0, 0.4) if b.precision_multiplier >= 1.25 else Color.WHITE
-		steps.append({
-			"text": precision_text,
-			"type": "mult",
-			"value": b.precision_multiplier,
-			"apply_mult": true,
-			"color": precision_color
 		})
 
 	return steps

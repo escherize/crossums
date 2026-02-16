@@ -693,7 +693,6 @@ func _action_new_puzzle(params: Dictionary):
 	# Reset timer tracking if available
 	if main_scene.has_method("get") and main_scene.get("puzzle_start_time") != null:
 		main_scene.set("puzzle_start_time", Time.get_ticks_msec())
-		main_scene.set("restore_count", 0)
 
 	# Reload grid visually
 	var puzzle_grid = main_scene.get("puzzle_grid")
@@ -804,7 +803,6 @@ func _action_restart_puzzle(_params: Dictionary) -> Dictionary:
 	# Reset timer tracking if available
 	if main_scene.get("puzzle_start_time") != null:
 		main_scene.set("puzzle_start_time", Time.get_ticks_msec())
-		main_scene.set("restore_count", 0)
 
 	# Refresh visual grid
 	_refresh_puzzle_grid(main_scene)
@@ -1379,16 +1377,15 @@ func _action_clear_operators(_params: Dictionary) -> Dictionary:
 
 func _action_get_score(params: Dictionary) -> Dictionary:
 	## Calculate current score without submitting
-	## Optional params: time_mult (override), restore_count (override)
+	## Optional params: time_mult (override)
 	var puzzle_state: PuzzleState = GameState.puzzle
 	if puzzle_state == null:
 		return {"error": "no_puzzle", "message": "No active puzzle"}
 
 	# Get time multiplier - use override or calculate from main scene
 	var time_mult: float = params.get("time_mult", 1.0)
-	var restore_count: int = params.get("restore_count", 0)
 
-	# Try to get actual values from main scene if not overridden
+	# Try to get actual value from main scene if not overridden
 	if not params.has("time_mult"):
 		var main_scene = _get_main_scene()
 		if main_scene:
@@ -1396,14 +1393,7 @@ func _action_get_score(params: Dictionary) -> Dictionary:
 			if tm != null:
 				time_mult = tm
 
-	if not params.has("restore_count"):
-		var main_scene = _get_main_scene()
-		if main_scene:
-			var rc = main_scene.get("restore_count")
-			if rc != null:
-				restore_count = rc
-
-	var breakdown = ScoringEngine.calculate_score(puzzle_state, time_mult, restore_count, GameState.operators)
+	var breakdown = ScoringEngine.calculate_score(puzzle_state, time_mult, GameState.operators)
 
 	return {
 		"final_score": breakdown.final_score,
@@ -1414,7 +1404,6 @@ func _action_get_score(params: Dictionary) -> Dictionary:
 		"operator_mult": breakdown.operator_mult,
 		"operator_details": breakdown.operator_details,
 		"time_multiplier": breakdown.time_multiplier,
-		"precision_multiplier": breakdown.precision_multiplier,
 		"money_bonus": breakdown.money_bonus,
 	}
 

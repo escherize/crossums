@@ -22,7 +22,6 @@ var puzzle_solved: bool = false
 var puzzle_start_time: int = 0
 var current_time_limit: float = 75.0  # Set per puzzle based on stage
 var time_multiplier: float = GameConfig.TIME_MULT_START
-var restore_count: int = 0
 var _timer_fill_style: StyleBoxFlat
 var _current_overlay: Control = null
 
@@ -196,10 +195,9 @@ func _load_puzzle_grid() -> void:
 		puzzle_index = GameState.run.puzzle_index
 	current_time_limit = GameConfig.get_time_limit(stage, puzzle_index)
 
-	# Reset timer and precision tracking
+	# Reset timer
 	puzzle_start_time = Time.get_ticks_msec()
 	time_multiplier = GameConfig.TIME_MULT_START
-	restore_count = 0
 	puzzle_solved = false
 	_update_timer_display()
 
@@ -316,7 +314,6 @@ func _on_cell_deleted(row: int, col: int, value: int) -> void:
 func _on_cell_restored(row: int, col: int, value: int) -> void:
 	if puzzle_solved:
 		return
-	restore_count += 1
 	_update_status("Restored %d at row %d, col %d" % [value, row + 1, col + 1])
 	_check_auto_win()
 	_check_operator_auto_actions()
@@ -386,7 +383,6 @@ func _complete_puzzle() -> void:
 	var breakdown = ScoringEngineScript.calculate_score(
 		GameState.puzzle,
 		time_multiplier,
-		restore_count,
 		GameState.operators
 	)
 	_update_status("Score: %d  |  %s" % [breakdown.final_score, breakdown.get_summary()])

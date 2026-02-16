@@ -23,7 +23,7 @@
     {"action": "delete_cell", "params": {"row": 1, "col": 2}},
     {"action": "delete_cell", "params": {"row": 2, "col": 0}},
     {"action": "delete_cell", "params": {"row": 2, "col": 1}},
-    {"action": "get_score", "params": {"time_mult": 1, "restore_count": 0},
+    {"action": "get_score", "params": {"time_mult": 1},
      "expect": {"money_bonus": 12}},
     {"action": "clear_operators"}
   ]

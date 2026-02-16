@@ -77,7 +77,7 @@ func _start_next_puzzle() -> void:
 
 func on_puzzle_complete(breakdown_or_score) -> void:
 	## Called when player completes a puzzle.
-	## Scores accumulate across stage; gate check only on boss puzzle (index 2).
+	## Score converts directly to money. No score gates.
 	## breakdown_or_score: ScoringEngine.ScoreBreakdown or int (for testing)
 	if _current_stage_config == null:
 		push_error("No stage config for puzzle completion")
@@ -95,9 +95,12 @@ func on_puzzle_complete(breakdown_or_score) -> void:
 		money_bonus = breakdown.money_bonus
 
 	_last_puzzle_score = score
-	var reward: int = _current_stage_config.money_reward + money_bonus
 
-	# Always add score (no per-puzzle gate)
+	# Convert score to money + any operator bonus
+	var score_money: int = int(score / GameConfig.SCORE_TO_MONEY_DIVISOR)
+	var reward: int = score_money + money_bonus
+
+	# Track score for display, add money
 	GameState.run.add_stage_score(score)
 	GameState.run.add_score(score)
 	GameState.run.add_money(reward)
@@ -112,21 +115,14 @@ func on_puzzle_complete(breakdown_or_score) -> void:
 		_end_run(true)
 		return
 
-	# Boss puzzle (index was 2): check stage gate
+	# Boss puzzle: reset stage score for next stage (no gate check)
 	if was_boss:
-		var stage_target: int = _current_stage_config.score_target
-		if GameState.run.stage_score < stage_target:
-			# Failed stage gate = game over
-			EventBus.game_over.emit()
-			_end_run(false)
-			return
-		# Passed! Reset stage score for next stage
 		GameState.run.reset_stage_score()
 
 	# Show result
 	current_state = State.PUZZLE_RESULT
 	state_changed.emit(current_state)
-	show_result.emit(true, breakdown, _current_stage_config.score_target, reward)
+	show_result.emit(true, breakdown, 0, reward)  # 0 = no target to display
 
 
 func continue_from_result() -> void:
@@ -202,14 +198,9 @@ func _create_mock_breakdown(score: int):
 		"base_points": score,
 		"kept_bonus": 0,
 		"kept_count": 0,
-		"line_multiplier": 1.0,
-		"valid_lines": 0,
-		"total_lines": 0,
 		"operator_bonus": 0,
 		"operator_mult": 1.0,
 		"operator_details": [],
 		"time_multiplier": 1.0,
-		"precision_multiplier": 1.0,
-		"restore_count": 0,
 		"money_bonus": 0
 	}

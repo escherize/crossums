@@ -18,12 +18,12 @@
     {"action": "clear_operators"},
     {"action": "add_operator", "params": {"id": "purist"}},
     {"action": "apply_solution"},
-    {"action": "get_score", "params": {"time_mult": 1, "restore_count": 0},
+    {"action": "get_score", "params": {"time_mult": 1},
      "expect": {"operator_bonus": 300}},
     {"action": "restart_puzzle"},
     {"action": "circle_cell", "params": {"row": 0, "col": 0}},
     {"action": "apply_solution"},
-    {"action": "get_score", "params": {"time_mult": 1, "restore_count": 0},
+    {"action": "get_score", "params": {"time_mult": 1},
      "expect": {"operator_bonus": 0}},
     {"action": "clear_operators"}
   ]
