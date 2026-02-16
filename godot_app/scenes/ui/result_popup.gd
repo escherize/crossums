@@ -84,8 +84,8 @@ func show_result(won: bool, breakdown, target: int, reward: int) -> void:
 	grade_label.add_theme_color_override("font_color", grade_color)
 	grade_label.visible = won  # Only show grade on win
 
-	# Setup target and reward
-	target_label.text = "Target: %d" % target
+	# Setup par score reference
+	target_label.text = "Par: %d" % target
 	var grade_mult: float = breakdown.grade_mult if breakdown else 1.0
 	if grade_mult != 1.0:
 		reward_label.text = "+$%d (%.1fx grade)" % [reward, grade_mult] if reward > 0 else ""
@@ -288,8 +288,8 @@ func _show_final_state() -> void:
 	# Show final score
 	running_total_label.text = str(_breakdown.final_score)
 
-	# Color based on target
-	var target_val = int(target_label.text.replace("Target: ", ""))
+	# Color based on par score
+	var target_val = int(target_label.text.replace("Par: ", ""))
 	if _breakdown.final_score >= target_val:
 		running_total_label.add_theme_color_override("font_color", Color(0.4, 0.9, 0.4))
 	else:

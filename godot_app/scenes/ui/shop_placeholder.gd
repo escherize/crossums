@@ -42,8 +42,8 @@ func _refresh_display() -> void:
 	reroll_button.text = "Reroll ($%d)" % shop_state.reroll_cost
 	reroll_button.disabled = not shop_state.can_reroll()
 
-	# Update time bank display
-	_update_time_bank_display()
+	# Update time pool display
+	_update_time_pool_display()
 
 	# Update slots label
 	slots_label.text = "Operators (%d/%d)" % [GameState.operators.size(), GameState.MAX_OPERATORS]
@@ -142,6 +142,12 @@ func _create_shop_slot(index: int, op: Operator) -> Control:
 		buy_button.add_theme_stylebox_override("disabled", disabled_style)
 		buy_button.add_theme_color_override("font_disabled_color", Color(0.5, 0.5, 0.5))
 		buy_button.disabled = not shop_state.can_buy(index)
+		# Add tooltip explaining why button is disabled
+		if buy_button.disabled:
+			if GameState.operators.size() >= GameState.MAX_OPERATORS:
+				buy_button.tooltip_text = "Operators full, sell one first"
+			else:
+				buy_button.tooltip_text = "Can't afford"
 		buy_button.pressed.connect(_on_buy_pressed.bind(index))
 		content.add_child(buy_button)
 
@@ -205,44 +211,44 @@ func _on_reroll_pressed() -> void:
 
 
 func _on_buy_time_pressed() -> void:
-	if _buy_time_for_bank():
+	if _buy_time_for_pool():
 		_refresh_display()
 
 
-func _buy_time_for_bank() -> bool:
-	## Buy time to add to time bank. Price escalates: $1, $2, $3...
+func _buy_time_for_pool() -> bool:
+	## Buy time to add to shared time pool. Price escalates: $1, $2, $3...
 	if GameState.run == null:
 		return false
 
-	var price: int = GameConfig.get_time_bank_price(GameState.run.time_purchases)
+	var price: int = GameConfig.get_time_purchase_price(GameState.run.time_purchases)
 	if GameState.run.money < price:
 		return false
 
-	# Deduct money and add to bank
+	# Deduct money and add to pool
 	GameState.run.spend_money(price)
-	GameState.run.time_bank += GameConfig.TIME_BANK_CHUNK
+	GameState.run.time_pool += float(GameConfig.TIME_PURCHASE_AMOUNT)
 	GameState.run.time_purchases += 1
 
 	SoundManager.play("coin_spend")
 	return true
 
 
-func _update_time_bank_display() -> void:
+func _update_time_pool_display() -> void:
 	if GameState.run == null:
-		time_bank_label.text = "Time Bank: 0s"
+		time_bank_label.text = "Time Pool: 0s"
 		buy_time_button.disabled = true
-		buy_time_button.text = "Buy +%ds ($1)" % GameConfig.TIME_BANK_CHUNK
+		buy_time_button.text = "Buy +%ds ($1)" % GameConfig.TIME_PURCHASE_AMOUNT
 		return
 
-	var bank: int = GameState.run.time_bank
-	time_bank_label.text = "Time Bank: %ds" % bank
+	var pool: int = int(GameState.run.time_pool)
+	time_bank_label.text = "Time Pool: %ds" % pool
 
 	# Escalating price: $1, $2, $3... based on total purchases this run
-	var price: int = GameConfig.get_time_bank_price(GameState.run.time_purchases)
+	var price: int = GameConfig.get_time_purchase_price(GameState.run.time_purchases)
 	var can_afford: bool = GameState.run.money >= price
 
 	buy_time_button.disabled = not can_afford
-	buy_time_button.text = "Buy +%ds ($%d)" % [GameConfig.TIME_BANK_CHUNK, price]
+	buy_time_button.text = "Buy +%ds ($%d)" % [GameConfig.TIME_PURCHASE_AMOUNT, price]
 
 
 func _on_continue_pressed() -> void:

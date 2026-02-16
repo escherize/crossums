@@ -20,10 +20,10 @@ const VictoryScene = preload("res://scenes/ui/victory.tscn")
 var puzzle_grid: PuzzleGrid = null
 var puzzle_solved: bool = false
 var puzzle_start_time: int = 0
-var current_time_limit: float = 75.0  # Set per puzzle based on stage
 var time_multiplier: float = GameConfig.TIME_MULT_START
 var _timer_fill_style: StyleBoxFlat
 var _current_overlay: Control = null
+var _time_at_puzzle_start: float = 0.0  # Pool value when puzzle started (for time mult calc)
 
 # =============================================================================
 # NODE REFERENCES
@@ -102,17 +102,25 @@ func _process(_delta: float) -> void:
 
 
 func _update_time_multiplier() -> void:
+	if GameState.run == null:
+		return
+	# Don't count down until puzzle is actually loaded
+	if GameState.puzzle == null or _time_at_puzzle_start <= 0.0:
+		return
+
 	var elapsed_sec := (Time.get_ticks_msec() - puzzle_start_time) / 1000.0
-	var time_remaining := current_time_limit - elapsed_sec
+
+	# Decrease time pool by elapsed time (but not below 0)
+	GameState.run.time_pool = maxf(_time_at_puzzle_start - elapsed_sec, 0.0)
 
 	# Check for timeout (but not if puzzle already solved - prevents race condition)
-	if time_remaining <= 0 and not puzzle_solved:
+	if GameState.run.time_pool <= 0.0 and not puzzle_solved:
 		_on_time_expired()
 		return
 
-	# Calculate time multiplier based on how much time is left relative to limit
-	# Faster solve = higher multiplier (2.0x at start, 1.0x when time runs out)
-	var time_progress := clampf(elapsed_sec / current_time_limit, 0.0, 1.0)
+	# Calculate time multiplier based on solve speed relative to puzzle's base time
+	# Faster solve = higher multiplier (2.0x at start, 1.0x after decay seconds)
+	var time_progress := clampf(elapsed_sec / GameConfig.TIME_MULT_DECAY_SECONDS, 0.0, 1.0)
 	time_multiplier = lerpf(GameConfig.TIME_MULT_START, GameConfig.TIME_MULT_FLOOR, time_progress)
 
 
@@ -124,11 +132,14 @@ func _update_timer_display() -> void:
 		timer_label.text = "1:15"
 		return
 
-	var elapsed_sec := (Time.get_ticks_msec() - puzzle_start_time) / 1000.0
-	var time_remaining := maxf(current_time_limit - elapsed_sec, 0.0)
+	if GameState.run == null:
+		return
 
-	# Calculate progress (1.0 = full time, 0.0 = no time)
-	var progress := time_remaining / current_time_limit if current_time_limit > 0 else 0.0
+	var time_remaining := maxf(GameState.run.time_pool, 0.0)
+
+	# Progress bar shows pool relative to a reasonable "full" amount (2 min = healthy)
+	var max_display := 120.0  # 2 minutes = "full" bar
+	var progress := clampf(time_remaining / max_display, 0.0, 1.0)
 
 	# Update bar value
 	timer_bar.value = progress
@@ -147,7 +158,7 @@ func _update_timer_display() -> void:
 		fill_color = red.lerp(Color.WHITE, t)
 	_timer_fill_style.bg_color = fill_color
 
-	# Update label to show remaining time
+	# Update label to show remaining time from pool
 	var secs := int(time_remaining)
 	timer_label.text = "%d:%02d" % [secs / 60, secs % 60]
 
@@ -167,22 +178,8 @@ func _refresh_hud() -> void:
 	else:
 		target_label.text = "Stage: ---"
 
-	# Update time bank display
-	_update_time_bank_display()
-
-
-func _update_time_bank_display() -> void:
-	## Update the time bank display (not a button anymore, just status)
-	if GameState.run == null:
-		buy_time_button.text = "Bank: 0s"
-		return
-
-	var bank: int = GameState.run.time_bank
-	if bank > 0:
-		buy_time_button.text = "Bank: %ds" % bank
-	else:
-		buy_time_button.text = "Bank: 0s"
-	buy_time_button.disabled = true  # Not clickable - buy in shop
+	# Hide buy time button (only available in shop)
+	buy_time_button.visible = false
 
 # =============================================================================
 # PUZZLE MANAGEMENT
@@ -204,16 +201,18 @@ func _load_puzzle_grid() -> void:
 	await get_tree().process_frame
 	await puzzle_grid.load_puzzle(GameState.puzzle)
 
-	# Calculate time limit based on stage and puzzle index
+	# Add this puzzle's time allocation to the shared pool
 	var stage := 1
 	var puzzle_index := 0
 	if GameState.run:
 		stage = GameState.run.stage
 		puzzle_index = GameState.run.puzzle_index
-	current_time_limit = GameConfig.get_time_limit(stage, puzzle_index)
+		var puzzle_time := GameConfig.get_time_limit(stage, puzzle_index)
+		GameState.run.time_pool += puzzle_time
 
-	# Reset timer (time bank is NOT consumed here - it's used on timeout)
+	# Track state for time multiplier calculation
 	puzzle_start_time = Time.get_ticks_msec()
+	_time_at_puzzle_start = GameState.run.time_pool if GameState.run else 75.0
 	time_multiplier = GameConfig.TIME_MULT_START
 	puzzle_solved = false
 	_update_timer_display()
@@ -337,27 +336,16 @@ func _on_cell_restored(row: int, col: int, value: int) -> void:
 
 
 func _on_time_expired() -> void:
-	## Called when puzzle timer runs out
-	## If time bank has funds, consume 15s and continue. Otherwise game over.
+	## Called when time pool runs out - game over
 	if puzzle_solved:
 		return
 	if GameState.run == null:
 		return
 
-	# Check time bank first
-	if GameState.run.time_bank >= GameConfig.TIME_BANK_CHUNK:
-		# Consume from bank and continue
-		GameState.run.time_bank -= GameConfig.TIME_BANK_CHUNK
-		puzzle_start_time = Time.get_ticks_msec()
-		current_time_limit = float(GameConfig.TIME_BANK_CHUNK)
-		_update_status("Time Bank: -%ds!" % GameConfig.TIME_BANK_CHUNK)
-		SoundManager.play("time_bank")
-		_refresh_hud()
-		return
-
-	# No bank funds - game over
+	# Time pool depleted - game over
 	puzzle_solved = true  # Stop further input
 	_update_status("Time's up!")
+	SoundManager.play("time_up")
 	EventBus.puzzle_timeout.emit()
 	EventBus.game_over.emit()
 	RunManager._end_run(false)

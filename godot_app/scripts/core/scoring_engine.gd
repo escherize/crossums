@@ -159,9 +159,11 @@ static func calculate_score(
 	var total_mult = breakdown.time_multiplier * breakdown.operator_mult
 	breakdown.final_score = int(score_before_mult * total_mult)
 
-	# Calculate grade
+	# Calculate grade using subtotal (before time multiplier)
+	# This ensures slow solves can't achieve S-grade by keeping extra cells
 	breakdown.par_score = calculate_par_score(puzzle)
-	breakdown.grade = calculate_grade(breakdown.final_score, breakdown.par_score)
+	var grade_score: int = breakdown.subtotal + breakdown.operator_bonus
+	breakdown.grade = calculate_grade(grade_score, breakdown.par_score)
 	breakdown.grade_mult = GameConfig.GRADE_MONEY_MULT[breakdown.grade]
 	breakdown.grade_bonus = GameConfig.GRADE_MONEY_BONUS[breakdown.grade]
 

@@ -50,6 +50,8 @@
 | Time multiplier (decaying) | ✅ | 2.0x → 1.0x over puzzle duration |
 | Operator scoring hooks | ✅ | `on_cell_kept`, `on_row_complete`, etc. |
 | Score breakdown display | ✅ | Summary shown on win |
+| Letter grades | ✅ | Based on subtotal (before time mult) vs par |
+| Grade affects money | ✅ | Multiplier + flat bonus per grade |
 | Animated score calculation | ❌ | No step-by-step Balatro-style reveal |
 | Streak multiplier | ❌ | Config exists, not wired up |
 
@@ -96,7 +98,7 @@
 | 3 puzzles per stage | ✅ | `puzzle_index` 0-2 |
 | Grid size progression | ✅ | 3x3 → 6x6 |
 | Lives system | ❌ | Removed; timer timeout is only fail condition |
-| Money system | ✅ | Score converts to money, spend in shop |
+| Money system | ✅ | Score/400 = base money, modified by grade |
 | Stage gate | ❌ | Removed; no score requirements to advance |
 | Boss puzzles (special constraints) | ❌ | No special boss rules |
 | Puzzle skipping for tags | ❌ | Not implemented |
@@ -108,23 +110,23 @@
 |---------|--------|-------|
 | Shop screen | ✅ | `shop_placeholder.gd` functional |
 | 3 operators for sale | ✅ | Random selection |
-| Buy operators | ✅ | Deducts money, adds to inventory |
+| Buy operators | ✅ | Deducts money, adds to inventory; tooltip on disabled |
 | Sell operators | ✅ | Returns half price |
 | Reroll (escalating cost) | ✅ | $2, $3, $4... |
-| Buy time (escalating cost) | ✅ | $1, $2, $3... adds +15s to bank |
+| Buy time (escalating cost) | ✅ | $1, $2, $3... adds +15s to pool |
 | Functions for sale | ❌ | No functions exist |
 | Packs (choose 1 of N) | ❌ | Not implemented |
 | Upgrades/Vouchers | ❌ | Not implemented |
 
-## Time Bank System
+## Time Pool System
 
 | Feature | Status | Notes |
 |---------|--------|-------|
-| Time bank purchase in shop | ✅ | +15s per purchase, escalating price |
-| Time bank persists across run | ✅ | Not consumed until timeout |
-| Auto-consume on timeout | ✅ | Uses 15s from bank, continues puzzle |
-| Time bank display (HUD) | ✅ | Shows "Bank: Xs" during puzzle |
-| Time bank display (shop) | ✅ | Shows bank + buy button |
+| Shared time pool | ✅ | Single pool across entire run, never resets |
+| Time purchase in shop | ✅ | +15s per purchase, escalating price ($1, $2, $3...) |
+| Puzzle adds time to pool | ✅ | Each puzzle's time allocation adds to pool on start |
+| Timer counts down from pool | ✅ | Main HUD shows pool time remaining |
+| Pool empty = game over | ✅ | No second chances, buy time in shop |
 
 ## Difficulty Tiers
 

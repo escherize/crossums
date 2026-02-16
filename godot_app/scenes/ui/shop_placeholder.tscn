@@ -95,10 +95,10 @@ text = "Time Bank: 0s"
 
 [node name="BuyTimeButton" type="Button" parent="CenterContainer/Panel/MarginContainer/VBoxContainer/TimeBankSection"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(140, 36)
+custom_minimum_size = Vector2(160, 36)
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
-text = "Buy +10s ($5)"
+text = "Buy +15s ($1)"
 
 [node name="Separator" type="HSeparator" parent="CenterContainer/Panel/MarginContainer/VBoxContainer"]
 layout_mode = 2

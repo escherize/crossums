@@ -145,7 +145,7 @@ func on_puzzle_complete(breakdown_or_score) -> void:
 	# Show result
 	current_state = State.PUZZLE_RESULT
 	state_changed.emit(current_state)
-	show_result.emit(true, breakdown, 0, reward)  # 0 = no target to display
+	show_result.emit(true, breakdown, breakdown.par_score, reward)
 
 
 func continue_from_result() -> void:
@@ -227,6 +227,10 @@ func _create_mock_breakdown(score: int) -> ScoringEngineScript.ScoreBreakdown:
 	var b = ScoringEngineScript.ScoreBreakdown.new()
 	b.final_score = score
 	b.base_points = score
+	b.subtotal = score
+	b.operator_bonus = 0
+	b.operator_mult = 1.0
+	b.money_bonus = 0
 	b.par_score = score
 	b.grade = "B"
 	b.grade_mult = 1.0
