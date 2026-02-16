@@ -371,7 +371,7 @@ func _handle_cell_click(row: int, col: int) -> void:
 				EventBus.cell_uncircled.emit(row, col)
 
 		_:
-			pass  # LOCKED cells can't be toggled
+			pass  # DELETED cells can't be toggled
 
 
 func _on_cell_long_pressed(row: int, col: int) -> void:
@@ -400,4 +400,4 @@ func _on_cell_long_pressed(row: int, col: int) -> void:
 				EventBus.cell_uncircled.emit(row, col)
 
 		_:
-			pass  # Can't circle deleted or locked cells
+			pass  # Can't circle deleted cells

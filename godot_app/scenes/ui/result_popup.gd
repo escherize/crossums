@@ -11,6 +11,16 @@ signal continue_pressed
 const STEP_DELAY := 1.2  # Seconds between breakdown steps
 const COUNTUP_DURATION := 0.8  # Seconds for number countup animation
 
+# Grade colors
+const GRADE_COLORS := {
+	"D": Color(0.53, 0.53, 0.53),     # Gray
+	"C": Color(1.0, 1.0, 1.0),         # White
+	"B": Color(0.53, 1.0, 0.53),       # Green
+	"A": Color(0.53, 0.8, 1.0),        # Blue
+	"S": Color(1.0, 0.84, 0.0),        # Gold
+	"SS": Color(1.0, 0.4, 0.8)         # Pink/magenta (rainbow effect would need shader)
+}
+
 # =============================================================================
 # STATE
 # =============================================================================
@@ -25,6 +35,7 @@ var _current_tween: Tween = null
 # =============================================================================
 
 @onready var result_label: Label = %ResultLabel
+@onready var grade_label: Label = %GradeLabel
 @onready var breakdown_container: VBoxContainer = %BreakdownContainer
 @onready var running_total_label: Label = %RunningTotalLabel
 @onready var target_label: Label = %TargetLabel
@@ -66,9 +77,20 @@ func show_result(won: bool, breakdown, target: int, reward: int) -> void:
 		result_label.text = "FAIL"
 		result_label.add_theme_color_override("font_color", Color(0.9, 0.4, 0.4))
 
+	# Setup grade display
+	var grade: String = breakdown.grade if breakdown else "B"
+	grade_label.text = grade
+	var grade_color = GRADE_COLORS.get(grade, Color.WHITE)
+	grade_label.add_theme_color_override("font_color", grade_color)
+	grade_label.visible = won  # Only show grade on win
+
 	# Setup target and reward
 	target_label.text = "Target: %d" % target
-	reward_label.text = "+$%d" % reward if reward > 0 else ""
+	var grade_mult: float = breakdown.grade_mult if breakdown else 1.0
+	if grade_mult != 1.0:
+		reward_label.text = "+$%d (%.1fx grade)" % [reward, grade_mult] if reward > 0 else ""
+	else:
+		reward_label.text = "+$%d" % reward if reward > 0 else ""
 	reward_label.visible = false  # Show at end
 
 	# Clear previous breakdown

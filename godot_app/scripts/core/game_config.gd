@@ -72,15 +72,65 @@ static var INTEREST_RATE := 1
 ## Max interest per round
 static var INTEREST_CAP := 5
 
+## Minimum money to earn interest
+static var INTEREST_THRESHOLD := 5
+
 # =============================================================================
-# FUTURE: STREAK
+# LETTER GRADES
 # =============================================================================
 
-## Multiplier bonus per consecutive win
-static var STREAK_MULT_PER_WIN := 0.1
+## Grade thresholds as multiplier of "par score" for puzzle
+static var GRADE_THRESHOLDS := {
+	"D": 0.0,    # Any completion
+	"C": 0.5,    # 50% of par
+	"B": 0.75,   # 75% of par
+	"A": 1.0,    # 100% of par (solve perfectly with good time)
+	"S": 1.5,    # 150% of par
+	"SS": 2.0    # 200% of par (requires speed + operators)
+}
 
-## Max streak multiplier bonus
-static var STREAK_MULT_CAP := 1.0
+## Money multipliers per grade
+static var GRADE_MONEY_MULT := {
+	"D": 0.5,
+	"C": 0.75,
+	"B": 1.0,
+	"A": 1.5,
+	"S": 2.5,
+	"SS": 4.0
+}
+
+## Flat bonus per grade
+static var GRADE_MONEY_BONUS := {
+	"D": 0,
+	"C": 0,
+	"B": 1,
+	"A": 3,
+	"S": 8,
+	"SS": 15
+}
+
+# =============================================================================
+# TIME BANKING
+# =============================================================================
+
+## Max seconds you can bank
+static var TIME_BANK_MAX := 30.0
+
+## Decay rate for previous bank (lose 50% between puzzles)
+static var TIME_BANK_DECAY := 0.5
+
+# =============================================================================
+# BUY TIME
+# =============================================================================
+
+## Cost to buy time ($5 per purchase)
+static var TIME_PURCHASE_COST := 5
+
+## Seconds added per purchase
+static var TIME_PURCHASE_AMOUNT := 10.0
+
+## Max purchases per puzzle
+static var TIME_PURCHASE_MAX := 3
 
 # =============================================================================
 # HELPERS
@@ -100,5 +150,15 @@ static func reset_to_defaults() -> void:
 	STARTING_MONEY = 10
 	INTEREST_RATE = 1
 	INTEREST_CAP = 5
-	STREAK_MULT_PER_WIN = 0.1
-	STREAK_MULT_CAP = 1.0
+	INTEREST_THRESHOLD = 5
+	TIME_BANK_MAX = 30.0
+	TIME_BANK_DECAY = 0.5
+	TIME_PURCHASE_COST = 5
+	TIME_PURCHASE_AMOUNT = 10.0
+	TIME_PURCHASE_MAX = 3
+	# Note: Dictionaries (GRADE_*) don't need resetting as they're constants
+
+
+## Check if running in test mode (debug server active)
+static func is_test_mode() -> bool:
+	return OS.get_environment("CS_DEBUG_SERVER").to_lower() in ["1", "true", "yes"]

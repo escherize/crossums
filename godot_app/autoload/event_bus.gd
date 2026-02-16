@@ -31,14 +31,8 @@ signal puzzle_loaded(puzzle_state: Resource)
 # SCORING EVENTS
 # =============================================================================
 
-## Emitted when score calculation begins (for animation sequencing)
-signal score_calculation_started()
-
 ## Emitted for each step of the score breakdown
 signal score_step(source: String, value: Variant, step_type: String)
-
-## Emitted when final score is calculated
-signal score_finalized(total: int, breakdown: Array)
 
 ## Emitted when an operator triggers during scoring
 signal operator_triggered(operator_id: String, effect_value: Variant)
@@ -62,9 +56,6 @@ signal puzzle_completed(success: bool, score: int, reward: int)
 ## Emitted when run ends (victory or defeat)
 signal run_ended(victory: bool, final_score: int)
 
-## Emitted when player makes a mistake (legacy - kept for potential future use)
-signal mistake_made(row: int, col: int)
-
 ## Emitted when puzzle timer expires
 signal puzzle_timeout()
 
@@ -87,6 +78,15 @@ signal operator_sold(operator: Resource, sell_price: int)
 ## Emitted when a function (consumable) is used
 signal function_used(function_id: String)
 
+## Emitted when player buys time during puzzle
+signal time_purchased(seconds_added: float)
+
+## Emitted when interest is earned on savings
+signal interest_earned(amount: int)
+
+## Emitted when player achieves a grade
+signal grade_achieved(grade: String, score: int)
+
 # =============================================================================
 # UI EVENTS
 # =============================================================================
@@ -97,12 +97,6 @@ signal tooltip_requested(content: Dictionary, global_position: Vector2)
 ## Request to hide tooltip
 signal tooltip_hidden()
 
-## Request screen transition
-signal screen_transition_requested(to_screen: String, params: Dictionary)
-
-## Emitted when screen transition completes
-signal screen_transition_completed(screen_name: String)
-
 # =============================================================================
 # GAME STATE EVENTS
 # =============================================================================
@@ -112,6 +106,3 @@ signal game_state_changed(old_state: int, new_state: int)
 
 ## Emitted when any state data changes (for UI refresh)
 signal state_changed()
-
-## Emitted when run ends (victory or defeat) - aliased for Sprint 1 compatibility
-signal run_ended_with_result(won: bool)

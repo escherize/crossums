@@ -23,10 +23,19 @@ const SOUND_MAP := {
 	# Economy
 	"coin_gain": "res://assets/audio/sfx/coin_gain.wav",
 	"coin_spend": "res://assets/audio/sfx/coin_spend.wav",
+	"interest_ding": "res://assets/audio/sfx/coin_gain.wav",  # Reuse coin sound
 
 	# Score animation
 	"score_tick": "res://assets/audio/sfx/score_tick.wav",
 	"multiplier_apply": "res://assets/audio/sfx/multiplier.wav",
+
+	# Grades (reuse existing sounds with pitch variation)
+	"grade_d": "res://assets/audio/sfx/ding.wav",
+	"grade_c": "res://assets/audio/sfx/ding.wav",
+	"grade_b": "res://assets/audio/sfx/ding.wav",
+	"grade_a": "res://assets/audio/sfx/fanfare.wav",
+	"grade_s": "res://assets/audio/sfx/fanfare.wav",
+	"grade_ss": "res://assets/audio/sfx/fanfare.wav",
 
 	# UI
 	"button_click": "res://assets/audio/sfx/button.wav",
@@ -60,8 +69,7 @@ func _ready() -> void:
 		_players.append(player)
 
 	# Reduce volume in test mode
-	var env_val := OS.get_environment("CS_DEBUG_SERVER").to_lower()
-	if env_val in ["1", "true", "yes"]:
+	if GameConfig.is_test_mode():
 		_master_volume = 0.1
 
 	# Preload all sounds
@@ -94,6 +102,8 @@ func _connect_events() -> void:
 
 	# Economy
 	EventBus.money_changed.connect(_on_money_changed)
+	EventBus.interest_earned.connect(_on_interest_earned)
+	EventBus.grade_achieved.connect(_on_grade_achieved)
 
 	# Score animation
 	EventBus.score_step.connect(_on_score_step)
@@ -195,3 +205,33 @@ func _on_operator_triggered(operator_id: String, _effect_value: Variant) -> void
 		play("coin_gain", 0.7)
 	else:
 		play("multiplier_apply", 0.5)
+
+
+func _on_interest_earned(amount: int) -> void:
+	# Multiple dings for larger interest
+	var pitch := 1.0 + (amount * 0.05)
+	play_with_pitch("interest_ding", clampf(pitch, 0.9, 1.3), 0.8)
+
+
+func _on_grade_achieved(grade: String, _score: int) -> void:
+	# Play grade-specific sound with pitch variation
+	var sound_key := "grade_" + grade.to_lower()
+	if not _sound_cache.has(sound_key):
+		sound_key = "grade_b"  # Fallback
+
+	var pitch := 1.0
+	match grade:
+		"D":
+			pitch = 0.8
+		"C":
+			pitch = 0.9
+		"B":
+			pitch = 1.0
+		"A":
+			pitch = 1.1
+		"S":
+			pitch = 1.15
+		"SS":
+			pitch = 1.2
+
+	play_with_pitch(sound_key, pitch)

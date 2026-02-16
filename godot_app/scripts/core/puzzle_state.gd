@@ -11,8 +11,7 @@ extends RefCounted
 enum CellState {
 	ACTIVE,    ## Cell is available to delete or circle
 	DELETED,   ## Cell has been deleted
-	CIRCLED,   ## Cell has been marked as "keeper" by player
-	LOCKED     ## Cell cannot be modified (boss puzzle constraint)
+	CIRCLED    ## Cell has been marked as "keeper" by player
 }
 
 # =============================================================================
@@ -54,6 +53,9 @@ var deletion_history: Array[Vector2i] = []
 
 ## Puzzle seed for reproducibility
 var puzzle_seed: int = 0
+
+## Number of cells in the solution (set during generation)
+var solution_cell_count: int = 0
 
 # =============================================================================
 # INITIALIZATION
@@ -354,6 +356,15 @@ func get_deleted_count() -> int:
 
 func get_total_cells() -> int:
 	return grid_size.x * grid_size.y
+
+
+func get_solution_cell_count() -> int:
+	## Returns the number of cells in the puzzle's solution.
+	## If not set during generation, estimates based on kept cells.
+	if solution_cell_count > 0:
+		return solution_cell_count
+	# Fallback: estimate ~50% of cells (typical for generated puzzles)
+	return int(get_total_cells() * 0.5)
 
 # =============================================================================
 # UTILITY

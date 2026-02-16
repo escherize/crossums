@@ -17,8 +17,7 @@ var _enabled: bool = false
 
 func _ready() -> void:
 	# Start TCP server only when CS_DEBUG_SERVER env var is set
-	var env_val := OS.get_environment("CS_DEBUG_SERVER").to_lower()
-	if env_val in ["1", "true", "yes"]:
+	if GameConfig.is_test_mode():
 		_start_server()
 
 
@@ -674,8 +673,8 @@ func _action_new_puzzle(params: Dictionary):
 		# Generate our specific puzzle BEFORE transitioning (overrides run's default)
 		GameState.start_new_puzzle(config)
 
-		var main_scene_packed = MAIN_SCENE
-		get_tree().change_scene_to_packed(main_scene_packed)
+		# Use change_scene_to_file instead of to_packed (Godot workaround)
+		get_tree().change_scene_to_file("res://scenes/main.tscn")
 		# Wait for scene transition
 		for i in range(20):
 			await get_tree().process_frame
@@ -716,8 +715,8 @@ func _action_load_board(params: Dictionary):
 	if main_scene == null:
 		# Start a run and transition to main scene
 		RunManager.start_run()
-		var main_scene_packed = MAIN_SCENE
-		get_tree().change_scene_to_packed(main_scene_packed)
+		# Use change_scene_to_file instead of to_packed (Godot workaround)
+		get_tree().change_scene_to_file("res://scenes/main.tscn")
 		for i in range(20):
 			await get_tree().process_frame
 			main_scene = _get_main_scene()
@@ -1421,7 +1420,8 @@ func _action_start_run(params: Dictionary) -> Dictionary:
 	# Navigate to main scene if not already there
 	var main_scene := _get_main_scene()
 	if main_scene == null:
-		get_tree().change_scene_to_packed(MAIN_SCENE)
+		# Use change_scene_to_file instead of to_packed (Godot workaround)
+		get_tree().change_scene_to_file("res://scenes/main.tscn")
 		for i in range(20):
 			await get_tree().process_frame
 			main_scene = _get_main_scene()
@@ -1481,8 +1481,7 @@ func _get_stage_config_info() -> Variant:
 		"grid_size": config.grid_size,
 		"score_target": config.score_target,
 		"min_cell_value": config.min_cell_value,
-		"max_cell_value": config.max_cell_value,
-		"money_reward": config.money_reward
+		"max_cell_value": config.max_cell_value
 	}
 
 
@@ -1726,8 +1725,6 @@ func _cell_state_to_string(state: PuzzleState.CellState) -> String:
 			return "deleted"
 		PuzzleState.CellState.CIRCLED:
 			return "circled"
-		PuzzleState.CellState.LOCKED:
-			return "locked"
 		_:
 			return "unknown"
 
@@ -1740,8 +1737,6 @@ func _string_to_cell_state(state_str: String) -> PuzzleState.CellState:
 			return PuzzleState.CellState.DELETED
 		"circled":
 			return PuzzleState.CellState.CIRCLED
-		"locked":
-			return PuzzleState.CellState.LOCKED
 		_:
 			return PuzzleState.CellState.ACTIVE
 
@@ -1822,7 +1817,7 @@ func _action_test_generator(params: Dictionary) -> Dictionary:
 
 	for i in range(count):
 		var start_time = Time.get_ticks_msec()
-		var puzzle = PuzzleGeneratorScript.generate(
+		var puzzle = PuzzleGeneratorScript.generate_single_solution(
 			Vector2i(grid_size, grid_size),
 			rng
 		)

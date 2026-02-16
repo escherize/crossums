@@ -14,10 +14,13 @@ var shop_state: ShopState = null
 @onready var slots_container: HBoxContainer = %SlotsContainer
 @onready var owned_container: HBoxContainer = %OwnedContainer
 @onready var slots_label: Label = %SlotsLabel
+@onready var time_bank_label: Label = %TimeBankLabel
+@onready var buy_time_button: Button = %BuyTimeButton
 
 func _ready() -> void:
 	continue_button.pressed.connect(_on_continue_pressed)
 	reroll_button.pressed.connect(_on_reroll_pressed)
+	buy_time_button.pressed.connect(_on_buy_time_pressed)
 	_setup_shop()
 
 
@@ -38,6 +41,9 @@ func _refresh_display() -> void:
 	# Update reroll button
 	reroll_button.text = "Reroll ($%d)" % shop_state.reroll_cost
 	reroll_button.disabled = not shop_state.can_reroll()
+
+	# Update time bank display
+	_update_time_bank_display()
 
 	# Update slots label
 	slots_label.text = "Operators (%d/%d)" % [GameState.operators.size(), GameState.MAX_OPERATORS]
@@ -196,6 +202,53 @@ func _on_sell_pressed(index: int) -> void:
 func _on_reroll_pressed() -> void:
 	if shop_state.reroll():
 		_refresh_display()
+
+
+func _on_buy_time_pressed() -> void:
+	if _buy_time_for_next():
+		_refresh_display()
+
+
+func _buy_time_for_next() -> bool:
+	## Buy time to add to time bank for next puzzle.
+	if GameState.run == null:
+		return false
+	if GameState.run.money < GameConfig.TIME_PURCHASE_COST:
+		return false
+	if GameState.run.time_bank >= GameConfig.TIME_BANK_MAX:
+		return false
+
+	# Deduct money
+	GameState.run.add_money(-GameConfig.TIME_PURCHASE_COST)
+
+	# Add to time bank
+	GameState.run.time_bank = minf(
+		GameState.run.time_bank + GameConfig.TIME_PURCHASE_AMOUNT,
+		GameConfig.TIME_BANK_MAX
+	)
+
+	SoundManager.play("coin_spend")
+	return true
+
+
+func _update_time_bank_display() -> void:
+	if GameState.run == null:
+		time_bank_label.text = "Time Bank: 0s"
+		buy_time_button.disabled = true
+		return
+
+	var bank: float = GameState.run.time_bank
+	time_bank_label.text = "Time Bank: %ds" % int(bank)
+
+	# Disable buy button if can't afford or already at max
+	var can_buy: bool = GameState.run.money >= GameConfig.TIME_PURCHASE_COST
+	var at_max: bool = bank >= GameConfig.TIME_BANK_MAX
+	buy_time_button.disabled = not can_buy or at_max
+
+	if at_max:
+		buy_time_button.text = "Max Bank"
+	else:
+		buy_time_button.text = "Buy +10s ($%d)" % GameConfig.TIME_PURCHASE_COST
 
 
 func _on_continue_pressed() -> void:

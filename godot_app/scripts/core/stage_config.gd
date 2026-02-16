@@ -36,7 +36,6 @@ var grid_size: int
 var score_target: int
 var min_cell_value: int
 var max_cell_value: int
-var money_reward: int
 
 # =============================================================================
 # FACTORY
@@ -60,9 +59,6 @@ static func get_config(p_stage: int, p_puzzle_index: int):
 	config.min_cell_value = VALUE_RANGES[value_idx][0]
 	config.max_cell_value = VALUE_RANGES[value_idx][1]
 
-	# Money reward increases with stage
-	config.money_reward = 3 + p_stage
-
 	return config
 
 
@@ -81,6 +77,6 @@ func to_puzzle_config() -> PuzzleLogic.PuzzleConfig:
 
 func get_description() -> String:
 	## Human-readable description for debugging
-	return "Stage %d Puzzle %d: %dx%d grid, target %d, reward $%d" % [
-		stage, puzzle_index + 1, grid_size, grid_size, score_target, money_reward
+	return "Stage %d Puzzle %d: %dx%d grid, target %d" % [
+		stage, puzzle_index + 1, grid_size, grid_size, score_target
 	]

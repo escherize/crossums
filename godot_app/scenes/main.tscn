@@ -170,6 +170,13 @@ custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
 text = "Undo"
 
+[node name="BuyTimeButton" type="Button" parent="SafeArea/MainLayout/RightPanel/ButtonContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "+10s ($5)"
+
 [node name="StatusLabel" type="Label" parent="SafeArea/MainLayout/RightPanel"]
 unique_name_in_owner = true
 layout_mode = 2

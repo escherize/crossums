@@ -2,6 +2,8 @@ class_name PuzzleLogic
 extends RefCounted
 ## Handles puzzle generation and validation logic.
 
+const PuzzleGeneratorScript = preload("res://scripts/core/puzzle_generator.gd")
+
 # =============================================================================
 # PUZZLE CONFIGURATION
 # =============================================================================
@@ -157,6 +159,9 @@ static func generate_puzzle(config: PuzzleConfig) -> PuzzleState:
 				col_sum += state.get_cell(row, col).value
 		state.col_targets[col] = col_sum
 
+	# Store solution cell count for par score calculation
+	state.solution_cell_count = solution_cells.size()
+
 	return state
 
 
@@ -286,7 +291,7 @@ static func _compute_has_any_solution(state: PuzzleState, required_cell: Vector2
 	# For each row, precompute all subsets that sum to the row target
 	var row_valid_subsets: Array = []  # Array of Array of Array[int] (col indices)
 	for row in range(grid_size.y):
-		var subsets = _find_subsets_with_sum(rows_cells[row], row_targets[row])
+		var subsets = PuzzleGeneratorScript._find_subsets_with_sum(rows_cells[row], row_targets[row])
 		if subsets.is_empty():
 			return false  # No way to satisfy this row
 
@@ -308,37 +313,6 @@ static func _compute_has_any_solution(state: PuzzleState, required_cell: Vector2
 	col_sums.fill(0)
 
 	return _backtrack_solve(state, row_valid_subsets, 0, col_sums, col_targets)
-
-
-static func _find_subsets_with_sum(cells: Array, target: int) -> Array:
-	## Find all subsets of cells that sum to exactly target.
-	## Returns Array of Arrays, where each inner array contains column indices.
-	var results: Array = []
-	_find_subsets_recursive(cells, target, 0, [], 0, results)
-	return results
-
-
-static func _find_subsets_recursive(cells: Array, target: int, index: int, current: Array, current_sum: int, results: Array) -> void:
-	if current_sum == target:
-		results.append(current.duplicate())
-		# Don't return - there might be cells with value 0 we could add
-		# But actually with values 1-9, we should return to avoid duplicates
-		# Continue to find other subsets though
-
-	if index >= cells.size():
-		return
-
-	if current_sum > target:
-		return  # Prune: already over target
-
-	# Try including cell at index
-	var cell = cells[index]
-	current.append(cell.col)
-	_find_subsets_recursive(cells, target, index + 1, current, current_sum + cell.value, results)
-	current.pop_back()
-
-	# Try excluding cell at index
-	_find_subsets_recursive(cells, target, index + 1, current, current_sum, results)
 
 
 static func _backtrack_solve(state: PuzzleState, row_subsets: Array, row: int, col_sums: Array[int], col_targets: Array[int], memo: Dictionary = {}) -> bool:

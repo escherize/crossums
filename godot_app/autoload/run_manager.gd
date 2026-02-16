@@ -31,6 +31,7 @@ enum State {
 # =============================================================================
 
 const StageConfigScript = preload("res://scripts/core/stage_config.gd")
+const ScoringEngineScript = preload("res://scripts/core/scoring_engine.gd")
 
 # =============================================================================
 # STATE
@@ -96,15 +97,37 @@ func on_puzzle_complete(breakdown_or_score) -> void:
 
 	_last_puzzle_score = score
 
-	# Convert score to money + any operator bonus
-	var score_money: int = int(score / GameConfig.SCORE_TO_MONEY_DIVISOR)
+	# Get grade info from breakdown
+	var grade: String = breakdown.grade
+	var grade_mult: float = GameConfig.GRADE_MONEY_MULT.get(grade, 1.0)
+	var grade_bonus: int = GameConfig.GRADE_MONEY_BONUS.get(grade, 0)
+
+	# Convert score to money with grade multiplier
+	var base_money: int = int(score / GameConfig.SCORE_TO_MONEY_DIVISOR)
+	var score_money: int = int(base_money * grade_mult) + grade_bonus
 	var reward: int = score_money + money_bonus
 
-	# Track score for display, add money
+	# Store grade for display
+	GameState.run.last_grade = grade
+
+	# Track score for display
 	GameState.run.add_stage_score(score)
 	GameState.run.add_score(score)
+
+	# Calculate interest BEFORE adding reward
+	var money_before: int = GameState.run.money
+	var interest: int = _calculate_interest(money_before)
+
+	# Add reward money
 	GameState.run.add_money(reward)
-	EventBus.puzzle_completed.emit(true, score, reward)
+
+	# Add interest (if any)
+	if interest > 0:
+		GameState.run.add_money(interest)
+		GameState.run.interest_earned_this_stage += interest
+		EventBus.interest_earned.emit(interest)
+
+	EventBus.puzzle_completed.emit(true, score, reward + interest)
 
 	# Remember if this was the boss puzzle before advancing
 	var was_boss: bool = GameState.run.puzzle_index == 2
@@ -190,17 +213,22 @@ func is_run_active() -> bool:
 # HELPERS
 # =============================================================================
 
-func _create_mock_breakdown(score: int):
+func _calculate_interest(money: int) -> int:
+	## Calculate interest earned on money held.
+	## Returns $1 per $5 held, capped at $5.
+	if money < GameConfig.INTEREST_THRESHOLD:
+		return 0
+	var raw_interest := int(money / GameConfig.INTEREST_THRESHOLD) * GameConfig.INTEREST_RATE
+	return mini(raw_interest, GameConfig.INTEREST_CAP)
+
+
+func _create_mock_breakdown(score: int) -> ScoringEngineScript.ScoreBreakdown:
 	## Create a mock ScoreBreakdown for testing purposes
-	## Returns a simple object with the minimum fields needed
-	return {
-		"final_score": score,
-		"base_points": score,
-		"kept_bonus": 0,
-		"kept_count": 0,
-		"operator_bonus": 0,
-		"operator_mult": 1.0,
-		"operator_details": [],
-		"time_multiplier": 1.0,
-		"money_bonus": 0
-	}
+	var b = ScoringEngineScript.ScoreBreakdown.new()
+	b.final_score = score
+	b.base_points = score
+	b.par_score = score
+	b.grade = "B"
+	b.grade_mult = 1.0
+	b.grade_bonus = 1
+	return b

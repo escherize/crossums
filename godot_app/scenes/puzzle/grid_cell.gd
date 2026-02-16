@@ -9,8 +9,6 @@ extends Button
 signal cell_clicked(row: int, col: int)
 signal cell_right_clicked(row: int, col: int)
 signal cell_long_pressed(row: int, col: int)
-signal cell_hovered(row: int, col: int)
-signal cell_unhovered(row: int, col: int)
 
 # =============================================================================
 # STYLE CONSTANTS (Minimal placeholder style)
@@ -21,7 +19,6 @@ const COLOR_ACTIVE_HOVER := Color(0.3, 0.35, 0.45) # Lighter on hover
 const COLOR_DELETED := Color(0.15, 0.15, 0.15)     # Dark gray
 const COLOR_CIRCLED := Color(0.2, 0.25, 0.35)      # Same as active (border shows state)
 const COLOR_CIRCLED_BORDER := Color(0.3, 0.7, 0.9) # Cyan border for circled
-const COLOR_LOCKED := Color(0.35, 0.25, 0.2)       # Dark brown
 const COLOR_PROTECTED_TINT := Color(0.6, 1.0, 0.6) # Light green tint for safety net
 
 const TEXT_COLOR_ACTIVE := Color(0.95, 0.95, 0.95) # White
@@ -72,8 +69,6 @@ func _ready() -> void:
 	# Connect signals - use button_up instead of pressed for reliable mobile support
 	# (pressed signal has known issues with ACTION_MODE_BUTTON_RELEASE on mobile)
 	button_up.connect(_on_button_up)
-	mouse_entered.connect(_on_mouse_entered)
-	mouse_exited.connect(_on_mouse_exited)
 
 	_update_appearance()
 
@@ -205,10 +200,6 @@ func _update_appearance() -> void:
 			border_color = COLOR_CIRCLED_BORDER
 			border_width = 3
 			disabled = false  # Clickable to uncircle
-		PuzzleState.CellState.LOCKED:
-			bg_color = COLOR_LOCKED
-			text_color = TEXT_COLOR_ACTIVE
-			disabled = true
 
 	# Apply protected tint (Safety Net operator)
 	if is_protected and cell_state != PuzzleState.CellState.DELETED:
@@ -279,11 +270,3 @@ func _on_button_up() -> void:
 		return
 	cell_clicked.emit(row, col)
 	release_focus()  # Prevent "selected" look after click
-
-
-func _on_mouse_entered() -> void:
-	cell_hovered.emit(row, col)
-
-
-func _on_mouse_exited() -> void:
-	cell_unhovered.emit(row, col)

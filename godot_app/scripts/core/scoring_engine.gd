@@ -21,6 +21,11 @@ class ScoreBreakdown:
 	var operator_mult: float = 1.0
 	var money_bonus: int = 0
 	var operator_details: Array = []  # [{name: String, bonus: int}]
+	# Grading
+	var par_score: int = 0
+	var grade: String = "D"
+	var grade_mult: float = 1.0
+	var grade_bonus: int = 0
 
 	func get_summary() -> String:
 		var parts: Array[String] = []
@@ -31,11 +36,43 @@ class ScoreBreakdown:
 			parts.append("%.1fx ops" % operator_mult)
 		if time_multiplier != 1.0:
 			parts.append("%.1fx time" % time_multiplier)
+		parts.append("[%s]" % grade)
 		return " | ".join(parts)
 
 # =============================================================================
-# CONSTANTS (all values come from GameConfig for easy tuning)
+# PAR SCORE & GRADING
 # =============================================================================
+
+## Calculate the "par score" - expected score for perfect solve at mid time mult.
+## Used as baseline for letter grade calculation.
+static func calculate_par_score(puzzle: PuzzleState) -> int:
+	var dim = puzzle.grid_size.x
+	var solution_cells = puzzle.get_solution_cell_count()
+
+	# Par assumes: all solution cells kept, mid-range time mult (1.5x), no operators
+	var base = dim * dim * GameConfig.BASE_POINTS_PER_CELL
+	var kept = solution_cells * GameConfig.KEPT_BONUS_PER_CELL
+	var par_time_mult = (GameConfig.TIME_MULT_START + GameConfig.TIME_MULT_FLOOR) / 2.0
+
+	return int((base + kept) * par_time_mult)
+
+
+## Calculate letter grade based on score vs par score ratio.
+static func calculate_grade(score: int, par_score: int) -> String:
+	var ratio = float(score) / float(par_score) if par_score > 0 else 0.0
+
+	# Check thresholds in descending order
+	if ratio >= GameConfig.GRADE_THRESHOLDS["SS"]:
+		return "SS"
+	if ratio >= GameConfig.GRADE_THRESHOLDS["S"]:
+		return "S"
+	if ratio >= GameConfig.GRADE_THRESHOLDS["A"]:
+		return "A"
+	if ratio >= GameConfig.GRADE_THRESHOLDS["B"]:
+		return "B"
+	if ratio >= GameConfig.GRADE_THRESHOLDS["C"]:
+		return "C"
+	return "D"
 
 # =============================================================================
 # SCORING
@@ -121,5 +158,11 @@ static func calculate_score(
 	var score_before_mult = breakdown.subtotal + breakdown.operator_bonus
 	var total_mult = breakdown.time_multiplier * breakdown.operator_mult
 	breakdown.final_score = int(score_before_mult * total_mult)
+
+	# Calculate grade
+	breakdown.par_score = calculate_par_score(puzzle)
+	breakdown.grade = calculate_grade(breakdown.final_score, breakdown.par_score)
+	breakdown.grade_mult = GameConfig.GRADE_MONEY_MULT[breakdown.grade]
+	breakdown.grade_bonus = GameConfig.GRADE_MONEY_BONUS[breakdown.grade]
 
 	return breakdown

@@ -44,6 +44,15 @@ var total_score: int = 0
 var stage_score: int = 0  # Accumulated score within current stage
 
 # =============================================================================
+# TIME BANKING & ECONOMY
+# =============================================================================
+
+var time_bank: float = 0.0           # Seconds banked from previous puzzle
+var time_purchased: int = 0          # Purchases made this puzzle
+var last_grade: String = ""          # Grade from last puzzle (for UI)
+var interest_earned_this_stage: int = 0  # Track for display
+
+# =============================================================================
 # COMPUTED
 # =============================================================================
 
@@ -123,6 +132,10 @@ func serialize() -> Dictionary:
 		"total_score": total_score,
 		"stage_score": stage_score,
 		"run_seed": run_seed,
+		"time_bank": time_bank,
+		"time_purchased": time_purchased,
+		"last_grade": last_grade,
+		"interest_earned_this_stage": interest_earned_this_stage,
 	}
 
 
@@ -135,4 +148,8 @@ static func deserialize(data: Dictionary):
 	rs.total_score = data.get("total_score", 0)
 	rs.stage_score = data.get("stage_score", 0)
 	rs.run_seed = data.get("run_seed", 0)
+	rs.time_bank = data.get("time_bank", 0.0)
+	rs.time_purchased = data.get("time_purchased", 0)
+	rs.last_grade = data.get("last_grade", "")
+	rs.interest_earned_this_stage = data.get("interest_earned_this_stage", 0)
 	return rs
