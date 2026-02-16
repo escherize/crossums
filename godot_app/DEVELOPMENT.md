@@ -83,15 +83,11 @@ Singleton:
 ## Scoring Formula
 
 ```
-Score = (Base + KeptBonus) × LineMultiplier
+Score = (Base + KeptBonus + OperatorBonus) × TimeMultiplier × OperatorMultiplier
 
-Base points by grid size:
-  3x3 = 100, 4x4 = 200, 5x5 = 350, 6x6 = 500
-
+Base = dim² × 10  (90/160/250/360 for 3x3-6x6)
 KeptBonus = kept_cells × 25
-
-LineMultiplier = 1.0 + (valid_lines × 0.2)
-  where valid_lines = rows matching target + cols matching target
+TimeMultiplier = 2.0 → 1.0 (decays over puzzle duration)
 ```
 
 ## Known Workarounds & Godot Gotchas
@@ -160,9 +156,9 @@ LineMultiplier = 1.0 + (valid_lines × 0.2)
 
 ## Important Paths
 
-- **Design doc**: `/Users/bcm/dv/crossums/crosssums-design-doc.md`
-- **Implementation plan**: `/Users/bcm/.claude/plans/spicy-splashing-gizmo.md`
-- **Worklog**: `/Users/bcm/dv/crossums/worklog.md`
+- **Design doc**: `docs/10-design/GAME_DESIGN_IDEAS.md`
+- **Implementation status**: `docs/30-technical/implementation_status.md`
+- **Worklog**: `docs/00-meta/worklog.md`
 
 ## EventBus Signals Status
 
@@ -175,7 +171,7 @@ Defined but not yet used (for future phases):
 - `score_calculation_started`, `score_step`, `score_finalized`
 - `operator_triggered`
 - `run_started`, `stage_started`, `puzzle_started`, `puzzle_completed`, `run_ended`
-- `life_lost`, `game_over`
+- `game_over`, `timeout`
 - `money_changed`, `operator_acquired`, `operator_sold`, `function_used`
 - `tooltip_requested`, `tooltip_hidden`
 - `screen_transition_requested`, `screen_transition_completed`

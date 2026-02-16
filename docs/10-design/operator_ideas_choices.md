@@ -134,13 +134,8 @@
 
 ---
 
-#### 12. Safety Net
-**Effect:** First restore each puzzle doesn't break streak bonuses
-**Rarity:** Rare | **Price:** 8
-
-**Why it's fun:** Insurance policy. Synergizes with Streak Master, Hot Streak. Reduces anxiety.
-
-**Choice impact:** Makes risky operators viable. Enables aggressive playstyles.
+#### 12. ~~Safety Net~~ (IMPLEMENTED DIFFERENTLY)
+*Note: Safety Net is implemented as "cells in solved rows/cols glow green" - a visual aid, not streak protection.*
 
 ---
 

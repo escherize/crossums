@@ -1,7 +1,7 @@
 # Implementation Status
 
 > Cross-reference of design docs vs actual code implementation
-> Last updated: 2026-02-14
+> Last updated: 2026-02-15
 
 ---
 
@@ -45,11 +45,9 @@
 
 | Feature | Status | Notes |
 |---------|--------|-------|
-| Base points by grid size | ✅ | 100/200/350/500 for 3x3-6x6 |
+| Base points by grid size | ✅ | `dim² × 10` (90/160/250/360 for 3x3-6x6) |
 | Kept cell bonus | ✅ | +25 per kept cell |
-| Line multiplier | ✅ | +0.2x per valid row/column |
-| Time multiplier (decaying) | ✅ | 2.0x → 1.0x over 60 seconds |
-| Precision multiplier | ✅ | 1.5x/1.25x/1.0x based on restores |
+| Time multiplier (decaying) | ✅ | 2.0x → 1.0x over puzzle duration |
 | Operator scoring hooks | ✅ | `on_cell_kept`, `on_row_complete`, etc. |
 | Score breakdown display | ✅ | Summary shown on win |
 | Animated score calculation | ❌ | No step-by-step Balatro-style reveal |
@@ -60,7 +58,7 @@
 | Feature | Status | Notes |
 |---------|--------|-------|
 | Operator base class | ✅ | `Operator.gd` with hooks |
-| Operator registry | ✅ | `OperatorRegistry.gd` with 7 operators |
+| Operator registry | ✅ | `OperatorRegistry.gd` with 9 operators |
 | Counter (+10 per kept) | ✅ | Working |
 | Row Master (+50 per row) | ✅ | Working |
 | Column Master (+50 per col) | ✅ | Working |
@@ -68,6 +66,8 @@
 | Elite Delete (+$2 deleted/-$1 circled) | ✅ | Working |
 | Purist (+300 if no circles) | ✅ | Working |
 | Gimme (auto-solve last cell) | ✅ | Working |
+| Sum Sight (show running sums) | ✅ | Working |
+| Safety Net (solved rows/cols glow) | ✅ | Working |
 | Transformation operators (Flipper, Doubler) | ❌ | Not implemented |
 | Economy operators (Calculator, Banker) | ❌ | Not implemented |
 | Rule-breaking operators (Overflow, Skip Row) | ❌ | Not implemented |
@@ -94,11 +94,10 @@
 |---------|--------|-------|
 | 8 stages | ✅ | `StageConfig` with 8 stages |
 | 3 puzzles per stage | ✅ | `puzzle_index` 0-2 |
-| Stage score targets | ✅ | 900 → 30000 cumulative |
 | Grid size progression | ✅ | 3x3 → 6x6 |
-| Lives system | ✅ | 5 lives, lose 1 on mistake |
-| Money system | ✅ | Earn per puzzle, spend in shop |
-| Stage gate (check on boss puzzle) | ✅ | Cumulative score check |
+| Lives system | ❌ | Removed; timer timeout is only fail condition |
+| Money system | ✅ | Score converts to money, spend in shop |
+| Stage gate | ❌ | Removed; no score requirements to advance |
 | Boss puzzles (special constraints) | ❌ | No special boss rules |
 | Puzzle skipping for tags | ❌ | Not implemented |
 | Run state serialization | ✅ | Save/load capable |
@@ -140,7 +139,7 @@
 | Score display | ✅ | Final score with summary |
 | Timer bar | ✅ | Visual decay indicator |
 | Operator card display | 🚧 | In shop only, not in play |
-| Sound effects | ❌ | No audio implemented |
+| Sound effects | ✅ | SoundManager + audio files (gitignored) |
 | Music | ❌ | No audio implemented |
 | Particle effects | ❌ | Not implemented |
 | Screen transitions | 🚧 | Basic scene changes only |
@@ -173,7 +172,7 @@
 | Feature | Status | Notes |
 |---------|--------|-------|
 | Debug server | ✅ | HTTP API for game control |
-| JSON test corpus | ✅ | 31 tests in `tests/corpus/` |
+| JSON test corpus | ✅ | 28 tests in `tests/corpus/` |
 | Test runner | ✅ | TypeScript + Godot headless |
 | GDLint integration | ✅ | Runs before tests |
 | Explicit puzzle setup | ✅ | `set_puzzle` action |
@@ -187,8 +186,8 @@
 ### Phase 1-3: Core Puzzle ✅
 Everything needed for basic puzzle solving is complete.
 
-### Phase 4: Operators 🚧
-5 basic scoring operators work. No transformation/economy/rule-breaking operators.
+### Phase 4: Operators ✅
+9 operators implemented. No transformation/economy/rule-breaking operators yet.
 
 ### Phase 5: Shop ✅
 Basic shop is functional. No consumables/packs/upgrades.
@@ -197,13 +196,13 @@ Basic shop is functional. No consumables/packs/upgrades.
 Infrastructure exists but feature not enabled.
 
 ### Sprint 4: Run Flow ✅
-8 stages with progression, lives, money, gates all working.
+8 stages with progression. Lives and score gates removed; timer timeout is fail condition.
 
 ---
 
 ## Technical Debt & Known Issues
 
-1. **No audio** - Silent game experience
+1. **Audio files gitignored** - SoundManager works, assets excluded from repo
 2. **No save/load UI** - Code exists but no player-facing feature
 3. **Operator UI during play** - No indicator of owned operators in puzzle screen
 4. **No score animation** - Instant score reveal, not Balatro-style cascade
