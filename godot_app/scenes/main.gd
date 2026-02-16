@@ -49,6 +49,7 @@ var _current_overlay: Control = null
 # =============================================================================
 
 func _ready() -> void:
+	puzzle_start_time = Time.get_ticks_msec()  # Prevent instant timeout before puzzle loads
 	_setup_ui()
 	_connect_signals()
 	title_label.text = "CROSSSUMS v%s" % GameConfig.VERSION
