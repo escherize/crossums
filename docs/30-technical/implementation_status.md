@@ -111,9 +111,20 @@
 | Buy operators | ✅ | Deducts money, adds to inventory |
 | Sell operators | ✅ | Returns half price |
 | Reroll (escalating cost) | ✅ | $2, $3, $4... |
+| Buy time (escalating cost) | ✅ | $1, $2, $3... adds +15s to bank |
 | Functions for sale | ❌ | No functions exist |
 | Packs (choose 1 of N) | ❌ | Not implemented |
 | Upgrades/Vouchers | ❌ | Not implemented |
+
+## Time Bank System
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Time bank purchase in shop | ✅ | +15s per purchase, escalating price |
+| Time bank persists across run | ✅ | Not consumed until timeout |
+| Auto-consume on timeout | ✅ | Uses 15s from bank, continues puzzle |
+| Time bank display (HUD) | ✅ | Shows "Bank: Xs" during puzzle |
+| Time bank display (shop) | ✅ | Shows bank + buy button |
 
 ## Difficulty Tiers
 

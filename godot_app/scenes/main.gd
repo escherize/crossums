@@ -74,7 +74,7 @@ func _setup_ui() -> void:
 
 func _connect_signals() -> void:
 	undo_button.pressed.connect(_on_undo_pressed)
-	buy_time_button.pressed.connect(_on_buy_time_pressed)
+	# Note: buy_time_button is now just a status display, not clickable
 
 	# Circle mode button (touchscreen only - hidden on desktop)
 	if circle_mode_button.visible:
@@ -167,31 +167,22 @@ func _refresh_hud() -> void:
 	else:
 		target_label.text = "Stage: ---"
 
-	# Update buy time button
-	_update_buy_time_button()
+	# Update time bank display
+	_update_time_bank_display()
 
 
-func _update_buy_time_button() -> void:
+func _update_time_bank_display() -> void:
+	## Update the time bank display (not a button anymore, just status)
 	if GameState.run == null:
-		buy_time_button.disabled = true
-		buy_time_button.text = "+10s ($5)"
+		buy_time_button.text = "Bank: 0s"
 		return
 
-	var purchases_left: int = GameConfig.TIME_PURCHASE_MAX - GameState.run.time_purchased
-	var can_afford: bool = GameState.run.money >= GameConfig.TIME_PURCHASE_COST
-
-	if puzzle_solved:
-		buy_time_button.disabled = true
-		buy_time_button.text = "+10s ($%d)" % GameConfig.TIME_PURCHASE_COST
-	elif purchases_left <= 0:
-		buy_time_button.disabled = true
-		buy_time_button.text = "Max bought"
-	elif not can_afford:
-		buy_time_button.disabled = true
-		buy_time_button.text = "+10s ($%d)" % GameConfig.TIME_PURCHASE_COST
+	var bank: int = GameState.run.time_bank
+	if bank > 0:
+		buy_time_button.text = "Bank: %ds" % bank
 	else:
-		buy_time_button.disabled = false
-		buy_time_button.text = "+10s ($%d) [%d]" % [GameConfig.TIME_PURCHASE_COST, purchases_left]
+		buy_time_button.text = "Bank: 0s"
+	buy_time_button.disabled = true  # Not clickable - buy in shop
 
 # =============================================================================
 # PUZZLE MANAGEMENT
@@ -219,17 +210,9 @@ func _load_puzzle_grid() -> void:
 	if GameState.run:
 		stage = GameState.run.stage
 		puzzle_index = GameState.run.puzzle_index
-	var base_time := GameConfig.get_time_limit(stage, puzzle_index)
+	current_time_limit = GameConfig.get_time_limit(stage, puzzle_index)
 
-	# Add banked time from previous puzzle
-	var banked_time := 0.0
-	if GameState.run:
-		banked_time = GameState.run.time_bank
-		GameState.run.time_bank = 0.0  # Bank is consumed
-		GameState.run.time_purchased = 0  # Reset purchase counter
-	current_time_limit = base_time + banked_time
-
-	# Reset timer
+	# Reset timer (time bank is NOT consumed here - it's used on timeout)
 	puzzle_start_time = Time.get_ticks_msec()
 	time_multiplier = GameConfig.TIME_MULT_START
 	puzzle_solved = false
@@ -331,11 +314,6 @@ func _on_undo_pressed() -> void:
 		_update_status("Undid deletion at (%d, %d)" % [pos.x + 1, pos.y + 1])
 
 
-func _on_buy_time_pressed() -> void:
-	if buy_time():
-		_update_status("Bought +10 seconds!")
-
-
 func _on_circle_mode_changed(active: bool) -> void:
 	## Called when circle mode button is pressed/released
 	if puzzle_grid:
@@ -359,12 +337,25 @@ func _on_cell_restored(row: int, col: int, value: int) -> void:
 
 
 func _on_time_expired() -> void:
-	## Called when puzzle timer runs out - instant game over
+	## Called when puzzle timer runs out
+	## If time bank has funds, consume 15s and continue. Otherwise game over.
 	if puzzle_solved:
 		return
 	if GameState.run == null:
 		return
 
+	# Check time bank first
+	if GameState.run.time_bank >= GameConfig.TIME_BANK_CHUNK:
+		# Consume from bank and continue
+		GameState.run.time_bank -= GameConfig.TIME_BANK_CHUNK
+		puzzle_start_time = Time.get_ticks_msec()
+		current_time_limit = float(GameConfig.TIME_BANK_CHUNK)
+		_update_status("Time Bank: -%ds!" % GameConfig.TIME_BANK_CHUNK)
+		SoundManager.play("time_bank")
+		_refresh_hud()
+		return
+
+	# No bank funds - game over
 	puzzle_solved = true  # Stop further input
 	_update_status("Time's up!")
 	EventBus.puzzle_timeout.emit()
@@ -420,53 +411,7 @@ func _complete_puzzle() -> void:
 	)
 	_update_status("Score: %d  |  %s" % [breakdown.final_score, breakdown.get_summary()])
 
-	# Bank unused time for next puzzle
-	_bank_unused_time()
-
 	# Notify RunManager with full breakdown
 	RunManager.on_puzzle_complete(breakdown)
 
 
-func _bank_unused_time() -> void:
-	## Save unused time for the next puzzle (with decay)
-	if GameState.run == null:
-		return
-
-	# Calculate remaining time
-	var elapsed := (Time.get_ticks_msec() - puzzle_start_time) / 1000.0
-	var time_remaining := maxf(0.0, current_time_limit - elapsed)
-
-	# Decay any previous bank and add new time
-	var decayed_previous: float = GameState.run.time_bank * (1.0 - GameConfig.TIME_BANK_DECAY)
-	var new_bank: float = time_remaining + decayed_previous
-	GameState.run.time_bank = minf(new_bank, GameConfig.TIME_BANK_MAX)
-
-
-func buy_time() -> bool:
-	## Buy additional time during puzzle. Returns true if purchase succeeded.
-	if GameState.run == null:
-		return false
-	if puzzle_solved:
-		return false
-
-	# Check purchase limit
-	if GameState.run.time_purchased >= GameConfig.TIME_PURCHASE_MAX:
-		return false
-
-	# Check if can afford
-	if GameState.run.money < GameConfig.TIME_PURCHASE_COST:
-		return false
-
-	# Deduct money
-	GameState.run.add_money(-GameConfig.TIME_PURCHASE_COST)
-
-	# Add time
-	current_time_limit += GameConfig.TIME_PURCHASE_AMOUNT
-	GameState.run.time_purchased += 1
-
-	# Visual/audio feedback
-	EventBus.time_purchased.emit(GameConfig.TIME_PURCHASE_AMOUNT)
-	SoundManager.play("coin_spend")
-
-	_refresh_hud()
-	return true

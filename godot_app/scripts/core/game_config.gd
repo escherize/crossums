@@ -7,7 +7,7 @@ extends RefCounted
 # VERSION (bumped by deploy.sh)
 # =============================================================================
 
-const VERSION := "0.2.33"
+const VERSION := "0.2.34"
 
 # =============================================================================
 # SCORING - BASE POINTS
@@ -110,27 +110,16 @@ static var GRADE_MONEY_BONUS := {
 }
 
 # =============================================================================
-# TIME BANKING
+# TIME BANK (shop purchase)
 # =============================================================================
 
-## Max seconds you can bank
-static var TIME_BANK_MAX := 30.0
+## Seconds added per time bank purchase
+static var TIME_BANK_CHUNK := 15
 
-## Decay rate for previous bank (lose 50% between puzzles)
-static var TIME_BANK_DECAY := 0.5
-
-# =============================================================================
-# BUY TIME
-# =============================================================================
-
-## Cost to buy time ($5 per purchase)
-static var TIME_PURCHASE_COST := 5
-
-## Seconds added per purchase
-static var TIME_PURCHASE_AMOUNT := 10.0
-
-## Max purchases per puzzle
-static var TIME_PURCHASE_MAX := 3
+## Get escalating price for time bank purchase
+## Formula: $(N+1) for Nth purchase in the run
+static func get_time_bank_price(purchases_this_run: int) -> int:
+	return purchases_this_run + 1
 
 # =============================================================================
 # HELPERS
@@ -151,11 +140,7 @@ static func reset_to_defaults() -> void:
 	INTEREST_RATE = 1
 	INTEREST_CAP = 5
 	INTEREST_THRESHOLD = 5
-	TIME_BANK_MAX = 30.0
-	TIME_BANK_DECAY = 0.5
-	TIME_PURCHASE_COST = 5
-	TIME_PURCHASE_AMOUNT = 10.0
-	TIME_PURCHASE_MAX = 3
+	TIME_BANK_CHUNK = 15
 	# Note: Dictionaries (GRADE_*) don't need resetting as they're constants
 
 

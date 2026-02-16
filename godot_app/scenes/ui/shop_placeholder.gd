@@ -205,27 +205,23 @@ func _on_reroll_pressed() -> void:
 
 
 func _on_buy_time_pressed() -> void:
-	if _buy_time_for_next():
+	if _buy_time_for_bank():
 		_refresh_display()
 
 
-func _buy_time_for_next() -> bool:
-	## Buy time to add to time bank for next puzzle.
+func _buy_time_for_bank() -> bool:
+	## Buy time to add to time bank. Price escalates: $1, $2, $3...
 	if GameState.run == null:
 		return false
-	if GameState.run.money < GameConfig.TIME_PURCHASE_COST:
-		return false
-	if GameState.run.time_bank >= GameConfig.TIME_BANK_MAX:
+
+	var price: int = GameConfig.get_time_bank_price(GameState.run.time_purchases)
+	if GameState.run.money < price:
 		return false
 
-	# Deduct money
-	GameState.run.add_money(-GameConfig.TIME_PURCHASE_COST)
-
-	# Add to time bank
-	GameState.run.time_bank = minf(
-		GameState.run.time_bank + GameConfig.TIME_PURCHASE_AMOUNT,
-		GameConfig.TIME_BANK_MAX
-	)
+	# Deduct money and add to bank
+	GameState.run.spend_money(price)
+	GameState.run.time_bank += GameConfig.TIME_BANK_CHUNK
+	GameState.run.time_purchases += 1
 
 	SoundManager.play("coin_spend")
 	return true
@@ -235,20 +231,18 @@ func _update_time_bank_display() -> void:
 	if GameState.run == null:
 		time_bank_label.text = "Time Bank: 0s"
 		buy_time_button.disabled = true
+		buy_time_button.text = "Buy +%ds ($1)" % GameConfig.TIME_BANK_CHUNK
 		return
 
-	var bank: float = GameState.run.time_bank
-	time_bank_label.text = "Time Bank: %ds" % int(bank)
+	var bank: int = GameState.run.time_bank
+	time_bank_label.text = "Time Bank: %ds" % bank
 
-	# Disable buy button if can't afford or already at max
-	var can_buy: bool = GameState.run.money >= GameConfig.TIME_PURCHASE_COST
-	var at_max: bool = bank >= GameConfig.TIME_BANK_MAX
-	buy_time_button.disabled = not can_buy or at_max
+	# Escalating price: $1, $2, $3... based on total purchases this run
+	var price: int = GameConfig.get_time_bank_price(GameState.run.time_purchases)
+	var can_afford: bool = GameState.run.money >= price
 
-	if at_max:
-		buy_time_button.text = "Max Bank"
-	else:
-		buy_time_button.text = "Buy +10s ($%d)" % GameConfig.TIME_PURCHASE_COST
+	buy_time_button.disabled = not can_afford
+	buy_time_button.text = "Buy +%ds ($%d)" % [GameConfig.TIME_BANK_CHUNK, price]
 
 
 func _on_continue_pressed() -> void:
