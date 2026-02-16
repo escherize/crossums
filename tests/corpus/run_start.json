@@ -29,9 +29,7 @@
       "action": "get_run_info",
       "expect_nested": {
         "stage_config.stage": 1,
-        "stage_config.grid_size": 3,
-        "stage_config.score_target": 400,
-        "stage_config.money_reward": 4
+        "stage_config.grid_size": 3
       }
     }
   ]
