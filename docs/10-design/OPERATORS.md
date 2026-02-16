@@ -42,7 +42,7 @@ These work because they reward *how* you play, not *what* the puzzle contains:
 |----|------|--------|--------|------|--------------|
 | `banker` | Banker | +10% interest on money | Rare | puzzle_end | Passive; doesn't affect puzzle |
 | `thrifty` | Thrifty | -1 cost for shop items | Uncommon | passive | Passive; doesn't affect puzzle |
-| `gold_finder` | Gold Finder | +$1 per row with no mistakes | Common | puzzle_end | Rewards precision (player skill) |
+| `gold_finder` | Gold Finder | +$1 per completed row | Common | puzzle_end | Simple bonus per row |
 | `perfectionist` | Perfectionist | ×3 score if no restores | Legendary | puzzle_end | Rewards precision (player skill) |
 | `speed_demon` | Speed Demon | +100 if solved under 10s | Rare | puzzle_end | Rewards speed (player skill) |
 | `combo_king` | Combo King | +25 per cell without undo | Uncommon | cell_deleted | Rewards flow (player skill) |
@@ -94,8 +94,7 @@ The 2D grid enables unique operator designs:
 - Pattern recognition (L-shapes, T-shapes, lines)
 
 ### Implementation Priority
-1. Simple scoring (Column Master, Zero Hero, Even Steven)
-2. Transformation (Flipper, Doubler)
-3. Economy (Calculator, Banker)
-4. Rule-breaking (Overflow/Underflow)
-5. Legendary (as progression rewards)
+1. Simple scoring (Row Master, Column Master, Counter)
+2. Economy (Banker, Thrifty)
+3. Time manipulation (Time Lord, Second Wind)
+4. Legendary (Phoenix, Perfectionist)

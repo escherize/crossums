@@ -34,7 +34,7 @@ What's missing is **polish and variety**, not **mechanics**.
 | **Operators** | 10 operators minimum | 🚧 Have 5, need 5 more |
 | **Shop** | Buy/sell/reroll | ✅ Done |
 | **Progression** | 8 stages, increasing difficulty | ✅ Done |
-| **Lives** | Mistakes cost lives, game over at 0 | ✅ Done |
+| **Timer** | Run out of time = game over | ✅ Done |
 | **Sound** | Basic SFX (clicks, wins, money) | ❌ Missing |
 | **Feedback** | Know why you won/lost | 🚧 Needs score animation |
 | **Save/Load** | Don't lose progress | ❌ UI missing |
@@ -67,8 +67,8 @@ What's missing is **polish and variety**, not **mechanics**.
 
 ### First 5 Minutes
 1. Complete 2-3 puzzles
-2. See score accumulate
-3. Make a mistake, lose a life, understand stakes
+2. See score convert to money
+3. Feel time pressure, understand stakes
 4. Complete Stage 1, enter shop
 5. See operators, buy one
 6. Notice gameplay changes with operator
@@ -85,7 +85,7 @@ What's missing is **polish and variety**, not **mechanics**.
 - Satisfying "you beat the demo" moment
 
 ### Lose State
-- Run out of lives → Game Over with stages cleared
+- Run out of time → Game Over with stages cleared
 - Clear "try again" call to action
 
 ---

@@ -1,290 +1,169 @@
-# Crosssums Game Design Ideas
+# Crossums Game Design
 
-> Living document for game design brainstorming and iteration
-
----
-
-## The Core Problem: What Choices Affect Score?
-
-Currently, the player's only meaningful choice is **finding a solution that keeps more cells**. That's thin.
-
-### Current Player Agency
-
-| Choice | Impact |
-|--------|--------|
-| Which cells to delete | Core mechanic |
-| Which solution to pick (when multiple exist) | More kept cells = more points |
-
-That's it. We need more axes of optimization.
+> Core design document for game mechanics and systems.
+> Last updated: 2026-02-15
 
 ---
 
-## The "Second Axis" Problem
+## Core Loop
 
-**Balatro has Chips × Mult** - two things you're always optimizing. The tension between them creates interesting decisions.
-
-**Crosssums currently has one axis**: kept cells bonus.
-
-### Potential Second Axes
-
-| Axis | How It Works | Tension Created |
-|------|--------------|-----------------|
-| **Time** | Decaying multiplier rewards speed | Speed vs. optimization |
-| **Precision** | Mistakes/restores reduce bonus | Commitment vs. exploration |
-| **Money** | Gold cells give $ if kept | Optimal solution vs. profitable solution |
-| **Streak** | Consecutive wins build multiplier | Risk-taking vs. playing safe |
+1. **Solve puzzle** - Delete cells so each row/column sums to its target
+2. **Beat the clock** - Timer runs out = game over
+3. **Earn money** - Score converts to $ after each puzzle
+4. **Buy operators** - Spend $ in shop to boost future earnings
+5. **Progress** - Complete 3 puzzles per stage, 8 stages total
 
 ---
 
-## Idea: Time Bonus Multiplier
+## Key Design Decisions
 
-Instead of a hard timer (frustrating), use a **decaying bonus multiplier**:
+### Single-Solution Puzzles
+
+Every puzzle has **exactly one valid solution**. The player's job is to *find* it, not *choose* it.
+
+**Why:** Multi-solution puzzles made operators like "keep 7s for bonus" feel random rather than strategic. With single-solution, the puzzle is the challenge, and operators modify rewards.
+
+### Timer as Fail Condition
+
+Running out of time = game over. No "lives" system, no "critical cell mistakes."
+
+**Why:**
+- Transparent fail state (everyone understands timers)
+- Undo is free - only cost is time
+- Enables experimentation without fear
+
+### Score → Money
+
+Score earned from puzzles converts directly to money. No separate "score gates" for progression.
+
+**Why:** Simplifies currencies. Money is the only resource you accumulate and spend.
+
+---
+
+## Currencies
+
+| Currency | Source | Sink | Fail Condition |
+|----------|--------|------|----------------|
+| **Time** | Stage start | Solving puzzles | Run out → Game Over |
+| **Money ($)** | Score conversion | Shop purchases | — |
+
+That's it. Two currencies.
+
+---
+
+## Scoring System
+
+### Base Formula
 
 ```
-Time Multiplier: starts at 2.0x, decays to 1.0x over [X] seconds
+score = (kept_cells × base_points) × time_multiplier × operator_multipliers
 ```
 
-### Design Parameters to Tune
+### Components
 
-- Starting multiplier (1.5x? 2.0x?)
-- Floor (1.0x or lower?)
-- Decay curve (linear? exponential?)
-- Time window (30 sec? 60 sec? scales with grid size?)
+| Component | Description |
+|-----------|-------------|
+| **Kept cells** | Cells remaining after solution (fixed by puzzle) |
+| **Base points** | Points per kept cell (scales with grid size) |
+| **Time multiplier** | Starts at 2.0×, decays to 1.0× over time |
+| **Operator multipliers** | Bonuses from equipped operators |
 
-### Pros
-- Fast solves rewarded, slow solves still possible
-- Adds tension without frustration
-- Creates speed vs. optimization tradeoff
-
-### Cons
-- May conflict with "relaxing puzzle" feel
-- Could punish new players
-- Needs careful tuning per grid size
-
-### Variant: Energy Pool
-- Energy depletes over time across ALL puzzles in a stage
-- Run out = lose a life
-- Creates meta-tension: "can I afford to think on this one?"
-
----
-
-## Idea: Precision Rating
-
-Track player mistakes and reward clean solves.
-
-### What Counts as a "Mistake"?
-
-| Action | Penalty? |
-|--------|----------|
-| Delete a cell | No (core mechanic) |
-| Restore a deleted cell | Yes - you changed your mind |
-| Delete a cell that's in ALL valid solutions | Big yes - you broke it |
-
-### Precision Multiplier
+### Score → Money Conversion
 
 ```
-Perfect solve (no restores): 1.5x
-1-2 restores: 1.25x
-3+ restores: 1.0x
-Broke the puzzle (had to restore critical cell): 0.75x
+money_earned = floor(score / SCORE_TO_MONEY_DIVISOR)
 ```
 
-### Variant: Limited Restores
-- Give player 3 "undo tokens" per puzzle
-- Using them costs score but saves the solve
-- Creates commitment tension
+Default divisor: 100 (so 500 points = $5)
+
+### Exponential Scaling
+
+Score can grow exponentially through:
+- Operators that give ×mult (not just +bonus)
+- Stacking multipliers across operators
+- Time multiplier combining with operator multipliers
+
+Early game: ~300 points = $3
+Late game with good build: ~10,000+ points = $100+
 
 ---
 
-## Idea: Gold Cells
+## Operator Design Principles
 
-Some cells are marked as "gold" - if kept in your solution, you earn bonus money.
+### What Makes Good Operators (Single-Solution)
 
-### Design
+Operators should reward **how you play**, not **what the puzzle contains**:
 
-- Random cells (maybe 1-3 per puzzle) are gold
-- If a gold cell is part of your solution: +$1-3
-- If you delete a gold cell: nothing (no penalty)
+| ✅ Good | ❌ Bad |
+|---------|--------|
+| Speed bonuses | "Keep 7s for bonus" (can't choose) |
+| Precision bonuses (no restores) | "Keep corners" (can't choose) |
+| Money multipliers | Cell value transformations |
+| Time manipulation | Rule-breaking (invalid sums OK) |
 
-### Why This Works
+### Operator Categories
 
-Creates a **third optimization target**:
-1. Find a valid solution
-2. Keep as many cells as possible (score)
-3. Keep gold cells if possible (money)
-
-Sometimes the optimal-score solution doesn't include the gold cell. Choice!
-
-### Variants
-
-- **Silver cells**: +bonus score instead of money
-- **Cursed cells**: penalty if kept (avoid them)
-- **Wild cells**: count as any number (easier but worth less)
+1. **Scoring** - Flat bonuses, multipliers
+2. **Economy** - Money bonuses, shop discounts
+3. **Time** - Extensions, pauses, banking
+4. **Utility** - Visual aids, auto-actions
 
 ---
 
-## Idea: Combo/Streak System
+## Progression
 
-Consecutive successful puzzles build a multiplier.
+### Stage Structure
 
-### Simple Version
+- 8 stages total
+- 3 puzzles per stage (puzzle 3 = "boss")
+- Shop after each stage
+- Grid size increases: 3→3→4→4→5→5→6→6
 
-```
-Puzzle 1: 1.0x
-Puzzle 2: 1.1x
-Puzzle 3: 1.2x
-...
-Fail a puzzle: reset to 1.0x
-```
+### Difficulty Scaling
 
-### Stakes Version
-
-- Streak multiplier is visible
-- Player can "cash out" streak for bonus $ between puzzles
-- Or risk it for higher multiplier
-- Fail = lose the streak
-
----
-
-## Idea: Cell Types (Beyond Gold)
-
-| Cell Type | Visual | Effect |
-|-----------|--------|--------|
-| **Normal** | Plain | Standard behavior |
-| **Gold** | Gold border | +$ if kept |
-| **Locked** | Padlock icon | Cannot be deleted |
-| **Fragile** | Cracked | If deleted, breaks adjacent cell too |
-| **Wild** | ? symbol | Counts as any number (0-9) |
-| **Negative** | Red text | Subtracts from sum instead of adding |
-| **Multiplier** | ×2 badge | Doubles its value in sums |
-
-These could be:
-- Random in puzzles
-- Introduced by Operators
-- Part of specific stage themes
+| Stage | Grid | Time Limit | Cell Values |
+|-------|------|------------|-------------|
+| 1 | 3×3 | 75s | 1-3 |
+| 2 | 3×3 | 70s | 1-4 |
+| 3 | 4×4 | 65s | 1-5 |
+| 4 | 4×4 | 60s | 1-6 |
+| 5 | 5×5 | 55s | 1-7 |
+| 6 | 5×5 | 50s | 1-9 |
+| 7 | 6×6 | 45s | -2 to 9 |
+| 8 | 6×6 | 45s | -5 to 9 |
 
 ---
 
-## Balatro Systems → Crosssums Mapping
+## Shop Economy
 
-| Balatro | Crosssums Equivalent | Status |
-|---------|---------------------|--------|
-| Chips | Base points by grid | Done |
-| Mult | Line multiplier | Done |
-| Jokers | Operators | Planned (Phase 4) |
-| Planet cards | Level up... what? | **Open question** |
-| Tarot cards | Consumables (hints, etc.) | Planned |
-| Vouchers | Run-wide upgrades | Planned |
-| Money | Shop currency | Planned |
-| Hands/Discards | ??? | **Open question** |
+### What You Can Buy
 
-### Open Question: What's Our "Planet Cards"?
+| Item | Price Range | Effect |
+|------|-------------|--------|
+| Operators | $4-15 | Scoring/utility effects |
+| Reroll | $2 | New shop inventory |
+| Operator slots | $25-50 | Hold more operators |
+| Operator upgrades | $10-40 | Level up existing operator |
 
-In Balatro, Planet cards level up specific hand types permanently for the run.
+### Expensive Late-Game Purchases
 
-What could level up in Crosssums?
-- Specific number values (level up 7s to be worth more?)
-- Grid sizes (level up 4x4 to give more base points?)
-- Row/column bonuses?
-- Operator effectiveness?
-
----
-
-## Currencies and Resources
-
-### Confirmed
-- **Score**: Beat the target to pass
-- **Money ($)**: Buy operators in shop
-
-### Candidates to Add
-- **Precision rating**: Affects... something?
-- **Streak counter**: Multiplier or shop discount?
-- **Energy/Time**: Shared resource across stage?
-- **XP**: Level up operators?
-
-### Operator Leveling (Speculative)
-
-What if operators gained XP and leveled up?
-
-```
-Counter Lv.1: +10 pts per kept number
-Counter Lv.2: +15 pts per kept number
-Counter Lv.3: +20 pts per kept number
-```
-
-- Creates attachment to specific operators
-- Adds another optimization dimension
-- Risk: complexity creep
-
----
-
-## Consumables (One-Time Use Items)
-
-| Consumable | Effect | Cost |
-|------------|--------|------|
-| **Hint** | Reveals one solution cell | $3 |
-| **Reroll** | Generate new puzzle (same difficulty) | $2 |
-| **Freeze** | Pause time multiplier for 10 sec | $2 |
-| **Restore+** | Restore a cell without precision penalty | $1 |
-| **Double Down** | 2x kept bonus, but lose life if fail | Free |
-| **Magnify** | One cell counts double in sums | $3 |
-| **Swap** | Exchange two cells' positions | $2 |
-
----
-
-## Priority Ranking
-
-What to implement first (low effort, high impact):
-
-### Tier 1: Do Soon
-1. **Time bonus multiplier** - Adds tension, easy to implement
-2. **Gold cells** - Third optimization axis, visual interest
-3. **Basic precision tracking** - Foundation for later systems
-
-### Tier 2: Do After Core Loop Feels Good
-4. Streak system
-5. Consumables (start with Hint)
-6. Operator leveling
-
-### Tier 3: Explore Later
-7. Complex cell types (wild, negative, etc.)
-8. Planet card equivalent
-9. Energy pool system
+High scores need expensive sinks:
+- 4th operator slot: $25
+- 5th operator slot: $50
+- Legendary operators: $30-50
+- Operator level 2: $15, level 3: $30
 
 ---
 
 ## Open Questions
 
-1. **How punishing should time pressure be?** Decaying bonus vs. actual failure?
-
-2. **Should precision affect score or money?** Or something else?
-
-3. **What's the Crossums equivalent of "leveling up hand types"?**
-
-4. **How do we make multiple solutions feel intentional?** Right now it's accidental - should we lean into it or ensure unique solutions?
-
-5. **Is there a "discard" equivalent?** Balatro has hands AND discards. We only have deletion.
-
-6. **What breaks the game in a fun way?** Balatro lets you score millions. What's our absurd ceiling?
-
----
-
-## Decisions Made
-
-| Decision | Date | Rationale |
-|----------|------|-----------|
-| Kept cells bonus (+25 per cell) | 2026-01-23 | Rewards optimization |
-| 2-state target colors (red/green) | 2026-01-23 | Simpler than 3-state |
-| No hard timer | TBD | Puzzle games shouldn't stress |
+1. **Operator leveling** - Does upgrading operators add enough depth?
+2. **Consumables** - Should there be one-time-use items?
+3. **Meta-progression** - Unlocks across runs?
 
 ---
 
 ## References
 
-- See `crosssums-design-doc.md` for full design spec
-- See `balatro-report.md` for Balatro analysis
-- See `implementation_plan.md` for technical roadmap
-
----
-
-*Last updated: 2026-01-24*
+- [OPERATORS.md](./OPERATORS.md) - Detailed operator designs
+- [timer_as_fail_condition.md](./timer_as_fail_condition.md) - Timer design rationale
