@@ -57,6 +57,10 @@ var puzzle_seed: int = 0
 ## Number of cells in the solution (set during generation)
 var solution_cell_count: int = 0
 
+## Misstep count (restore after delete, uncircle after circle)
+## Used for "clean solve" bonus in pace rating
+var misstep_count: int = 0
+
 # =============================================================================
 # INITIALIZATION
 # =============================================================================
@@ -152,6 +156,7 @@ func restore_cell(row: int, col: int) -> bool:
 		return false
 
 	cell.state = CellState.ACTIVE
+	misstep_count += 1  # Restoring = player changed their mind
 	# Remove from history
 	var pos = Vector2i(col, row)
 	var idx = deletion_history.rfind(pos)
@@ -183,6 +188,7 @@ func uncircle_cell(row: int, col: int) -> bool:
 		return false
 
 	cell.state = CellState.ACTIVE
+	misstep_count += 1  # Uncircling = player changed their mind
 	return true
 
 
@@ -197,6 +203,7 @@ func undo_last_deletion() -> Vector2i:
 	var cell = get_cell(row, col)
 	if cell:
 		cell.state = CellState.ACTIVE
+		misstep_count += 1  # Undo = player changed their mind
 
 	return Vector2i(col, row)
 
@@ -282,6 +289,18 @@ func get_circled_col_sum(col: int) -> int:
 		if cell.state == CellState.CIRCLED:
 			sum += cell.value
 	return sum
+
+
+func is_row_solved_by_circles(row: int) -> bool:
+	## Check if circled cells in this row alone sum to the target
+	var circled_sum = get_circled_row_sum(row)
+	return circled_sum > 0 and circled_sum == row_targets[row]
+
+
+func is_col_solved_by_circles(col: int) -> bool:
+	## Check if circled cells in this column alone sum to the target
+	var circled_sum = get_circled_col_sum(col)
+	return circled_sum > 0 and circled_sum == col_targets[col]
 
 
 func is_solved_by_circles() -> bool:
@@ -380,6 +399,7 @@ func duplicate_state() -> PuzzleState:
 	copy.row_targets = row_targets.duplicate()
 	copy.col_targets = col_targets.duplicate()
 	copy.deletion_history = deletion_history.duplicate()
+	copy.misstep_count = misstep_count
 
 	for row in range(grid_size.y):
 		for col in range(grid_size.x):
@@ -393,3 +413,4 @@ func reset() -> void:
 		for col in range(grid_size.x):
 			cells[row][col].state = CellState.ACTIVE
 	deletion_history.clear()
+	misstep_count = 0

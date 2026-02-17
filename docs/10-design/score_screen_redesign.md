@@ -1,92 +1,100 @@
-# Score Screen Redesign (2026-02-16)
+# Pace Rating System (2026-02-16)
 
 > **Status:** Implemented
 
-## Problem (Solved)
-The previous score screen was confusing:
-1. Grade ignored time, but final score included it - cognitive dissonance
-2. "Perfect: 190" didn't explain what it meant
-3. Money formula mixed score (with time) and grade (without time)
-4. S/SS grades required operators but this wasn't communicated
-5. No animation/juice - numbers just appeared
+## Overview
 
-## Design Goals
-Based on game design review:
-- **Grade now includes time** - fast perfect = S, slow perfect = B
-- Make money formula super-linear: `(base + bonus) × mult`
-- Restructure screen to show clear breakdown
-- S/SS achievable through pure skill (speed), operators help but don't gate
+Replaced the grade-based scoring system with a **Pace Rating** system that is:
+- **Super-linear** - fast solves earn exponentially more
+- **Easy to understand** - seconds per cell is intuitive
+- **Fair across grid sizes** - 1s/cell means the same on 3x3 or 6x6
 
----
+## Formula
 
-## Implementation Summary
-
-### Changes Made
-
-#### 1. Grade Includes Time (scoring_engine.gd)
-```gdscript
-# Grade now includes time multiplier
-var grade_score: int = int((breakdown.subtotal + breakdown.operator_bonus) * breakdown.time_multiplier)
-breakdown.grade = calculate_grade(grade_score, breakdown.par_score)
+```
+pace = time_used / cell_count
+rating = (12 - pace) + clean_bonus + operator_bonus
+money = round(rating³ / 100) × streak_mult
 ```
 
-#### 2. Adjusted Thresholds (game_config.gd)
-```gdscript
-static var GRADE_THRESHOLDS := {
-    "D": 0.0,    # Any completion
-    "C": 0.5,    # 50% of par
-    "B": 0.75,   # 75% of par
-    "A": 0.9,    # 90% of par (normal speed perfect)
-    "S": 1.1,    # 110% of par (fast perfect)
-    "SS": 1.4    # 140% of par (very fast or operators)
-}
+### Components
+
+| Component | Formula | Range |
+|-----------|---------|-------|
+| Pace Rating | `12 - (time/cells)` | ~7-12 typically |
+| Clean Bonus | `max(0, 2.0 - missteps × 0.5)` | 0-2 |
+| Operator Bonus | `operator_score / 50` | varies |
+| Streak Mult | `[1.0, 1.0, 1.5, 2.0, 3.0][streak]` | 1-3x |
+
+### Missteps
+
+A "misstep" is recorded when the player changes their mind:
+- Delete a cell, then restore it
+- Circle a cell, then uncircle it
+- Use the undo button
+
+Clean solves (0 missteps) earn +2.0 rating bonus.
+
+### Money Examples
+
+| Scenario | Pace | Clean | Ops | Rating | Money |
+|----------|------|-------|-----|--------|-------|
+| Slow 3x3 | 3s | +2.0 | 0 | 11.0 | $13 |
+| Fast 3x3 | 1s | +2.0 | 0 | 13.0 | $22 |
+| Fast 6x6 | 1s | +2.0 | +1 | 14.0 | $27 |
+| Fast + streak | 1s | +2.0 | 0 | 13.0 | $44 (×2) |
+| Messy solve | 2s | +0.5 | 0 | 10.5 | $11 |
+
+### Letter Grades (from Rating)
+
+| Rating | Grade |
+|--------|-------|
+| 14+ | SS |
+| 12+ | S |
+| 10+ | A |
+| 8+ | B |
+| 6+ | C |
+| <6 | D |
+
+## Display Format
+
+```
+┌─────────────────────────────┐
+│         PASS!               │
+│           S                 │
+│                             │
+│  PACE: 0.8s/cell ★★★★★★★★★★ │
+│  +2.0 clean solve           │
+│  +1.5 operators             │
+│  ────────────               │
+│  RATING: 14.3 → $29         │
+│                             │
+│  $29 × 2.0 = +$58           │
+│         🔥🔥                 │
+│       [Continue]            │
+└─────────────────────────────┘
 ```
 
-#### 3. Super-Linear Money Formula (run_manager.gd)
-```gdscript
-# (base + bonus) × mult instead of base × mult + bonus
-var score_money: int = int((base_money + grade_bonus) * grade_mult)
-```
+## Files Modified
 
-#### 4. Rebalanced Bonuses (game_config.gd)
-```gdscript
-# Lower since super-linear formula multiplies them
-static var GRADE_MONEY_BONUS := {
-    "D": 0, "C": 0, "B": 1, "A": 1, "S": 2, "SS": 4
-}
-```
+1. **`puzzle_state.gd`** - Added `misstep_count` tracking
+2. **`game_config.gd`** - Pace rating constants, streak multipliers
+3. **`run_state.gd`** - Added `streak` tracking
+4. **`scoring_engine.gd`** - New `RatingBreakdown` class and `calculate_rating()`
+5. **`run_manager.gd`** - New `on_puzzle_complete_rating()` method
+6. **`main.gd`** - Updated to use new rating system
+7. **`result_popup.gd`** - New `show_result_rating()` display
 
-#### 5. Simplified Result Display (result_popup.gd)
-- Removed "Perfect: X" line (grade IS the comparison now)
-- Money shows super-linear formula: `($1 + $2) × 2.5 = +$7`
+## Design Rationale
 
----
+**Why pace (time per cell)?**
+> Scales naturally with grid size. A 1s/cell solve means the same skill level whether it's a 3x3 (9s total) or 6x6 (36s total).
 
-## Expected Outcomes
+**Why cubed?**
+> Super-linear rewards for speed. Going from 2s/cell to 1s/cell more than doubles your money. This creates meaningful decisions about when to play safe vs push for speed.
 
-| Solve | Time Mult | Subtotal | Grade Score | % of Par | Grade |
-|-------|-----------|----------|-------------|----------|-------|
-| Slow perfect | 0.8× | 190 | 152 | 80% | B |
-| Normal perfect | 1.0× | 190 | 190 | 100% | A |
-| Fast perfect | 1.25× | 190 | 237 | 125% | S |
-| Fast + ops | 1.5× | 240 | 360 | 190% | SS |
+**Why track missteps?**
+> Rewards confident, decisive play. A player who knows the solution immediately should earn more than one who backtracks multiple times.
 
----
-
-## Design Rationale (from Game Design Review)
-
-**Why include time in grade?**
-> "Speed IS a puzzle skill - pattern recognition, decision confidence. A player who solves perfectly in 15 seconds has more mastery than one who takes 90 seconds."
-
-**Why S/SS no longer require operators?**
-> "Operators should enhance, not gate. A player with no operators who plays flawlessly fast should achieve S. This makes grade = skill, not item collection."
-
-**Why super-linear money?**
-> "If the difference between B and A is always ~$0.50, grades feel decorative. Super-linear creates meaningful decisions: 'Do I play safe for B or risk timeout going for A?'"
-
-**Grade now means:**
-- D/C = Incomplete or poor solution
-- B = Solved but slowly
-- A = Good solve at reasonable speed
-- S = Excellent speed or operators helping
-- SS = Both fast AND operator bonuses
+**Why streak multiplier?**
+> Rewards consistency across puzzles. Maintains tension even on "easy" puzzles since breaking a streak hurts.

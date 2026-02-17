@@ -90,6 +90,7 @@ func _connect_signals() -> void:
 	# RunManager connections
 	RunManager.puzzle_ready.connect(_on_puzzle_ready)
 	RunManager.show_result.connect(_on_show_result)
+	RunManager.show_result_rating.connect(_on_show_result_rating)
 	RunManager.show_shop.connect(_on_show_shop)
 	RunManager.show_game_over.connect(_on_show_game_over)
 	RunManager.show_victory.connect(_on_show_victory)
@@ -245,12 +246,22 @@ func _on_puzzle_ready(_stage_config) -> void:
 
 
 func _on_show_result(won: bool, breakdown, target: int, reward: int) -> void:
-	## Show result popup after puzzle completion
+	## Show result popup after puzzle completion (legacy)
 	_clear_overlay()
 	var popup = ResultPopupScene.instantiate()
 	popup.continue_pressed.connect(_on_result_continue)
 	overlay_container.add_child(popup)
 	popup.show_result(won, breakdown, target, reward)
+	_current_overlay = popup
+
+
+func _on_show_result_rating(won: bool, breakdown) -> void:
+	## Show result popup with pace rating breakdown
+	_clear_overlay()
+	var popup = ResultPopupScene.instantiate()
+	popup.continue_pressed.connect(_on_result_continue)
+	overlay_container.add_child(popup)
+	popup.show_result_rating(won, breakdown)
 	_current_overlay = popup
 
 
@@ -392,14 +403,16 @@ func _check_operator_auto_actions() -> void:
 func _complete_puzzle() -> void:
 	## Called when puzzle is solved (auto-win or submit)
 	puzzle_solved = true
-	var breakdown = ScoringEngineScript.calculate_score(
-		GameState.puzzle,
-		time_multiplier,
-		GameState.operators
-	)
-	_update_status("Score: %d  |  %s" % [breakdown.final_score, breakdown.get_summary()])
 
-	# Notify RunManager with full breakdown
-	RunManager.on_puzzle_complete(breakdown)
+	# Calculate time used for pace rating
+	var time_used: float = (Time.get_ticks_msec() - puzzle_start_time) / 1000.0
+
+	# Update status with pace info
+	var cell_count: int = GameState.puzzle.grid_size.x * GameState.puzzle.grid_size.y
+	var pace: float = time_used / cell_count
+	_update_status("Solved in %.1fs (%.1fs/cell)" % [time_used, pace])
+
+	# Notify RunManager with time used (calculates rating internally)
+	RunManager.on_puzzle_complete_rating(time_used)
 
 

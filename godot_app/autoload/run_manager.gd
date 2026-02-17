@@ -9,6 +9,7 @@ extends Node
 signal state_changed(new_state: State)
 signal puzzle_ready(stage_config)
 signal show_result(won: bool, breakdown, target: int, reward: int)
+signal show_result_rating(won: bool, breakdown)  # New pace rating signal
 signal show_shop()
 signal show_game_over(total_score: int, stages_cleared: int)
 signal show_victory(total_score: int)
@@ -76,49 +77,33 @@ func _start_next_puzzle() -> void:
 	EventBus.puzzle_started.emit(GameState.run.puzzle_index + 1, false)
 
 
-func on_puzzle_complete(breakdown_or_score) -> void:
-	## Called when player completes a puzzle.
-	## Score converts directly to money. No score gates.
-	## breakdown_or_score: ScoringEngine.ScoreBreakdown or int (for testing)
+func on_puzzle_complete_rating(time_used: float) -> void:
+	## Called when player completes a puzzle using new pace rating system.
+	## time_used: seconds taken to solve the puzzle
 	if _current_stage_config == null:
 		push_error("No stage config for puzzle completion")
 		return
 
-	# Support both breakdown object and raw score (for tests)
-	var breakdown = breakdown_or_score
-	var score: int
-	var money_bonus: int = 0
-	if breakdown_or_score is int:
-		score = breakdown_or_score
-		breakdown = _create_mock_breakdown(score)
-	else:
-		score = breakdown.final_score
-		money_bonus = breakdown.money_bonus
+	# Calculate rating breakdown
+	var breakdown = ScoringEngineScript.calculate_rating(
+		GameState.puzzle,
+		time_used,
+		GameState.operators,
+		GameState.run.streak
+	)
 
-	_last_puzzle_score = score
-
-	# Get grade info from breakdown
-	var grade: String = breakdown.grade
-	var grade_mult: float = GameConfig.GRADE_MONEY_MULT.get(grade, 1.0)
-	var grade_bonus: int = GameConfig.GRADE_MONEY_BONUS.get(grade, 0)
-
-	# Convert score to money with super-linear formula: (base + bonus) × mult
-	var base_money: int = int(score / GameConfig.SCORE_TO_MONEY_DIVISOR)
-	var score_money: int = int((base_money + grade_bonus) * grade_mult)
-	var reward: int = score_money + money_bonus
+	# Update streak (successful solve)
+	GameState.run.increment_streak()
 
 	# Store grade for display
-	GameState.run.last_grade = grade
-
-	# Track score for display
-	GameState.run.add_stage_score(score)
-	GameState.run.add_score(score)
+	GameState.run.last_grade = breakdown.grade
 
 	# Calculate interest BEFORE adding reward
 	var money_before: int = GameState.run.money
 	var interest: int = _calculate_interest(money_before)
 
 	# Add reward money
+	var reward: int = breakdown.final_money
 	GameState.run.add_money(reward)
 
 	# Add interest (if any)
@@ -127,7 +112,13 @@ func on_puzzle_complete(breakdown_or_score) -> void:
 		GameState.run.interest_earned_this_stage += interest
 		EventBus.interest_earned.emit(interest)
 
-	EventBus.puzzle_completed.emit(true, score, reward + interest)
+	# Track a "score" for display (rating × 100 for display purposes)
+	var display_score: int = int(breakdown.total_rating * 100)
+	_last_puzzle_score = display_score
+	GameState.run.add_stage_score(display_score)
+	GameState.run.add_score(display_score)
+
+	EventBus.puzzle_completed.emit(true, display_score, reward + interest)
 
 	# Remember if this was the boss puzzle before advancing
 	var was_boss: bool = GameState.run.puzzle_index == 2
@@ -138,14 +129,66 @@ func on_puzzle_complete(breakdown_or_score) -> void:
 		_end_run(true)
 		return
 
-	# Boss puzzle: reset stage score for next stage (no gate check)
+	# Boss puzzle: reset stage score for next stage
 	if was_boss:
 		GameState.run.reset_stage_score()
 
 	# Show result
 	current_state = State.PUZZLE_RESULT
 	state_changed.emit(current_state)
-	show_result.emit(true, breakdown, breakdown.par_score, reward)
+	show_result_rating.emit(true, breakdown)
+
+
+func on_puzzle_complete(breakdown_or_score) -> void:
+	## DEPRECATED: Use on_puzzle_complete_rating() for new code.
+	## Kept for backwards compatibility with tests.
+	if _current_stage_config == null:
+		push_error("No stage config for puzzle completion")
+		return
+
+	var breakdown = breakdown_or_score
+	var score: int
+	var money_bonus: int = 0
+	if breakdown_or_score is int:
+		score = breakdown_or_score
+		breakdown = _create_mock_breakdown(score)
+	else:
+		score = breakdown.final_score
+		money_bonus = breakdown.money_bonus if "money_bonus" in breakdown else 0
+
+	_last_puzzle_score = score
+
+	# Simple money calculation for legacy
+	var reward: int = int(score / GameConfig.SCORE_TO_MONEY_DIVISOR) + money_bonus
+
+	GameState.run.last_grade = breakdown.grade if "grade" in breakdown else "B"
+	GameState.run.add_stage_score(score)
+	GameState.run.add_score(score)
+
+	var money_before: int = GameState.run.money
+	var interest: int = _calculate_interest(money_before)
+	GameState.run.add_money(reward)
+
+	if interest > 0:
+		GameState.run.add_money(interest)
+		GameState.run.interest_earned_this_stage += interest
+		EventBus.interest_earned.emit(interest)
+
+	EventBus.puzzle_completed.emit(true, score, reward + interest)
+
+	var was_boss: bool = GameState.run.puzzle_index == 2
+	GameState.run.advance_puzzle()
+
+	if GameState.run.stage > 8:
+		_end_run(true)
+		return
+
+	if was_boss:
+		GameState.run.reset_stage_score()
+
+	current_state = State.PUZZLE_RESULT
+	state_changed.emit(current_state)
+	show_result.emit(true, breakdown, breakdown.par_score if "par_score" in breakdown else score, reward)
 
 
 func continue_from_result() -> void:

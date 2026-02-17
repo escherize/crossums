@@ -1,7 +1,7 @@
 # Implementation Status
 
 > Cross-reference of design docs vs actual code implementation
-> Last updated: 2026-02-16
+> Last updated: 2026-02-16 (audit verified)
 
 ---
 
@@ -45,15 +45,14 @@
 
 | Feature | Status | Notes |
 |---------|--------|-------|
-| Base points by grid size | ✅ | `dim² × 10` (90/160/250/360 for 3x3-6x6) |
-| Kept cell bonus | ✅ | +25 per kept cell |
-| Time multiplier (decaying) | ✅ | 2.0x → 1.0x over puzzle duration |
+| Pace rating system | ✅ | `rating = (12 - time/cells) + clean + ops` |
+| Misstep tracking | ✅ | Restores/uncircles tracked, affects clean bonus |
+| Streak multiplier | ✅ | ×1.5, ×2.0, ×3.0 for consecutive solves |
 | Operator scoring hooks | ✅ | `on_cell_kept`, `on_row_complete`, etc. |
-| Score breakdown display | ✅ | Summary shown on win |
-| Letter grades | ✅ | Based on (subtotal + ops) × time_mult vs par |
-| Grade affects money | ✅ | Super-linear: (base + bonus) × mult |
-| Animated score calculation | ❌ | No step-by-step Balatro-style reveal |
-| Streak multiplier | ❌ | Config exists, not wired up |
+| Rating breakdown display | ✅ | Pace, clean bonus, operators shown |
+| Letter grades | ✅ | Derived from rating (14+=SS, 12+=S, etc.) |
+| Grade affects money | ✅ | Via rating³ / 100 formula |
+| Animated score calculation | ✅ | Step-by-step reveal in result_popup.gd |
 
 ## Operator System (Jokers)
 
@@ -151,7 +150,7 @@
 | Target color changes | ✅ | Red/green transitions |
 | Score display | ✅ | Final score with summary |
 | Timer bar | ✅ | Visual decay indicator |
-| Operator card display | 🚧 | In shop only, not in play |
+| Operator card display | ✅ | Shown in LeftPanel during gameplay via operator_display.tscn |
 | Sound effects | ✅ | SoundManager + audio files (gitignored) |
 | Music | ❌ | No audio implemented |
 | Particle effects | ❌ | Not implemented |
@@ -217,7 +216,5 @@ Infrastructure exists but feature not enabled.
 
 1. **Audio files gitignored** - SoundManager works, assets excluded from repo
 2. **No save/load UI** - Code exists but no player-facing feature
-3. **Operator UI during play** - No indicator of owned operators in puzzle screen
-4. **No score animation** - Instant score reveal, not Balatro-style cascade
-5. **Options menu stub** - Button does nothing
-6. **Animations need polish** - Minimal juice currently
+3. **Options menu stub** - Button does nothing
+4. **Animations need polish** - Minimal juice currently

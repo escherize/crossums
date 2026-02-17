@@ -318,3 +318,197 @@ func _show_final_state() -> void:
 
 	# Update button
 	continue_button.text = "Continue"
+
+
+# =============================================================================
+# PACE RATING DISPLAY (new system)
+# =============================================================================
+
+func show_result_rating(won: bool, breakdown) -> void:
+	## Show result popup with pace rating breakdown.
+	## breakdown: ScoringEngine.RatingBreakdown
+	_breakdown = breakdown
+	_animation_complete = false
+	_skip_requested = false
+
+	# Setup header
+	if won:
+		result_label.text = "PASS!"
+		result_label.add_theme_color_override("font_color", Color(0.4, 0.9, 0.4))
+	else:
+		result_label.text = "FAIL"
+		result_label.add_theme_color_override("font_color", Color(0.9, 0.4, 0.4))
+
+	# Setup grade display
+	var grade: String = breakdown.grade
+	grade_label.text = grade
+	var grade_color = GRADE_COLORS.get(grade, Color.WHITE)
+	grade_label.add_theme_color_override("font_color", grade_color)
+	grade_label.visible = won
+
+	# Hide old target label
+	target_label.visible = false
+
+	# Setup reward with streak
+	if breakdown.streak_mult > 1.0:
+		reward_label.text = "$%d × %.1f = +$%d" % [breakdown.base_money, breakdown.streak_mult, breakdown.final_money]
+	else:
+		reward_label.text = "+$%d" % breakdown.final_money
+	reward_label.visible = false
+
+	# Clear previous breakdown
+	for child in breakdown_container.get_children():
+		child.queue_free()
+
+	# Build and show pace rating breakdown
+	var steps = _build_rating_steps(breakdown)
+	_precreate_breakdown_lines(steps)
+
+	# Initialize running total with rating
+	running_total_label.text = "0.0"
+	running_total_label.add_theme_color_override("font_color", Color.WHITE)
+
+	continue_button.text = "Skip"
+	visible = true
+
+	# Animate the breakdown
+	_animate_rating_reveal(breakdown, steps)
+
+
+func _build_rating_steps(b) -> Array:
+	## Build breakdown steps for pace rating display
+	var steps: Array = []
+
+	# 1. Pace rating (main component)
+	var pace_stars := _get_pace_stars(b.pace)
+	steps.append({
+		"text": "PACE: %.1fs/cell %s" % [b.pace, pace_stars],
+		"color": Color(0.4, 0.9, 0.9) if b.pace < 1.5 else Color.WHITE
+	})
+
+	# 2. Clean bonus (if any)
+	if b.clean_bonus > 0:
+		var clean_text: String
+		if b.misstep_count == 0:
+			clean_text = "+%.1f clean solve" % b.clean_bonus
+		else:
+			clean_text = "+%.1f (%d missteps)" % [b.clean_bonus, b.misstep_count]
+		steps.append({
+			"text": clean_text,
+			"color": Color(0.5, 1.0, 0.5) if b.misstep_count == 0 else Color(0.8, 0.8, 0.5)
+		})
+	elif b.misstep_count > 0:
+		steps.append({
+			"text": "+0.0 (%d missteps)" % b.misstep_count,
+			"color": Color(0.6, 0.6, 0.6)
+		})
+
+	# 3. Operator bonus (if any)
+	if b.operator_rating_bonus > 0:
+		steps.append({
+			"text": "+%.1f operators" % b.operator_rating_bonus,
+			"color": Color(0.8, 0.5, 1.0)
+		})
+		# Show individual operators
+		for op_detail in b.operator_details:
+			steps.append({
+				"text": "  +%d %s" % [op_detail.bonus, op_detail.name],
+				"color": Color(0.7, 0.5, 0.9)
+			})
+
+	# 4. Streak multiplier (if active)
+	if b.streak > 1:
+		var streak_flames := "🔥".repeat(mini(b.streak, 5))
+		steps.append({
+			"text": "× %.1f streak %s" % [b.streak_mult, streak_flames],
+			"color": Color(1.0, 0.6, 0.2)
+		})
+
+	return steps
+
+
+func _get_pace_stars(pace: float) -> String:
+	## Convert pace to star rating (0-10 stars)
+	var rating := clampf(10.0 - pace, 0.0, 10.0)
+	var full_stars := int(rating)
+	var stars := "★".repeat(full_stars) + "☆".repeat(10 - full_stars)
+	return stars
+
+
+func _animate_rating_reveal(b, steps: Array) -> void:
+	## Animate the pace rating breakdown reveal
+	var children = breakdown_container.get_children()
+	var running_rating: float = 0.0
+
+	# Start with pace rating
+	running_rating = b.pace_rating
+	_animate_rating_total(running_rating)
+
+	for i in range(steps.size()):
+		if _skip_requested:
+			break
+
+		var line = children[i] if i < children.size() else null
+		if line:
+			_current_tween = create_tween()
+			_current_tween.tween_property(line, "modulate:a", 1.0, 0.2)
+
+		# Update running total based on step
+		if i == 1 and b.clean_bonus > 0:
+			running_rating += b.clean_bonus
+			_animate_rating_total(running_rating)
+		elif i == 2 and b.operator_rating_bonus > 0:
+			running_rating += b.operator_rating_bonus
+			_animate_rating_total(running_rating)
+
+		await get_tree().create_timer(STEP_DELAY * 0.7).timeout
+
+		if _skip_requested:
+			break
+
+	if not _skip_requested:
+		_show_final_rating_state(b)
+
+
+func _animate_rating_total(target: float) -> void:
+	## Animate the rating number
+	var current_text := running_total_label.text
+	var current := float(current_text) if current_text.is_valid_float() else 0.0
+
+	if _skip_requested:
+		running_total_label.text = "%.1f" % target
+		return
+
+	_current_tween = create_tween()
+	_current_tween.tween_method(
+		func(val: float): running_total_label.text = "%.1f" % val,
+		current,
+		target,
+		COUNTUP_DURATION
+	).set_ease(Tween.EASE_OUT)
+
+
+func _show_final_rating_state(b) -> void:
+	## Show final rating state
+	_animation_complete = true
+
+	# Clear and rebuild
+	for child in breakdown_container.get_children():
+		child.queue_free()
+
+	var steps = _build_rating_steps(b)
+	for step in steps:
+		var line = _create_breakdown_line(step.text, step.color)
+		breakdown_container.add_child(line)
+
+	# Show final rating
+	running_total_label.text = "%.1f → $%d" % [b.total_rating, b.base_money]
+
+	# Color based on grade
+	var grade_color = GRADE_COLORS.get(b.grade, Color.WHITE)
+	running_total_label.add_theme_color_override("font_color", grade_color)
+
+	# Show reward
+	reward_label.visible = true
+
+	continue_button.text = "Continue"

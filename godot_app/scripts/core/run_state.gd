@@ -53,6 +53,12 @@ var last_grade: String = ""          # Grade from last puzzle (for UI)
 var interest_earned_this_stage: int = 0  # Track for display
 
 # =============================================================================
+# STREAK (for pace rating multiplier)
+# =============================================================================
+
+var streak: int = 0  # Consecutive successful solves
+
+# =============================================================================
 # COMPUTED
 # =============================================================================
 
@@ -98,6 +104,18 @@ func reset_stage_score() -> void:
 	stage_score = 0
 
 
+func increment_streak() -> void:
+	streak += 1
+
+
+func reset_streak() -> void:
+	streak = 0
+
+
+func get_streak_multiplier() -> float:
+	return GameConfig.get_streak_multiplier(streak)
+
+
 func get_puzzle_seed() -> int:
 	## Compute deterministic seed for current puzzle.
 	## Returns 0 (random) if run_seed is 0.
@@ -136,6 +154,7 @@ func serialize() -> Dictionary:
 		"time_purchases": time_purchases,
 		"last_grade": last_grade,
 		"interest_earned_this_stage": interest_earned_this_stage,
+		"streak": streak,
 	}
 
 
@@ -152,4 +171,5 @@ static func deserialize(data: Dictionary):
 	rs.time_purchases = data.get("time_purchases", 0)
 	rs.last_grade = data.get("last_grade", "")
 	rs.interest_earned_this_stage = data.get("interest_earned_this_stage", 0)
+	rs.streak = data.get("streak", 0)
 	return rs

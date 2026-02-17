@@ -7,7 +7,7 @@ extends RefCounted
 # VERSION (bumped by deploy.sh)
 # =============================================================================
 
-const VERSION := "0.2.38"
+const VERSION := "0.2.39"
 
 # =============================================================================
 # SCORING - BASE POINTS
@@ -76,39 +76,63 @@ static var INTEREST_CAP := 5
 static var INTEREST_THRESHOLD := 5
 
 # =============================================================================
-# LETTER GRADES
+# PACE RATING SYSTEM
+# =============================================================================
+# Formula: rating = (RATING_BASE - pace) + clean_bonus + operator_bonus
+# Money = round(rating³ / 100) × streak_mult
+
+## Base value for pace calculation (rating = this - seconds_per_cell)
+static var RATING_BASE := 12.0
+
+## Rating penalty per misstep (restore/uncircle)
+static var MISSTEP_PENALTY := 0.5
+
+## Maximum clean solve bonus (0 missteps)
+static var MAX_CLEAN_BONUS := 2.0
+
+## Divisor to convert operator score bonuses to rating points
+## +50 operator bonus = +1.0 rating
+static var OPERATOR_RATING_DIVISOR := 50.0
+
+## Streak multipliers by consecutive solve count [0, 1, 2, 3, 4+]
+static var STREAK_MULTIPLIERS: Array[float] = [1.0, 1.0, 1.5, 2.0, 3.0]
+
+## Get streak multiplier for given streak count
+static func get_streak_multiplier(streak: int) -> float:
+	var index = mini(streak, STREAK_MULTIPLIERS.size() - 1)
+	return STREAK_MULTIPLIERS[index]
+
+## Calculate clean bonus based on missteps
+static func get_clean_bonus(missteps: int) -> float:
+	return maxf(0.0, MAX_CLEAN_BONUS - missteps * MISSTEP_PENALTY)
+
+# =============================================================================
+# LETTER GRADES (for display, derived from rating)
 # =============================================================================
 
-## Grade thresholds as multiplier of "par score" for puzzle
-## Grade now includes time multiplier, so fast = higher grade
-static var GRADE_THRESHOLDS := {
-	"D": 0.0,    # Any completion
-	"C": 0.5,    # 50% of par
-	"B": 0.75,   # 75% of par
-	"A": 0.9,    # 90% of par (normal speed perfect)
-	"S": 1.1,    # 110% of par (fast perfect)
-	"SS": 1.4    # 140% of par (very fast or operators)
+## Rating thresholds for letter grades
+static var RATING_GRADE_THRESHOLDS := {
+	"SS": 14.0,   # Exceptional (very fast + operators)
+	"S": 12.0,    # Excellent (fast solve)
+	"A": 10.0,    # Great (good pace)
+	"B": 8.0,     # Good (average pace)
+	"C": 6.0,     # Okay (slow pace)
+	"D": 0.0      # Complete (any finish)
 }
 
-## Money multipliers per grade
-static var GRADE_MONEY_MULT := {
-	"D": 0.5,
-	"C": 0.75,
-	"B": 1.0,
-	"A": 1.5,
-	"S": 2.5,
-	"SS": 4.0
-}
-
-## Flat bonus per grade (lower since super-linear formula multiplies it)
-static var GRADE_MONEY_BONUS := {
-	"D": 0,
-	"C": 0,
-	"B": 1,
-	"A": 1,
-	"S": 2,
-	"SS": 4
-}
+## Get letter grade from rating
+static func get_grade_from_rating(rating: float) -> String:
+	if rating >= RATING_GRADE_THRESHOLDS["SS"]:
+		return "SS"
+	if rating >= RATING_GRADE_THRESHOLDS["S"]:
+		return "S"
+	if rating >= RATING_GRADE_THRESHOLDS["A"]:
+		return "A"
+	if rating >= RATING_GRADE_THRESHOLDS["B"]:
+		return "B"
+	if rating >= RATING_GRADE_THRESHOLDS["C"]:
+		return "C"
+	return "D"
 
 # =============================================================================
 # TIME POOL (shop purchase)
@@ -142,7 +166,11 @@ static func reset_to_defaults() -> void:
 	INTEREST_CAP = 5
 	INTEREST_THRESHOLD = 5
 	TIME_PURCHASE_AMOUNT = 15
-	# Note: Dictionaries (GRADE_*) don't need resetting as they're constants
+	# Pace rating
+	RATING_BASE = 12.0
+	MISSTEP_PENALTY = 0.5
+	MAX_CLEAN_BONUS = 2.0
+	OPERATOR_RATING_DIVISOR = 50.0
 
 
 ## Check if running in test mode (debug server active)
