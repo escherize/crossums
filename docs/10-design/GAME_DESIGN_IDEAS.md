@@ -51,40 +51,59 @@ That's it. Two currencies.
 
 ---
 
-## Scoring System
+## Scoring System: Pace Rating
 
-### Base Formula
+### Formula
 
 ```
-score = (kept_cells × base_points) × time_multiplier × operator_multipliers
+pace = time_used / cell_count        // seconds per cell
+pace_rating = 12 - pace              // faster = higher
+clean_bonus = max(0, 2.0 - missteps × 0.5)  // 0 missteps = +2.0, 4+ = 0
+operator_bonus = operator_score / 50
+total_rating = pace_rating + clean_bonus + operator_bonus
+money = round(rating³ / 100) × streak_mult
 ```
 
 ### Components
 
-| Component | Description |
-|-----------|-------------|
-| **Kept cells** | Cells remaining after solution (fixed by puzzle) |
-| **Base points** | Points per kept cell (scales with grid size) |
-| **Time multiplier** | Starts at 2.0×, decays to 1.0× over time |
-| **Operator multipliers** | Bonuses from equipped operators |
+| Component | Formula | Range |
+|-----------|---------|-------|
+| **Pace Rating** | `12 - (time/cells)` | ~7-12 typically |
+| **Clean Bonus** | `max(0, 2.0 - missteps × 0.5)` | 0-2 |
+| **Operator Bonus** | `operator_score / 50` | varies |
+| **Streak Mult** | `[1.0, 1.0, 1.5, 2.0, 3.0][streak]` | 1-3x |
 
-### Score → Money Conversion
+### Missteps
 
-```
-money_earned = floor(score / SCORE_TO_MONEY_DIVISOR)
-```
+A "misstep" is recorded when the player changes their mind:
+- Delete a cell, then restore it
+- Circle a cell, then uncircle it
+- Use the undo button
 
-Default divisor: 100 (so 500 points = $5)
+**Streak breaks at 4+ missteps** - you lose the multiplier AND reset to 0.
 
-### Exponential Scaling
+### Letter Grades (from Rating)
 
-Score can grow exponentially through:
-- Operators that give ×mult (not just +bonus)
-- Stacking multipliers across operators
-- Time multiplier combining with operator multipliers
+| Rating | Grade |
+|--------|-------|
+| 14+ | SS |
+| 12+ | S |
+| 10+ | A |
+| 8+ | B |
+| 6+ | C |
+| <6 | D |
 
-Early game: ~300 points = $3
-Late game with good build: ~10,000+ points = $100+
+### Money Examples
+
+| Scenario | Pace | Clean | Ops | Rating | Money |
+|----------|------|-------|-----|--------|-------|
+| Slow 3x3 | 3s | +2.0 | 0 | 11.0 | $13 |
+| Fast 3x3 | 1s | +2.0 | 0 | 13.0 | $22 |
+| Fast 6x6 | 1s | +2.0 | +1 | 14.0 | $27 |
+| Fast + streak | 1s | +2.0 | 0 | 13.0 | $44 (x2) |
+| Messy solve | 2s | +0.5 | 0 | 10.5 | $11 |
+
+See [score_screen_redesign.md](./score_screen_redesign.md) for full design rationale.
 
 ---
 
@@ -94,10 +113,10 @@ Late game with good build: ~10,000+ points = $100+
 
 Operators should reward **how you play**, not **what the puzzle contains**:
 
-| ✅ Good | ❌ Bad |
-|---------|--------|
+| Good Operator Design | Bad Operator Design |
+|----------------------|---------------------|
 | Speed bonuses | "Keep 7s for bonus" (can't choose) |
-| Precision bonuses (no restores) | "Keep corners" (can't choose) |
+| Clean play bonuses (low missteps) | "Keep corners" (can't choose) |
 | Money multipliers | Cell value transformations |
 | Time manipulation | Rule-breaking (invalid sums OK) |
 

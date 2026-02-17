@@ -39,10 +39,10 @@ Clean solves (0 missteps) earn +2.0 rating bonus.
 
 Streak rewards **consistent clean play**:
 - **0-3 missteps**: Streak continues and you get the streak multiplier
-- **4+ missteps**: Streak broken - you lose the multiplier AND reset to 0
+- **4+ missteps**: Streak broken - you lose the multiplier AND reset to 0 (`STREAK_MISSTEP_THRESHOLD = 4`)
 
 This means sloppy play is punished twice:
-1. No clean bonus (missteps > 4 means clean_bonus = 0)
+1. No clean bonus (4+ missteps means clean_bonus = 0)
 2. No streak multiplier (even if you had built one up)
 
 ### Money Examples
@@ -68,22 +68,32 @@ This means sloppy play is punished twice:
 
 ## Display Format
 
+The result popup shows the full arithmetic breakdown:
+
 ```
 ┌─────────────────────────────┐
 │         PASS!               │
 │           S                 │
 │                             │
-│  PACE: 0.8s/cell ★★★★★★★★★★ │
-│  +2.0 clean solve           │
-│  +1.5 operators             │
-│  ────────────               │
-│  RATING: 14.3 → $29         │
+│  PACE: 0.70 sec/cell        │
+│  Rating: 11.3               │
+│  ───────────                │
+│  Zero missteps!             │
+│  Clean bonus: + 2           │
+│  ───────────                │
+│  Operator bonus: 0          │
+│  ───────────                │
+│  Total Rating:              │
+│  11.3 + 2 = 13.3            │
+│  ───────────                │
+│  round(13.3^3 / 100) = $24  │
 │                             │
-│  $29 × 2.0 = +$58           │
-│         🔥🔥                 │
+│         +$24                │
 │       [Continue]            │
 └─────────────────────────────┘
 ```
+
+With streak multiplier, it shows: `$24 x 1.5 = +$36`
 
 ## Files Modified
 

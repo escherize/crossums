@@ -45,14 +45,18 @@
 
 | Feature | Status | Notes |
 |---------|--------|-------|
-| Pace rating system | ✅ | `rating = (12 - time/cells) + clean + ops` |
-| Misstep tracking | ✅ | Restores/uncircles tracked, affects clean bonus |
-| Streak multiplier | ✅ | ×1.5, ×2.0, ×3.0 for consecutive solves |
+| Pace rating system | ✅ | `pace = time/cells`, `pace_rating = 12 - pace` |
+| Misstep tracking | ✅ | Restores/uncircles/undos tracked, affects clean bonus |
+| Clean bonus | ✅ | `max(0, 2.0 - missteps × 0.5)` (0-2 range) |
+| Operator bonus | ✅ | `operator_score / 50` |
+| Total rating | ✅ | `pace_rating + clean_bonus + operator_bonus` |
+| Money calculation | ✅ | `round(rating³ / 100) × streak_mult` |
+| Streak multiplier | ✅ | `[1.0, 1.0, 1.5, 2.0, 3.0]` for consecutive clean solves |
+| Streak break on 4+ missteps | ✅ | `STREAK_MISSTEP_THRESHOLD = 4` |
+| Letter grades | ✅ | Derived from rating (14+=SS, 12+=S, 10+=A, 8+=B, 6+=C, <6=D) |
+| Rating breakdown display | ✅ | Full arithmetic shown: pace, clean bonus, operator bonus, total, money formula |
+| Animated score calculation | ✅ | Step-by-step reveal in result_popup.gd via `show_result_rating()` |
 | Operator scoring hooks | ✅ | `on_cell_kept`, `on_row_complete`, etc. |
-| Rating breakdown display | ✅ | Pace, clean bonus, operators shown |
-| Letter grades | ✅ | Derived from rating (14+=SS, 12+=S, etc.) |
-| Grade affects money | ✅ | Via rating³ / 100 formula |
-| Animated score calculation | ✅ | Step-by-step reveal in result_popup.gd |
 
 ## Operator System (Jokers)
 

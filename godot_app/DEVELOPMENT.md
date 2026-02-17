@@ -51,7 +51,7 @@ Singleton:
 |------|---------|---------------|
 | `scripts/core/puzzle_state.gd` | Grid data structure | `delete_cell()`, `restore_cell()`, `get_current_row_sum()` |
 | `scripts/core/puzzle_logic.gd` | Generation & validation | `generate_puzzle()`, `validate()` |
-| `scripts/core/scoring_engine.gd` | Score calculation | `calculate_score()` → `ScoreBreakdown` |
+| `scripts/core/scoring_engine.gd` | Score calculation | `calculate_rating()` → `RatingBreakdown` |
 | `scenes/puzzle/puzzle_grid.gd` | Main grid controller | `load_puzzle()`, `_on_cell_clicked()` |
 | `scenes/puzzle/grid_cell.gd` | Individual cell UI | `setup()`, `set_cell_state()` |
 | `scenes/puzzle/target_display.gd` | Row/col target UI | `update_current_sum()` |
@@ -80,14 +80,18 @@ Singleton:
 6. Player can find ANY valid solution (not just the generated one)
 ```
 
-## Scoring Formula
+## Scoring Formula (Pace Rating)
 
 ```
-Score = (Base + KeptBonus + OperatorBonus) × TimeMultiplier × OperatorMultiplier
+pace = time_used / cell_count              // seconds per cell
+pace_rating = 12 - pace
+clean_bonus = max(0, 2.0 - missteps × 0.5) // 0 missteps = +2.0, 4+ = 0
+operator_bonus = operator_score / 50
+total_rating = pace_rating + clean_bonus + operator_bonus
+money = round(rating³ / 100) × streak_mult
 
-Base = dim² × 10  (90/160/250/360 for 3x3-6x6)
-KeptBonus = kept_cells × 25
-TimeMultiplier = 2.0 → 1.0 (decays over puzzle duration)
+Streak multipliers: [1.0, 1.0, 1.5, 2.0, 3.0]
+Streak breaks at 4+ missteps (STREAK_MISSTEP_THRESHOLD = 4)
 ```
 
 ## Known Workarounds & Godot Gotchas
@@ -95,7 +99,7 @@ TimeMultiplier = 2.0 → 1.0 (decays over puzzle duration)
 1. **ScoringEngine class not recognized globally** - Use `preload()`:
    ```gdscript
    const ScoringEngineScript = preload("res://scripts/core/scoring_engine.gd")
-   var breakdown = ScoringEngineScript.calculate_score(puzzle)
+   var breakdown = ScoringEngineScript.calculate_rating(puzzle, time_used, operator_score)
    ```
 
 2. **Enum type errors** - Use `const int` instead of `enum`:

@@ -43,9 +43,9 @@ These work because they reward *how* you play, not *what* the puzzle contains:
 | `banker` | Banker | +10% interest on money | Rare | puzzle_end | Passive; doesn't affect puzzle |
 | `thrifty` | Thrifty | -1 cost for shop items | Uncommon | passive | Passive; doesn't affect puzzle |
 | `gold_finder` | Gold Finder | +$1 per completed row | Common | puzzle_end | Simple bonus per row |
-| `perfectionist` | Perfectionist | ×3 score if no restores | Legendary | puzzle_end | Rewards precision (player skill) |
+| `perfectionist` | Perfectionist | ×3 score if 0 missteps | Legendary | puzzle_end | Rewards clean play (player skill) |
 | `speed_demon` | Speed Demon | +100 if solved under 10s | Rare | puzzle_end | Rewards speed (player skill) |
-| `combo_king` | Combo King | +25 per cell without undo | Uncommon | cell_deleted | Rewards flow (player skill) |
+| `combo_king` | Combo King | +25 per cell without misstep | Uncommon | cell_deleted | Rewards decisive play (player skill) |
 | `second_wind` | Second Wind | On timeout: restore timer to 50%, consume this operator | Legendary | on_timeout | Acts as a "life" - one-time save |
 | `phoenix` | Phoenix | On timeout: reset puzzle + timer, consume this operator | Legendary | on_timeout | Acts as a "life" - fresh start |
 
