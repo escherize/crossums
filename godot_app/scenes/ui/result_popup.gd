@@ -84,11 +84,24 @@ func show_result(won: bool, breakdown, target: int, reward: int) -> void:
 	grade_label.add_theme_color_override("font_color", grade_color)
 	grade_label.visible = won  # Only show grade on win
 
-	# Setup par score reference
-	target_label.text = "Par: %d" % target
-	var grade_mult: float = breakdown.grade_mult if breakdown else 1.0
-	if grade_mult != 1.0:
-		reward_label.text = "+$%d (%.1fx grade)" % [reward, grade_mult] if reward > 0 else ""
+	# Hide par score - grade now includes time, so grade IS the comparison
+	target_label.visible = false
+
+	# Build reward text showing super-linear formula: (base + bonus) × mult = total
+	if reward > 0 and breakdown:
+		var base_money: int = int(breakdown.final_score / GameConfig.SCORE_TO_MONEY_DIVISOR)
+		var grade_mult: float = breakdown.grade_mult
+		var grade_bonus: int = breakdown.grade_bonus
+		var grade_str: String = breakdown.grade
+
+		# Super-linear format: ($1 + $2) × 2.5 = +$7
+		if grade_mult != 1.0 or grade_bonus > 0:
+			if grade_bonus > 0:
+				reward_label.text = "($%d + $%d) × %.1f = +$%d" % [base_money, grade_bonus, grade_mult, reward]
+			else:
+				reward_label.text = "$%d × %.1f = +$%d" % [base_money, grade_mult, reward]
+		else:
+			reward_label.text = "+$%d" % reward
 	else:
 		reward_label.text = "+$%d" % reward if reward > 0 else ""
 	reward_label.visible = false  # Show at end
@@ -202,10 +215,8 @@ func _build_breakdown_steps() -> Array:
 
 	# 2. Kept bonus
 	if b.kept_bonus > 0:
-		var kept_text = "+%d cells kept (%d × %d)" % [
-			b.kept_bonus, b.kept_count, GameConfig.KEPT_BONUS_PER_CELL]
 		steps.append({
-			"text": kept_text,
+			"text": "+%d kept bonus" % b.kept_bonus,
 			"type": "add",
 			"value": b.kept_bonus,
 			"apply_mult": false,
@@ -232,11 +243,18 @@ func _build_breakdown_steps() -> Array:
 			"color": Color(0.8, 0.5, 1.0)  # Purple
 		})
 
-	# 6. Time multiplier
+	# 6. Time multiplier (speed bonus)
 	if b.time_multiplier != 1.0:
 		var time_color = Color(0.4, 0.9, 0.9) if b.time_multiplier >= 1.5 else Color(0.7, 0.7, 0.7)
+		var speed_label: String
+		if b.time_multiplier >= 1.8:
+			speed_label = "×%.2f speed (fast!)" % b.time_multiplier
+		elif b.time_multiplier >= 1.5:
+			speed_label = "×%.2f speed (good)" % b.time_multiplier
+		else:
+			speed_label = "×%.2f speed" % b.time_multiplier
 		steps.append({
-			"text": "×%.2f time" % b.time_multiplier,
+			"text": speed_label,
 			"type": "mult",
 			"value": b.time_multiplier,
 			"apply_mult": true,
@@ -288,8 +306,8 @@ func _show_final_state() -> void:
 	# Show final score
 	running_total_label.text = str(_breakdown.final_score)
 
-	# Color based on par score
-	var target_val = int(target_label.text.replace("Par: ", ""))
+	# Color based on perfect score
+	var target_val = int(target_label.text.replace("Perfect: ", ""))
 	if _breakdown.final_score >= target_val:
 		running_total_label.add_theme_color_override("font_color", Color(0.4, 0.9, 0.4))
 	else:

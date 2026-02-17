@@ -43,18 +43,17 @@ class ScoreBreakdown:
 # PAR SCORE & GRADING
 # =============================================================================
 
-## Calculate the "par score" - expected score for perfect solve at mid time mult.
+## Calculate the "par score" - expected score for perfect solve.
 ## Used as baseline for letter grade calculation.
 static func calculate_par_score(puzzle: PuzzleState) -> int:
 	var dim = puzzle.grid_size.x
 	var solution_cells = puzzle.get_solution_cell_count()
 
-	# Par assumes: all solution cells kept, mid-range time mult (1.5x), no operators
+	# Par = base + optimal kept (no time mult - grade compares raw efficiency)
 	var base = dim * dim * GameConfig.BASE_POINTS_PER_CELL
 	var kept = solution_cells * GameConfig.KEPT_BONUS_PER_CELL
-	var par_time_mult = (GameConfig.TIME_MULT_START + GameConfig.TIME_MULT_FLOOR) / 2.0
 
-	return int((base + kept) * par_time_mult)
+	return base + kept
 
 
 ## Calculate letter grade based on score vs par score ratio.
@@ -159,10 +158,10 @@ static func calculate_score(
 	var total_mult = breakdown.time_multiplier * breakdown.operator_mult
 	breakdown.final_score = int(score_before_mult * total_mult)
 
-	# Calculate grade using subtotal (before time multiplier)
-	# This ensures slow solves can't achieve S-grade by keeping extra cells
+	# Calculate grade including time multiplier
+	# Fast perfect = S, slow perfect = B
 	breakdown.par_score = calculate_par_score(puzzle)
-	var grade_score: int = breakdown.subtotal + breakdown.operator_bonus
+	var grade_score: int = int((breakdown.subtotal + breakdown.operator_bonus) * breakdown.time_multiplier)
 	breakdown.grade = calculate_grade(grade_score, breakdown.par_score)
 	breakdown.grade_mult = GameConfig.GRADE_MONEY_MULT[breakdown.grade]
 	breakdown.grade_bonus = GameConfig.GRADE_MONEY_BONUS[breakdown.grade]

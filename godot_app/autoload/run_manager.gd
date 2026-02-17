@@ -102,9 +102,9 @@ func on_puzzle_complete(breakdown_or_score) -> void:
 	var grade_mult: float = GameConfig.GRADE_MONEY_MULT.get(grade, 1.0)
 	var grade_bonus: int = GameConfig.GRADE_MONEY_BONUS.get(grade, 0)
 
-	# Convert score to money with grade multiplier
+	# Convert score to money with super-linear formula: (base + bonus) × mult
 	var base_money: int = int(score / GameConfig.SCORE_TO_MONEY_DIVISOR)
-	var score_money: int = int(base_money * grade_mult) + grade_bonus
+	var score_money: int = int((base_money + grade_bonus) * grade_mult)
 	var reward: int = score_money + money_bonus
 
 	# Store grade for display

@@ -1,7 +1,7 @@
 # Implementation Status
 
 > Cross-reference of design docs vs actual code implementation
-> Last updated: 2026-02-15
+> Last updated: 2026-02-16
 
 ---
 
@@ -50,8 +50,8 @@
 | Time multiplier (decaying) | ✅ | 2.0x → 1.0x over puzzle duration |
 | Operator scoring hooks | ✅ | `on_cell_kept`, `on_row_complete`, etc. |
 | Score breakdown display | ✅ | Summary shown on win |
-| Letter grades | ✅ | Based on subtotal (before time mult) vs par |
-| Grade affects money | ✅ | Multiplier + flat bonus per grade |
+| Letter grades | ✅ | Based on (subtotal + ops) × time_mult vs par |
+| Grade affects money | ✅ | Super-linear: (base + bonus) × mult |
 | Animated score calculation | ❌ | No step-by-step Balatro-style reveal |
 | Streak multiplier | ❌ | Config exists, not wired up |
 
@@ -98,7 +98,7 @@
 | 3 puzzles per stage | ✅ | `puzzle_index` 0-2 |
 | Grid size progression | ✅ | 3x3 → 6x6 |
 | Lives system | ❌ | Removed; timer timeout is only fail condition |
-| Money system | ✅ | Score/400 = base money, modified by grade |
+| Money system | ✅ | Score/250 = base money, modified by grade |
 | Stage gate | ❌ | Removed; no score requirements to advance |
 | Boss puzzles (special constraints) | ❌ | No special boss rules |
 | Puzzle skipping for tags | ❌ | Not implemented |

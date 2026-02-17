@@ -7,7 +7,7 @@ extends RefCounted
 # VERSION (bumped by deploy.sh)
 # =============================================================================
 
-const VERSION := "0.2.36"
+const VERSION := "0.2.38"
 
 # =============================================================================
 # SCORING - BASE POINTS
@@ -63,8 +63,8 @@ static var TIME_MULT_DECAY_SECONDS := 60.0
 static var STARTING_MONEY := 10
 
 ## Score to money conversion: money = floor(score / divisor)
-## Lower = more money per puzzle. 400 means 500 points = $1.
-static var SCORE_TO_MONEY_DIVISOR := 400
+## Lower = more money per puzzle. 250 means 500 points = $2.
+static var SCORE_TO_MONEY_DIVISOR := 250
 
 ## Interest rate ($ per $5 held)
 static var INTEREST_RATE := 1
@@ -80,13 +80,14 @@ static var INTEREST_THRESHOLD := 5
 # =============================================================================
 
 ## Grade thresholds as multiplier of "par score" for puzzle
+## Grade now includes time multiplier, so fast = higher grade
 static var GRADE_THRESHOLDS := {
 	"D": 0.0,    # Any completion
 	"C": 0.5,    # 50% of par
 	"B": 0.75,   # 75% of par
-	"A": 1.0,    # 100% of par (solve perfectly with good time)
-	"S": 1.5,    # 150% of par
-	"SS": 2.0    # 200% of par (requires speed + operators)
+	"A": 0.9,    # 90% of par (normal speed perfect)
+	"S": 1.1,    # 110% of par (fast perfect)
+	"SS": 1.4    # 140% of par (very fast or operators)
 }
 
 ## Money multipliers per grade
@@ -99,14 +100,14 @@ static var GRADE_MONEY_MULT := {
 	"SS": 4.0
 }
 
-## Flat bonus per grade
+## Flat bonus per grade (lower since super-linear formula multiplies it)
 static var GRADE_MONEY_BONUS := {
 	"D": 0,
 	"C": 0,
 	"B": 1,
-	"A": 3,
-	"S": 8,
-	"SS": 15
+	"A": 1,
+	"S": 2,
+	"SS": 4
 }
 
 # =============================================================================

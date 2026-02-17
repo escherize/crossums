@@ -235,13 +235,13 @@ func _buy_time_for_pool() -> bool:
 
 func _update_time_pool_display() -> void:
 	if GameState.run == null:
-		time_bank_label.text = "Time Pool: 0s"
+		time_bank_label.text = "Time: 0:00"
 		buy_time_button.disabled = true
 		buy_time_button.text = "Buy +%ds ($1)" % GameConfig.TIME_PURCHASE_AMOUNT
 		return
 
 	var pool: int = int(GameState.run.time_pool)
-	time_bank_label.text = "Time Pool: %ds" % pool
+	time_bank_label.text = "Time: %d:%02d" % [pool / 60, pool % 60]
 
 	# Escalating price: $1, $2, $3... based on total purchases this run
 	var price: int = GameConfig.get_time_purchase_price(GameState.run.time_purchases)
