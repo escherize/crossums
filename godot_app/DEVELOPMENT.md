@@ -191,10 +191,15 @@ Examples of commit points:
 
 ---
 
-## Next Implementation Steps
+## Current Status
 
-See plan file for details. Summary:
+Core systems implemented:
+- ✅ Puzzle solving with single-solution generation
+- ✅ 8-stage run progression
+- ✅ Timer as fail condition (no lives system)
+- ✅ 9 operators with scoring hooks
+- ✅ Shop system with buy/sell/reroll
+- ✅ Score animation (Balatro-style breakdown)
+- ✅ Sound effects via SoundManager
 
-1. **Step 2: Score Target Display** - Show target score before puzzle, PASS/FAIL
-2. **Step 3: Run Structure** - Stages, lives, progression
-3. **Phase 4: Operators** - Balatro-style modifiers that affect scoring
+See `docs/30-technical/implementation_status.md` for detailed feature status.

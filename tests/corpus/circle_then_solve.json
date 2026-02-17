@@ -153,10 +153,10 @@
       }
     },
     {
-      "comment": "Puzzle should be solved - circled cells count toward sums"
+      "comment": "Puzzle should be auto-won - circled cells count toward sums"
     },
     {
-      "assert": "assert_valid"
+      "assert": "assert_puzzle_complete"
     }
   ]
 }

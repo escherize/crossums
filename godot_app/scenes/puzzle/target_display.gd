@@ -28,6 +28,7 @@ var orientation: int = ORIENTATION_ROW
 var index: int = 0  ## Row or column index
 var target: int = 0
 var current_sum: int = 0
+var circle_solved: bool = false  ## True if circled cells alone sum to target
 var status: int = STATUS_WRONG
 var label: Label
 var circ_label: Label  ## Shows sum of circled cells
@@ -92,12 +93,18 @@ func update_circled_sum(sum: int) -> void:
 	if circ_label:
 		circ_label.text = "" if sum == 0 else str(sum)
 
+
+func update_circle_solved(is_circle_solved: bool) -> void:
+	circle_solved = is_circle_solved
+	_update_status()
+	_update_appearance()
+
 # =============================================================================
 # PRIVATE METHODS
 # =============================================================================
 
 func _update_status() -> void:
-	if current_sum == target:
+	if current_sum == target or circle_solved:
 		status = STATUS_EXACT
 	else:
 		status = STATUS_WRONG

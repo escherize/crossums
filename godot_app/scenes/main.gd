@@ -414,5 +414,3 @@ func _complete_puzzle() -> void:
 
 	# Notify RunManager with time used (calculates rating internally)
 	RunManager.on_puzzle_complete_rating(time_used)
-
-

@@ -1,0 +1,50 @@
+{
+  "name": "circle_row_solved",
+  "description": "Circling all solution cells in a row shows that row target as solved (green)",
+  "setup": {
+    "size": 3,
+    "start_board": {
+      "size": 3,
+      "row_targets": [7, 5, 5],
+      "col_targets": [5, 4, 8],
+      "cells": [
+        [{"value": 1}, {"value": 2}, {"value": 5}],
+        [{"value": 4}, {"value": 2}, {"value": 3}],
+        [{"value": 5}, {"value": 6}, {"value": 6}]
+      ]
+    }
+  },
+  "steps": [
+    {"comment": "Row 0 solution: cells (0,1)=2 and (0,2)=5, sum=7=target"},
+    {"comment": "Initially row 0 is not circle-solved"},
+    {
+      "action": "get_row_sum",
+      "params": {"row": 0},
+      "expect": {"circle_solved": false}
+    },
+    {"comment": "Circle first solution cell (0,1)"},
+    {
+      "action": "circle_cell",
+      "params": {"row": 0, "col": 1}
+    },
+    {"comment": "Still not solved - only circled sum is 2, target is 7"},
+    {
+      "action": "get_row_sum",
+      "params": {"row": 0},
+      "expect": {"circle_solved": false}
+    },
+    {"comment": "Circle second solution cell (0,2)"},
+    {
+      "action": "circle_cell",
+      "params": {"row": 0, "col": 2}
+    },
+    {"comment": "Now circled sum is 2+5=7=target, so circle_solved should be true"},
+    {
+      "action": "get_row_sum",
+      "params": {"row": 0},
+      "expect": {"circle_solved": true, "valid": false}
+    },
+    {"comment": "Note: valid=false because current_sum (1+2+5=8) != target (7)"},
+    {"comment": "But circle_solved=true means the target should display as green"}
+  ]
+}

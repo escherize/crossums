@@ -92,8 +92,11 @@ func on_puzzle_complete_rating(time_used: float) -> void:
 		GameState.run.streak
 	)
 
-	# Update streak (successful solve)
-	GameState.run.increment_streak()
+	# Update streak: only continues if solve was clean enough
+	if breakdown.misstep_count < GameConfig.STREAK_MISSTEP_THRESHOLD:
+		GameState.run.increment_streak()
+	else:
+		GameState.run.reset_streak()
 
 	# Store grade for display
 	GameState.run.last_grade = breakdown.grade

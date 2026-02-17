@@ -15,15 +15,18 @@ Puzzle game combining crosswords with sum-based logic.
 ## Start Here
 
 **New to the project?** Read these in order:
-1. [20-product/mvp.md](./20-product/mvp.md) — What we're building
-2. [10-design/GAME_DESIGN_IDEAS.md](./10-design/GAME_DESIGN_IDEAS.md) — Core mechanics
-3. [30-technical/ARCHITECTURE_PLAN.md](./30-technical/ARCHITECTURE_PLAN.md) — How it's built
+1. [10-design/GAME_DESIGN_IDEAS.md](./10-design/GAME_DESIGN_IDEAS.md) — Core mechanics & design decisions
+2. [30-technical/implementation_status.md](./30-technical/implementation_status.md) — What's built vs planned
+3. [10-design/OPERATORS.md](./10-design/OPERATORS.md) — Operator system details
 
 **Daily work?** Check:
-- [00-meta/MASTER_TODO.md](./00-meta/MASTER_TODO.md) — Active tasks
-- [00-meta/worklog.md](./00-meta/worklog.md) — What happened when
-- [30-technical/implementation_status.md](./30-technical/implementation_status.md) — What's done vs todo
+- [00-meta/MASTER_TODO.md](./00-meta/MASTER_TODO.md) — Active tasks (single source of truth)
+- [30-technical/implementation_status.md](./30-technical/implementation_status.md) — Feature status
+
+**Reference:**
+- [30-technical/GAME_CLI.md](./30-technical/GAME_CLI.md) — Debug CLI commands
+- [20-product/GTM_STRATEGY.md](./20-product/GTM_STRATEGY.md) — Launch planning
 
 ---
 
-*Docs organized: 2026-02-07*
+*Docs organized: 2026-02-07 | Audit cleanup: 2026-02-16*

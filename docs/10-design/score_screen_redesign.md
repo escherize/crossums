@@ -35,6 +35,16 @@ A "misstep" is recorded when the player changes their mind:
 
 Clean solves (0 missteps) earn +2.0 rating bonus.
 
+### Streak & Missteps
+
+Streak rewards **consistent clean play**:
+- **0-3 missteps**: Streak continues and you get the streak multiplier
+- **4+ missteps**: Streak broken - you lose the multiplier AND reset to 0
+
+This means sloppy play is punished twice:
+1. No clean bonus (missteps > 4 means clean_bonus = 0)
+2. No streak multiplier (even if you had built one up)
+
 ### Money Examples
 
 | Scenario | Pace | Clean | Ops | Rating | Money |

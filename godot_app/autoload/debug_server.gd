@@ -588,7 +588,8 @@ func _action_get_row_sum(params: Dictionary) -> Dictionary:
 		"current": current_sum,
 		"target": target,
 		"delta": current_sum - target,
-		"valid": current_sum == target
+		"valid": current_sum == target,
+		"circle_solved": puzzle_state.is_row_solved_by_circles(row)
 	}
 
 
@@ -613,7 +614,8 @@ func _action_get_col_sum(params: Dictionary) -> Dictionary:
 		"current": current_sum,
 		"target": target,
 		"delta": current_sum - target,
-		"valid": current_sum == target
+		"valid": current_sum == target,
+		"circle_solved": puzzle_state.is_col_solved_by_circles(col)
 	}
 
 

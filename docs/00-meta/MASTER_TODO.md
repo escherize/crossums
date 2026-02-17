@@ -20,20 +20,17 @@
 ## Priority 1: MVP Blockers
 
 ### 1.1 Sound Effects
-**Status:** Done with decent sound effects
+**Status:** ✅ Done
 
-The game is completely silent. This is the most noticeable gap.
+SoundManager implemented with configurable mappings. Audio files gitignored.
 
 **Acceptance Criteria:**
-- [ ] Cell delete/restore produces a click sound
-- [ ] Row/column turning green produces a "ding" sound
-- [ ] Puzzle complete triggers a fanfare
-- [ ] Money gain/loss has coin sounds
-- [ ] Mistake/life loss plays error sound
-- [ ] Sounds don't overlap or cause audio issues
-- [ ] Volume is balanced (no sound is jarring)
-
-**Assets needed:** 5-6 basic SFX (Freesound, Kenney, etc.)
+- [x] Cell delete/restore produces a click sound
+- [x] Row/column turning green produces a "ding" sound
+- [x] Puzzle complete triggers a fanfare
+- [x] Money gain/loss has coin sounds
+- [x] Sounds don't overlap or cause audio issues
+- [x] Volume is balanced (no sound is jarring)
 
 ---
 
@@ -78,20 +75,28 @@ Implemented step-by-step score breakdown reveal.
 ---
 
 ### 1.5 More Operators (10 minimum)
-**Status:** 🚧 Have 7, need more
-**Impact:** HIGH | **Effort:** MEDIUM
+**Status:** 🚧 Have 9, need 1 more
+**Impact:** HIGH | **Effort:** LOW
 
-Need more operators for variety. Note: Several operators were removed because they conflicted with single-solution puzzle design (rewarding keeping specific cells when there's no choice).
+Need 1 more operator to hit MVP target of 10. Several operators were removed because they conflicted with single-solution puzzle design.
 
 **Acceptance Criteria:**
 - [ ] At least 10 distinct operators in registry
-- [ ] Mix of rarities (Common, Uncommon, Rare)
-- [ ] Mix of trigger types (cell_kept, row_complete, puzzle_end)
+- [x] Mix of rarities (Common, Uncommon, Rare)
+- [x] Mix of trigger types (cell_kept, row_complete, puzzle_end)
 - [ ] All operators have tests
-- [ ] Shop shows variety in typical run
+- [x] Shop shows variety in typical run
 
-**Current operators (7):**
-1. Counter (+10 per kept), 2. Row Master (+50 per row), 3. Column Master (+50 per col), 4. Circlicious (+$2 circled/-$1 deleted), 5. Elite Delete (+$2 deleted/-$1 circled), 6. Purist (+300 if no circles), 7. Gimme (auto-solve last cell)
+**Current operators (9):**
+1. Counter (+10 per kept)
+2. Row Master (+50 per row)
+3. Column Master (+50 per col)
+4. Circlicious (+$2 circled/-$1 deleted)
+5. Elite Delete (+$2 deleted/-$1 circled)
+6. Purist (+300 if no circles)
+7. Gimme (auto-solve last cell)
+8. Sum Sight (show running sums on targets)
+9. Safety Net (solved rows/cols glow green)
 
 ---
 
@@ -536,3 +541,17 @@ acceptnace criteria: UX analysis about the "hold to circle" button.
 What do we need to be able to actually make this into an app on the appstore?
 
 acceptnace criteria: actionable steps we need to take. there is some existing. synthesize our new analysis with what is in the docs directory
+
+# User Feedback (start here)
+
+One mechanic that we havn't implemented, it should be built-in from the get go, is: if there is a row or column and the set of circled cells for it sums to that row/col target, we should consider the target as being Solved. (green, and possible to pass the level this way). 
+
+acceptance criteria is a test that only circles values and solves a puzzle
+
+# next todos:
+
+- $15(? it is very good) operator to auto-circle all active row/col cells when the active (including circled) cells sum to their target
+
+- $15(? it is very good) operator to auto-delete all active row/col cells when the circled cells sum to their target 
+
+- ""circling"" a cell should be clearer than just a light blue outline. Let's make it clearer that this is a cell we want to save.

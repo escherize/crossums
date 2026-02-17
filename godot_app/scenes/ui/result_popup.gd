@@ -25,10 +25,11 @@ const GRADE_COLORS := {
 # STATE
 # =============================================================================
 
-var _breakdown = null  # ScoringEngine.ScoreBreakdown
+var _breakdown = null  # ScoringEngine.ScoreBreakdown or RatingBreakdown
 var _animation_complete := false
 var _skip_requested := false
 var _current_tween: Tween = null
+var _is_rating_mode := false  # true for new rating system, false for legacy
 
 # =============================================================================
 # NODE REFERENCES
@@ -56,7 +57,10 @@ func _on_continue_pressed() -> void:
 		_skip_requested = true
 		if _current_tween:
 			_current_tween.kill()
-		_show_final_state()
+		if _is_rating_mode:
+			_show_final_rating_state(_breakdown)
+		else:
+			_show_final_state()
 	else:
 		continue_pressed.emit()
 
@@ -68,6 +72,7 @@ func show_result(won: bool, breakdown, target: int, reward: int) -> void:
 	_breakdown = breakdown
 	_animation_complete = false
 	_skip_requested = false
+	_is_rating_mode = false
 
 	# Setup header
 	if won:
@@ -330,6 +335,7 @@ func show_result_rating(won: bool, breakdown) -> void:
 	_breakdown = breakdown
 	_animation_complete = false
 	_skip_requested = false
+	_is_rating_mode = true
 
 	# Setup header
 	if won:
@@ -349,11 +355,7 @@ func show_result_rating(won: bool, breakdown) -> void:
 	# Hide old target label
 	target_label.visible = false
 
-	# Setup reward with streak
-	if breakdown.streak_mult > 1.0:
-		reward_label.text = "$%d × %.1f = +$%d" % [breakdown.base_money, breakdown.streak_mult, breakdown.final_money]
-	else:
-		reward_label.text = "+$%d" % breakdown.final_money
+	# Hide reward label initially (shown at end with streak if applicable)
 	reward_label.visible = false
 
 	# Clear previous breakdown
@@ -376,53 +378,64 @@ func show_result_rating(won: bool, breakdown) -> void:
 
 
 func _build_rating_steps(b) -> Array:
-	## Build breakdown steps for pace rating display
+	## Build breakdown steps for pace rating display (educational format)
 	var steps: Array = []
 
-	# 1. Pace rating (main component)
-	var pace_stars := _get_pace_stars(b.pace)
+	# 1. Pace and base rating
 	steps.append({
-		"text": "PACE: %.1fs/cell %s" % [b.pace, pace_stars],
+		"text": "PACE: %.2f sec/cell" % b.pace,
 		"color": Color(0.4, 0.9, 0.9) if b.pace < 1.5 else Color.WHITE
 	})
+	steps.append({
+		"text": "Rating: %.1f" % b.pace_rating,
+		"color": Color.WHITE
+	})
+	steps.append({"text": "───────────", "color": Color(0.5, 0.5, 0.5)})
 
-	# 2. Clean bonus (if any)
-	if b.clean_bonus > 0:
-		var clean_text: String
-		if b.misstep_count == 0:
-			clean_text = "+%.1f clean solve" % b.clean_bonus
+	# 2. Missteps and clean bonus
+	if b.misstep_count == 0:
+		steps.append({"text": "Zero missteps!", "color": Color(0.5, 1.0, 0.5)})
+		steps.append({"text": "Clean bonus: + 2", "color": Color(0.5, 1.0, 0.5)})
+	else:
+		steps.append({
+			"text": "%d misstep%s" % [b.misstep_count, "s" if b.misstep_count > 1 else ""],
+			"color": Color(0.8, 0.8, 0.5) if b.misstep_count <= 2 else Color(0.6, 0.6, 0.6)
+		})
+		if b.clean_bonus > 0:
+			steps.append({
+				"text": "Clean bonus: + %.1f" % b.clean_bonus,
+				"color": Color(0.8, 0.8, 0.5)
+			})
 		else:
-			clean_text = "+%.1f (%d missteps)" % [b.clean_bonus, b.misstep_count]
-		steps.append({
-			"text": clean_text,
-			"color": Color(0.5, 1.0, 0.5) if b.misstep_count == 0 else Color(0.8, 0.8, 0.5)
-		})
-	elif b.misstep_count > 0:
-		steps.append({
-			"text": "+0.0 (%d missteps)" % b.misstep_count,
-			"color": Color(0.6, 0.6, 0.6)
-		})
+			steps.append({"text": "Clean bonus: 0", "color": Color(0.6, 0.6, 0.6)})
+	steps.append({"text": "───────────", "color": Color(0.5, 0.5, 0.5)})
 
-	# 3. Operator bonus (if any)
+	# 3. Operator bonus
 	if b.operator_rating_bonus > 0:
-		steps.append({
-			"text": "+%.1f operators" % b.operator_rating_bonus,
-			"color": Color(0.8, 0.5, 1.0)
-		})
-		# Show individual operators
 		for op_detail in b.operator_details:
 			steps.append({
-				"text": "  +%d %s" % [op_detail.bonus, op_detail.name],
-				"color": Color(0.7, 0.5, 0.9)
+				"text": "%s: + %.1f" % [op_detail.name, op_detail.bonus / 50.0],
+				"color": Color(0.8, 0.5, 1.0)
 			})
+	else:
+		steps.append({"text": "Operator bonus: 0", "color": Color(0.6, 0.6, 0.6)})
+	steps.append({"text": "───────────", "color": Color(0.5, 0.5, 0.5)})
 
-	# 4. Streak multiplier (if active)
-	if b.streak > 1:
-		var streak_flames := "🔥".repeat(mini(b.streak, 5))
-		steps.append({
-			"text": "× %.1f streak %s" % [b.streak_mult, streak_flames],
-			"color": Color(1.0, 0.6, 0.2)
-		})
+	# 4. Total rating calculation
+	var parts: Array[String] = []
+	parts.append("%.1f" % b.pace_rating)
+	if b.clean_bonus > 0:
+		parts.append("%.1f" % b.clean_bonus)
+	if b.operator_rating_bonus > 0:
+		parts.append("%.1f" % b.operator_rating_bonus)
+	var formula: String = " + ".join(parts) + " = %.1f" % b.total_rating
+	steps.append({"text": "Total Rating:", "color": Color.WHITE})
+	steps.append({"text": formula, "color": Color(1.0, 0.9, 0.4)})
+	steps.append({"text": "───────────", "color": Color(0.5, 0.5, 0.5)})
+
+	# 5. Money calculation
+	var money_formula: String = "round(%.1f³ / 100) = $%d" % [b.total_rating, b.base_money]
+	steps.append({"text": money_formula, "color": Color(0.4, 0.9, 0.4)})
 
 	return steps
 
@@ -438,11 +451,9 @@ func _get_pace_stars(pace: float) -> String:
 func _animate_rating_reveal(b, steps: Array) -> void:
 	## Animate the pace rating breakdown reveal
 	var children = breakdown_container.get_children()
-	var running_rating: float = 0.0
 
-	# Start with pace rating
-	running_rating = b.pace_rating
-	_animate_rating_total(running_rating)
+	# Hide running total during animation (we show full breakdown instead)
+	running_total_label.visible = false
 
 	for i in range(steps.size()):
 		if _skip_requested:
@@ -453,15 +464,11 @@ func _animate_rating_reveal(b, steps: Array) -> void:
 			_current_tween = create_tween()
 			_current_tween.tween_property(line, "modulate:a", 1.0, 0.2)
 
-		# Update running total based on step
-		if i == 1 and b.clean_bonus > 0:
-			running_rating += b.clean_bonus
-			_animate_rating_total(running_rating)
-		elif i == 2 and b.operator_rating_bonus > 0:
-			running_rating += b.operator_rating_bonus
-			_animate_rating_total(running_rating)
+		# Faster reveal for separator lines
+		var is_separator: bool = steps[i].text.begins_with("───")
+		var delay: float = STEP_DELAY * 0.3 if is_separator else STEP_DELAY * 0.5
 
-		await get_tree().create_timer(STEP_DELAY * 0.7).timeout
+		await get_tree().create_timer(delay).timeout
 
 		if _skip_requested:
 			break
@@ -501,14 +508,30 @@ func _show_final_rating_state(b) -> void:
 		var line = _create_breakdown_line(step.text, step.color)
 		breakdown_container.add_child(line)
 
-	# Show final rating
-	running_total_label.text = "%.1f → $%d" % [b.total_rating, b.base_money]
+	# Show final money as the BIG number
+	running_total_label.visible = true
+	var streak_broken: bool = b.misstep_count >= GameConfig.STREAK_MISSTEP_THRESHOLD
+
+	if streak_broken:
+		# Streak broken due to missteps - show warning
+		running_total_label.text = "+$%d" % b.final_money
+		reward_label.text = "Streak broken!"
+		reward_label.add_theme_color_override("font_color", Color(0.9, 0.5, 0.5))
+		reward_label.visible = true
+	elif b.streak_mult > 1.0:
+		# With streak: show multiplied result
+		var streak_flames: String = "🔥".repeat(mini(b.streak, 5))
+		running_total_label.text = "+$%d" % b.final_money
+		reward_label.text = "$%d × %.1f %s" % [b.base_money, b.streak_mult, streak_flames]
+		reward_label.add_theme_color_override("font_color", Color(1.0, 0.6, 0.2))
+		reward_label.visible = true
+	else:
+		# No streak: just show the money
+		running_total_label.text = "+$%d" % b.final_money
+		reward_label.visible = false
 
 	# Color based on grade
 	var grade_color = GRADE_COLORS.get(b.grade, Color.WHITE)
 	running_total_label.add_theme_color_override("font_color", grade_color)
-
-	# Show reward
-	reward_label.visible = true
 
 	continue_button.text = "Continue"

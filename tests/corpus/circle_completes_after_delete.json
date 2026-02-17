@@ -1,0 +1,26 @@
+{
+  "name": "circle_completes_after_delete",
+  "description": "Delete cells to get close, then circle action triggers win via is_solved_by_circles",
+  "setup": {
+    "size": 3,
+    "start_board": {
+      "size": 3,
+      "row_targets": [7, 5, 5],
+      "col_targets": [5, 4, 8],
+      "cells": [
+        [{"value": 1}, {"value": 2}, {"value": 5}],
+        [{"value": 4}, {"value": 2}, {"value": 3}],
+        [{"value": 5}, {"value": 6}, {"value": 6}]
+      ]
+    }
+  },
+  "steps": [
+    {"comment": "Delete all non-solution cells first"},
+    {"action": "delete_cell", "params": {"row": 0, "col": 0}},
+    {"action": "delete_cell", "params": {"row": 1, "col": 0}},
+    {"action": "delete_cell", "params": {"row": 2, "col": 1}},
+    {"action": "delete_cell", "params": {"row": 2, "col": 2}},
+    {"comment": "Puzzle should ALREADY be solved at this point via validate()"},
+    {"assert": "assert_puzzle_complete"}
+  ]
+}

@@ -266,6 +266,7 @@ func _update_all_targets() -> void:
 	for row in range(puzzle_state.grid_size.y):
 		var current_sum = puzzle_state.get_current_row_sum(row)
 		row_targets[row].update_current_sum(current_sum)
+		row_targets[row].update_circle_solved(puzzle_state.is_row_solved_by_circles(row))
 		solved_rows.append(current_sum == puzzle_state.row_targets[row])
 		if show_circled_sums:
 			row_targets[row].update_circled_sum(puzzle_state.get_circled_row_sum(row))
@@ -276,6 +277,7 @@ func _update_all_targets() -> void:
 	for col in range(puzzle_state.grid_size.x):
 		var current_sum = puzzle_state.get_current_col_sum(col)
 		col_targets[col].update_current_sum(current_sum)
+		col_targets[col].update_circle_solved(puzzle_state.is_col_solved_by_circles(col))
 		solved_cols.append(current_sum == puzzle_state.col_targets[col])
 		if show_circled_sums:
 			col_targets[col].update_circled_sum(puzzle_state.get_circled_col_sum(col))

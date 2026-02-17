@@ -124,7 +124,8 @@ static func calculate_rating(
 	breakdown.operator_rating_bonus = op_score_total / GameConfig.OPERATOR_RATING_DIVISOR
 
 	# Total rating
-	breakdown.total_rating = breakdown.pace_rating + breakdown.clean_bonus + breakdown.operator_rating_bonus
+	breakdown.total_rating = (breakdown.pace_rating + breakdown.clean_bonus
+		+ breakdown.operator_rating_bonus)
 
 	# Grade from rating
 	breakdown.grade = GameConfig.get_grade_from_rating(breakdown.total_rating)
@@ -132,9 +133,13 @@ static func calculate_rating(
 	# Money calculation: rating³ / 100
 	breakdown.base_money = int(round(pow(maxf(0.0, breakdown.total_rating), 3) / 100.0))
 
-	# Streak multiplier
+	# Streak multiplier (only applied if solve was clean enough)
 	breakdown.streak = streak
-	breakdown.streak_mult = GameConfig.get_streak_multiplier(streak)
+	if breakdown.misstep_count >= GameConfig.STREAK_MISSTEP_THRESHOLD:
+		# Too many missteps - lose streak bonus
+		breakdown.streak_mult = 1.0
+	else:
+		breakdown.streak_mult = GameConfig.get_streak_multiplier(streak)
 	breakdown.final_money = int(round(breakdown.base_money * breakdown.streak_mult))
 
 	return breakdown

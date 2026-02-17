@@ -1,0 +1,50 @@
+{
+  "name": "circle_col_solved",
+  "description": "Circling all solution cells in a column shows that column target as solved (green)",
+  "setup": {
+    "size": 3,
+    "start_board": {
+      "size": 3,
+      "row_targets": [7, 5, 5],
+      "col_targets": [5, 4, 8],
+      "cells": [
+        [{"value": 1}, {"value": 2}, {"value": 5}],
+        [{"value": 4}, {"value": 2}, {"value": 3}],
+        [{"value": 5}, {"value": 6}, {"value": 6}]
+      ]
+    }
+  },
+  "steps": [
+    {"comment": "Column 1 solution: cells (0,1)=2 and (1,1)=2, sum=4=target"},
+    {"comment": "Initially col 1 is not circle-solved"},
+    {
+      "action": "get_col_sum",
+      "params": {"col": 1},
+      "expect": {"circle_solved": false}
+    },
+    {"comment": "Circle first solution cell (0,1)"},
+    {
+      "action": "circle_cell",
+      "params": {"row": 0, "col": 1}
+    },
+    {"comment": "Still not solved - only circled sum is 2, target is 4"},
+    {
+      "action": "get_col_sum",
+      "params": {"col": 1},
+      "expect": {"circle_solved": false}
+    },
+    {"comment": "Circle second solution cell (1,1)"},
+    {
+      "action": "circle_cell",
+      "params": {"row": 1, "col": 1}
+    },
+    {"comment": "Now circled sum is 2+2=4=target, so circle_solved should be true"},
+    {
+      "action": "get_col_sum",
+      "params": {"col": 1},
+      "expect": {"circle_solved": true, "valid": false}
+    },
+    {"comment": "Note: valid=false because current_sum (2+2+6=10) != target (4)"},
+    {"comment": "But circle_solved=true means the target should display as green"}
+  ]
+}

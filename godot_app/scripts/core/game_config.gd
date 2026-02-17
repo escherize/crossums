@@ -7,7 +7,7 @@ extends RefCounted
 # VERSION (bumped by deploy.sh)
 # =============================================================================
 
-const VERSION := "0.2.39"
+const VERSION := "0.2.41"
 
 # =============================================================================
 # SCORING - BASE POINTS
@@ -96,6 +96,9 @@ static var OPERATOR_RATING_DIVISOR := 50.0
 
 ## Streak multipliers by consecutive solve count [0, 1, 2, 3, 4+]
 static var STREAK_MULTIPLIERS: Array[float] = [1.0, 1.0, 1.5, 2.0, 3.0]
+
+## Maximum missteps allowed to continue streak (4+ missteps = streak breaks)
+static var STREAK_MISSTEP_THRESHOLD := 4
 
 ## Get streak multiplier for given streak count
 static func get_streak_multiplier(streak: int) -> float:
