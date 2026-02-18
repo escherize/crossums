@@ -84,6 +84,7 @@ func _connect_signals() -> void:
 	EventBus.cell_deleted.connect(_on_cell_deleted)
 	EventBus.cell_restored.connect(_on_cell_restored)
 	EventBus.cell_circled.connect(func(_r, _c): _check_auto_win())
+	EventBus.cell_uncircled.connect(func(_r, _c): _check_auto_win())
 	EventBus.state_changed.connect(_refresh_hud)
 	EventBus.money_changed.connect(func(_a, _b): _refresh_hud())
 

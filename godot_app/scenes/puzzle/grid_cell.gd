@@ -17,13 +17,13 @@ signal cell_long_pressed(row: int, col: int)
 const COLOR_ACTIVE := Color(0.2, 0.25, 0.35)       # Dark blue-gray
 const COLOR_ACTIVE_HOVER := Color(0.3, 0.35, 0.45) # Lighter on hover
 const COLOR_DELETED := Color(0.15, 0.15, 0.15)     # Dark gray
-const COLOR_CIRCLED := Color(0.2, 0.25, 0.35)      # Same as active (border shows state)
-const COLOR_CIRCLED_BORDER := Color(0.3, 0.7, 0.9) # Cyan border for circled
+const COLOR_CIRCLED := Color(0.15, 0.32, 0.42)     # Teal-tinted background (distinct from active)
+const COLOR_CIRCLED_BORDER := Color(0.4, 0.9, 1.0) # Bright cyan border
 const COLOR_PROTECTED_TINT := Color(0.6, 1.0, 0.6) # Light green tint for safety net
 
 const TEXT_COLOR_ACTIVE := Color(0.95, 0.95, 0.95) # White
 const TEXT_COLOR_DELETED := Color(0.4, 0.4, 0.4)   # Gray
-const TEXT_COLOR_CIRCLED := Color(0.7, 0.9, 1.0)   # Light cyan
+const TEXT_COLOR_CIRCLED := Color(0.85, 1.0, 1.0)  # Bright cyan-white
 
 const DEFAULT_SIZE := Vector2(96, 96)
 const FONT_SIZE := 36
@@ -74,6 +74,22 @@ func _ready() -> void:
 
 
 func _gui_input(event: InputEvent) -> void:
+	# Handle touch directly (bypasses unreliable button_up emulation on mobile web)
+	if event is InputEventScreenTouch:
+		var touch := event as InputEventScreenTouch
+		if touch.index == 0:  # Primary touch only (multitouch handled by PuzzleGrid)
+			if touch.pressed:
+				_is_pressing = true
+				_long_press_triggered = false
+				_press_start_time = Time.get_ticks_msec()
+			else:
+				# Touch released - emit click if not long press
+				if _is_pressing and not _long_press_triggered:
+					cell_clicked.emit(row, col)
+				_is_pressing = false
+			accept_event()
+			return
+
 	if event is InputEventMouseButton:
 		# Right-click = circle (mouse)
 		if event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
@@ -184,6 +200,7 @@ func _update_appearance() -> void:
 
 	var border_color: Color = Color.TRANSPARENT
 	var border_width: int = 0
+	var corner_radius: int = 4
 
 	match cell_state:
 		PuzzleState.CellState.ACTIVE:
@@ -198,7 +215,8 @@ func _update_appearance() -> void:
 			bg_color = COLOR_CIRCLED
 			text_color = TEXT_COLOR_CIRCLED
 			border_color = COLOR_CIRCLED_BORDER
-			border_width = 3
+			border_width = 4
+			corner_radius = 12  # Rounder corners for "keeper" cells
 			disabled = false  # Clickable to uncircle
 
 	# Apply protected tint (Safety Net operator)
@@ -212,10 +230,10 @@ func _update_appearance() -> void:
 	# Apply colors using a StyleBoxFlat
 	var style = StyleBoxFlat.new()
 	style.bg_color = bg_color
-	style.corner_radius_top_left = 4
-	style.corner_radius_top_right = 4
-	style.corner_radius_bottom_left = 4
-	style.corner_radius_bottom_right = 4
+	style.corner_radius_top_left = corner_radius
+	style.corner_radius_top_right = corner_radius
+	style.corner_radius_bottom_left = corner_radius
+	style.corner_radius_bottom_right = corner_radius
 	style.content_margin_left = 4
 	style.content_margin_right = 4
 	style.content_margin_top = 4
