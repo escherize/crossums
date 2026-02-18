@@ -83,8 +83,8 @@ func _connect_signals() -> void:
 	# EventBus connections
 	EventBus.cell_deleted.connect(_on_cell_deleted)
 	EventBus.cell_restored.connect(_on_cell_restored)
-	EventBus.cell_circled.connect(func(_r, _c): _check_auto_win())
-	EventBus.cell_uncircled.connect(func(_r, _c): _check_auto_win())
+	EventBus.cell_circled.connect(_on_cell_circled)
+	EventBus.cell_uncircled.connect(_on_cell_uncircled)
 	EventBus.state_changed.connect(_refresh_hud)
 	EventBus.money_changed.connect(func(_a, _b): _refresh_hud())
 
@@ -347,6 +347,20 @@ func _on_cell_restored(row: int, col: int, value: int) -> void:
 	_check_operator_auto_actions()
 
 
+func _on_cell_circled(_row: int, _col: int) -> void:
+	if puzzle_solved:
+		return
+	_check_auto_win()
+	_check_operator_auto_actions()
+
+
+func _on_cell_uncircled(_row: int, _col: int) -> void:
+	if puzzle_solved:
+		return
+	_check_auto_win()
+	_check_operator_auto_actions()
+
+
 func _on_time_expired() -> void:
 	## Called when time pool runs out - game over
 	if puzzle_solved:
@@ -381,24 +395,49 @@ func _check_auto_win() -> void:
 
 
 func _check_operator_auto_actions() -> void:
-	## Check operators for auto-actions (e.g., Gimme auto-click)
-	if puzzle_solved:
-		return
-	if not GameState.puzzle or not puzzle_grid:
+	## Check operators for auto-actions (e.g., Gimme auto-click, Click Clique, Garbage Collector)
+	if puzzle_solved or not GameState.puzzle or not puzzle_grid:
 		return
 	if GameState.operators.is_empty():
 		return
 
 	for op in GameState.operators:
 		var action = op.get_auto_action(GameState.puzzle)
-		if action.has("auto_delete"):
-			var pos: Vector2i = action.auto_delete
-			# Delay slightly so animations don't overlap
-			await get_tree().create_timer(0.15).timeout
-			if puzzle_solved:
-				return
-			puzzle_grid.simulate_click(pos.y, pos.x)  # row, col
+		var did_action := await _execute_auto_action(action)
+		if did_action:
 			return  # Only one auto-action per frame
+
+
+func _execute_auto_action(action: Dictionary) -> bool:
+	## Execute an operator auto-action. Returns true if action was taken.
+	if action.is_empty():
+		return false
+
+	await get_tree().create_timer(0.15).timeout
+	if puzzle_solved:
+		return true
+
+	# Single cell auto-delete (Gimme)
+	if action.has("auto_delete"):
+		var pos: Vector2i = action.auto_delete
+		puzzle_grid.simulate_click(pos.y, pos.x)
+		return true
+
+	# Batch auto-circle (Click Clique)
+	if action.has("auto_circle_cells"):
+		for pos in action.auto_circle_cells:
+			if not puzzle_solved:
+				puzzle_grid.simulate_circle(pos.y, pos.x)
+		return true
+
+	# Batch auto-delete (Garbage Collector)
+	if action.has("auto_delete_cells"):
+		for pos in action.auto_delete_cells:
+			if not puzzle_solved:
+				puzzle_grid.simulate_click(pos.y, pos.x)
+		return true
+
+	return false
 
 
 func _complete_puzzle() -> void:

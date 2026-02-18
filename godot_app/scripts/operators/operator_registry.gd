@@ -13,6 +13,8 @@ const OPERATORS := {
 	"gimme": preload("res://scripts/operators/impl/op_gimme.gd"),
 	"sum_sight": preload("res://scripts/operators/impl/op_sum_sight.gd"),
 	"safety_net": preload("res://scripts/operators/impl/op_safety_net.gd"),
+	"click_clique": preload("res://scripts/operators/impl/op_click_clique.gd"),
+	"garbage_collector": preload("res://scripts/operators/impl/op_garbage_collector.gd"),
 }
 
 

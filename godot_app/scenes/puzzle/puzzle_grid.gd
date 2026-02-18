@@ -304,6 +304,11 @@ func simulate_click(row: int, col: int) -> void:
 	_handle_cell_click(row, col)
 
 
+func simulate_circle(row: int, col: int) -> void:
+	## Simulate a circle action (for operator auto-actions like Click Clique)
+	_on_cell_long_pressed(row, col)
+
+
 func set_circle_mode(active: bool) -> void:
 	## Enable/disable circle mode (shift-key button)
 	if circle_mode_active == active:

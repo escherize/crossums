@@ -1,0 +1,28 @@
+{
+  "name": "op_garbage_collector",
+  "description": "Garbage Collector auto-deletes active cells when circled cells sum to target",
+  "setup": {
+    "start_board": {
+      "size": 3,
+      "seed": 400,
+      "row_targets": [5, 9, 9],
+      "col_targets": [9, 9, 5],
+      "cells": [
+        [{"value": 2}, {"value": 3}, {"value": 9}],
+        [{"value": 3}, {"value": 3}, {"value": 3}],
+        [{"value": 9}, {"value": 3}, {"value": 2}]
+      ]
+    }
+  },
+  "steps": [
+    {"action": "clear_operators"},
+    {"action": "add_operator", "params": {"id": "garbage_collector"}},
+    {"comment": "Row 0 target is 5. Circle cells (0,0)=2 and (0,1)=3. Circled sum = 5 matches target."},
+    {"comment": "Garbage Collector should auto-delete cell (0,2)."},
+    {"action": "circle_cell", "params": {"row": 0, "col": 0}},
+    {"action": "circle_cell", "params": {"row": 0, "col": 1}},
+    {"action": "wait_idle"},
+    {"action": "wait_idle"},
+    {"assert": "assert_cell_state", "params": {"row": 0, "col": 2, "state": "deleted"}}
+  ]
+}
