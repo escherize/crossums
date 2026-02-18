@@ -150,7 +150,13 @@ func _animate_breakdown_reveal(steps: Array) -> void:
 		if _skip_requested:
 			break
 
+		var step = steps[i]
 		var line = children[i] if i < children.size() else null
+
+		# Trigger operator card animation if this step has an operator_id
+		var op_id: String = step.get("operator_id", "")
+		if op_id:
+			EventBus.operator_triggered.emit(op_id, step.get("value", 0))
 
 		if line:
 			# Animate the line appearing
@@ -235,7 +241,8 @@ func _build_breakdown_steps() -> Array:
 			"type": "add",
 			"value": op_detail.bonus,
 			"apply_mult": true,
-			"color": Color(0.8, 0.5, 1.0)  # Purple
+			"color": Color(0.8, 0.5, 1.0),  # Purple
+			"operator_id": op_detail.get("operator_id", "")
 		})
 
 	# 5. Operator multiplier (if not 1.0)
@@ -415,7 +422,8 @@ func _build_rating_steps(b) -> Array:
 		for op_detail in b.operator_details:
 			steps.append({
 				"text": "%s: + %.1f" % [op_detail.name, op_detail.bonus / 50.0],
-				"color": Color(0.8, 0.5, 1.0)
+				"color": Color(0.8, 0.5, 1.0),
+				"operator_id": op_detail.get("operator_id", "")
 			})
 	else:
 		steps.append({"text": "Operator bonus: 0", "color": Color(0.6, 0.6, 0.6)})
@@ -459,13 +467,20 @@ func _animate_rating_reveal(b, steps: Array) -> void:
 		if _skip_requested:
 			break
 
+		var step = steps[i]
 		var line = children[i] if i < children.size() else null
+
+		# Trigger operator card animation if this step has an operator_id
+		var op_id: String = step.get("operator_id", "")
+		if op_id:
+			EventBus.operator_triggered.emit(op_id, 0)
+
 		if line:
 			_current_tween = create_tween()
 			_current_tween.tween_property(line, "modulate:a", 1.0, 0.2)
 
 		# Faster reveal for separator lines
-		var is_separator: bool = steps[i].text.begins_with("───")
+		var is_separator: bool = step.text.begins_with("───")
 		var delay: float = STEP_DELAY * 0.3 if is_separator else STEP_DELAY * 0.5
 
 		await get_tree().create_timer(delay).timeout

@@ -113,6 +113,7 @@ static func calculate_rating(
 
 		if op_bonus > 0:
 			breakdown.operator_details.append({
+				"operator_id": op.id,
 				"name": op.display_name,
 				"bonus": op_bonus
 			})
@@ -208,7 +209,11 @@ static func calculate_score(
 		op_mult_bonus += end_result.get("mult_bonus", 0.0)
 		op_money_bonus += end_result.get("money_bonus", 0)
 		if op_total > 0:
-			breakdown.operator_details.append({"name": op.display_name, "bonus": op_total})
+			breakdown.operator_details.append({
+				"operator_id": op.id,
+				"name": op.display_name,
+				"bonus": op_total
+			})
 			EventBus.operator_triggered.emit(op.id, op_total)
 		op_score_bonus += op_total
 

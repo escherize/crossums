@@ -417,6 +417,11 @@ func _execute_auto_action(action: Dictionary) -> bool:
 	if puzzle_solved:
 		return true
 
+	# Emit trigger signal for visual feedback (operator card pulse)
+	var operator_id: String = action.get("operator_id", "")
+	if operator_id:
+		EventBus.operator_triggered.emit(operator_id, 0)
+
 	# Single cell auto-delete (Gimme)
 	if action.has("auto_delete"):
 		var pos: Vector2i = action.auto_delete

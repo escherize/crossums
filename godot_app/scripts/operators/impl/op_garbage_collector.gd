@@ -16,14 +16,14 @@ func get_auto_action(puzzle: PuzzleState) -> Dictionary:
 		if puzzle.is_row_solved_by_circles(row):
 			var active_cells := _get_active_cells_in_row(puzzle, row)
 			if not active_cells.is_empty():
-				return {"auto_delete_cells": active_cells}
+				return {"auto_delete_cells": active_cells, "operator_id": id}
 
 	# Check each column - if circled cells sum to target, delete active cells
 	for col in range(puzzle.grid_size.x):
 		if puzzle.is_col_solved_by_circles(col):
 			var active_cells := _get_active_cells_in_col(puzzle, col)
 			if not active_cells.is_empty():
-				return {"auto_delete_cells": active_cells}
+				return {"auto_delete_cells": active_cells, "operator_id": id}
 
 	return {}
 

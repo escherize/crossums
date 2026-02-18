@@ -35,4 +35,4 @@ func get_auto_action(puzzle: PuzzleState) -> Dictionary:
 		return {}
 
 	# Auto-delete this cell
-	return {"auto_delete": Vector2i(col, row)}
+	return {"auto_delete": Vector2i(col, row), "operator_id": id}
