@@ -203,6 +203,7 @@ func continue_from_result() -> void:
 	if GameState.run.puzzle_index == 0 and GameState.run.stage > 1:
 		current_state = State.SHOP
 		state_changed.emit(current_state)
+		SaveManager.save_run()  # Auto-save at shop
 		show_shop.emit()
 	else:
 		_start_next_puzzle()
@@ -218,6 +219,7 @@ func continue_from_shop() -> void:
 
 func _end_run(won: bool) -> void:
 	## End the run with victory or game over
+	SaveManager.delete_save()  # Clear save on run end
 	var total_score: int = GameState.run.total_score if GameState.run else 0
 	var stages_cleared: int = GameState.run.stage - 1 if GameState.run else 0
 

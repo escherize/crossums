@@ -19,6 +19,7 @@ var _how_to_play_instance: Control = null
 # NODE REFERENCES
 # =============================================================================
 
+@onready var continue_button: Button = %ContinueButton
 @onready var start_button: Button = %StartButton
 @onready var how_to_play_button: Button = %HowToPlayButton
 @onready var options_button: Button = %OptionsButton
@@ -35,9 +36,12 @@ func _ready() -> void:
 	subtitle_label.text = "A Number Puzzle Roguelike  v%s" % GameConfig.VERSION
 	# Ensure RunManager is in IDLE state
 	RunManager.return_to_title()
+	# Show/hide continue button based on save existence
+	continue_button.visible = SaveManager.save_exists()
 
 
 func _connect_signals() -> void:
+	continue_button.pressed.connect(_on_continue_pressed)
 	start_button.pressed.connect(_on_start_pressed)
 	how_to_play_button.pressed.connect(_on_how_to_play_pressed)
 	options_button.pressed.connect(_on_options_pressed)
@@ -46,8 +50,19 @@ func _connect_signals() -> void:
 # BUTTON HANDLERS
 # =============================================================================
 
+func _on_continue_pressed() -> void:
+	# Load saved run and continue
+	if SaveManager.load_run():
+		RunManager.current_state = RunManager.State.PLAYING
+		get_tree().change_scene_to_packed(MainScene)
+	else:
+		# Save failed to load, hide button
+		continue_button.visible = false
+
+
 func _on_start_pressed() -> void:
-	# Start a new run
+	# Start a new run (delete any existing save)
+	SaveManager.delete_save()
 	RunManager.start_run()
 	# Transition to main scene
 	get_tree().change_scene_to_packed(MainScene)
