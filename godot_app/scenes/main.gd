@@ -24,6 +24,7 @@ var time_multiplier: float = GameConfig.TIME_MULT_START
 var _timer_fill_style: StyleBoxFlat
 var _current_overlay: Control = null
 var _time_at_puzzle_start: float = 0.0  # Pool value when puzzle started (for time mult calc)
+var _executing_auto_action: bool = false  # Prevents recursive auto-action checks
 
 # =============================================================================
 # NODE REFERENCES
@@ -400,22 +401,19 @@ func _check_operator_auto_actions() -> void:
 		return
 	if GameState.operators.is_empty():
 		return
+	if _executing_auto_action:
+		return  # Prevent recursive calls during auto-action execution
 
 	for op in GameState.operators:
 		var action = op.get_auto_action(GameState.puzzle)
-		var did_action := await _execute_auto_action(action)
-		if did_action:
-			return  # Only one auto-action per frame
+		if not action.is_empty():
+			_execute_auto_action(action)
+			return  # Only one auto-action per check
 
 
-func _execute_auto_action(action: Dictionary) -> bool:
-	## Execute an operator auto-action. Returns true if action was taken.
-	if action.is_empty():
-		return false
-
-	await get_tree().create_timer(0.15).timeout
-	if puzzle_solved:
-		return true
+func _execute_auto_action(action: Dictionary) -> void:
+	## Execute an operator auto-action immediately.
+	_executing_auto_action = true
 
 	# Emit trigger signal for visual feedback (operator card pulse)
 	var operator_id: String = action.get("operator_id", "")
@@ -426,23 +424,20 @@ func _execute_auto_action(action: Dictionary) -> bool:
 	if action.has("auto_delete"):
 		var pos: Vector2i = action.auto_delete
 		puzzle_grid.simulate_click(pos.y, pos.x)
-		return true
 
 	# Batch auto-circle (Click Clique)
-	if action.has("auto_circle_cells"):
+	elif action.has("auto_circle_cells"):
 		for pos in action.auto_circle_cells:
 			if not puzzle_solved:
 				puzzle_grid.simulate_circle(pos.y, pos.x)
-		return true
 
 	# Batch auto-delete (Garbage Collector)
-	if action.has("auto_delete_cells"):
+	elif action.has("auto_delete_cells"):
 		for pos in action.auto_delete_cells:
 			if not puzzle_solved:
 				puzzle_grid.simulate_click(pos.y, pos.x)
-		return true
 
-	return false
+	_executing_auto_action = false
 
 
 func _complete_puzzle() -> void:

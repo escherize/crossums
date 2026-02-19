@@ -16,6 +16,7 @@
   },
   "steps": [
     {"comment": "Column 1 solution: cells (0,1)=2 and (1,1)=2, sum=4=target"},
+    {"action": "clear_operators"},
     {"comment": "Initially col 1 is not circle-solved"},
     {
       "action": "get_col_sum",

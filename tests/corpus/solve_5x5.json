@@ -113,6 +113,9 @@
       "comment": "Solution is the diagonal - delete all non-diagonal cells"
     },
     {
+      "action": "clear_operators"
+    },
+    {
       "action": "delete_cell",
       "params": {
         "row": 0,
