@@ -482,16 +482,21 @@ func _action_undo(_params: Dictionary) -> Dictionary:
 	if puzzle_state == null:
 		return {"error": "no_puzzle", "message": "No active puzzle"}
 
-	if puzzle_state.deletion_history.is_empty():
+	if not puzzle_state.can_undo():
 		return {"error": "nothing_to_undo", "message": "No actions to undo"}
 
-	var pos := puzzle_state.undo_last_deletion()
-	if pos.x >= 0:
+	var result := puzzle_state.undo_last_action()
+	if not result.is_empty() and not result.cells.is_empty():
 		_refresh_puzzle_grid(main_scene)
-		var cell_data := puzzle_state.get_cell(pos.y, pos.x)
+		# Return info about first cell in batch (for backward compat)
+		var first_pos: Vector2i = result.cells[0]
+		var cell_data := puzzle_state.get_cell(first_pos.y, first_pos.x)
 		return {
-			"undone": {"row": pos.y, "col": pos.x, "value": cell_data.value},
-			"remaining_undo_count": puzzle_state.deletion_history.size()
+			"undone": {"row": first_pos.y, "col": first_pos.x, "value": cell_data.value},
+			"cells_undone": result.cells.size(),
+			"batch_type": result.type,
+			"was_auto": result.auto,
+			"remaining_undo_count": puzzle_state.get_action_count()
 		}
 	return {"error": "undo_failed", "message": "Failed to undo"}
 
@@ -840,18 +845,22 @@ func _action_set_cell_state(params: Dictionary) -> Dictionary:
 
 	var cell_data := puzzle_state.get_cell(row, col)
 	var new_state := _string_to_cell_state(state_str)
+	var old_state := cell_data.state
 
-	# Track in deletion history if changing to deleted
-	if new_state == PuzzleState.CellState.DELETED and cell_data.state != PuzzleState.CellState.DELETED:
-		puzzle_state.deletion_history.append(Vector2i(col, row))
-	elif new_state != PuzzleState.CellState.DELETED and cell_data.state == PuzzleState.CellState.DELETED:
-		# Remove from deletion history if restoring
-		var pos := Vector2i(col, row)
-		var idx := puzzle_state.deletion_history.rfind(pos)
-		if idx >= 0:
-			puzzle_state.deletion_history.remove_at(idx)
-
-	cell_data.state = new_state
+	# Use proper state change methods to maintain history
+	if new_state == PuzzleState.CellState.DELETED and old_state != PuzzleState.CellState.DELETED:
+		if old_state == PuzzleState.CellState.CIRCLED:
+			puzzle_state.uncircle_cell(row, col)
+		puzzle_state.delete_cell(row, col)
+	elif new_state == PuzzleState.CellState.ACTIVE and old_state == PuzzleState.CellState.DELETED:
+		puzzle_state.restore_cell(row, col)
+	elif new_state == PuzzleState.CellState.ACTIVE and old_state == PuzzleState.CellState.CIRCLED:
+		puzzle_state.uncircle_cell(row, col)
+	elif new_state == PuzzleState.CellState.CIRCLED and old_state == PuzzleState.CellState.ACTIVE:
+		puzzle_state.circle_cell(row, col)
+	else:
+		# Direct state change for edge cases
+		cell_data.state = new_state
 	_refresh_puzzle_grid(main_scene)
 
 	return {
@@ -874,8 +883,8 @@ func _action_set_grid_state(params: Dictionary) -> Dictionary:
 	if typeof(cells_param) != TYPE_ARRAY:
 		return {"error": "invalid_params", "message": "cells must be a 2D array of state strings"}
 
-	# Clear deletion history
-	puzzle_state.deletion_history.clear()
+	# Reset puzzle to fresh state then apply new states
+	puzzle_state.reset()
 
 	var rows_set := 0
 	var cols_set := 0
@@ -888,11 +897,12 @@ func _action_set_grid_state(params: Dictionary) -> Dictionary:
 		for col in range(mini(row_data.size(), puzzle_state.grid_size.x)):
 			var state_str: String = str(row_data[col])
 			var new_state := _string_to_cell_state(state_str)
-			var cell_data := puzzle_state.get_cell(row, col)
-			cell_data.state = new_state
 
 			if new_state == PuzzleState.CellState.DELETED:
-				puzzle_state.deletion_history.append(Vector2i(col, row))
+				puzzle_state.delete_cell(row, col)
+			elif new_state == PuzzleState.CellState.CIRCLED:
+				puzzle_state.circle_cell(row, col)
+			# ACTIVE is default after reset, no action needed
 
 			cols_set = maxi(cols_set, col + 1)
 		rows_set = maxi(rows_set, row + 1)
@@ -930,7 +940,9 @@ func _action_apply_solution(_params: Dictionary) -> Dictionary:
 				# Check if deleting this cell still leaves a valid solution
 				cell_data.state = PuzzleState.CellState.DELETED
 				if PuzzleLogic.has_any_solution(puzzle_state):
-					puzzle_state.deletion_history.append(Vector2i(col, row))
+					# Restore then use proper delete to track history
+					cell_data.state = PuzzleState.CellState.ACTIVE
+					puzzle_state.delete_cell(row, col)
 					cells_deleted += 1
 					made_progress = true
 				else:
@@ -955,16 +967,9 @@ func _action_clear_all_marks(_params: Dictionary) -> Dictionary:
 	if puzzle_state == null:
 		return {"error": "no_puzzle", "message": "No active puzzle"}
 
-	var cells_cleared := 0
-
-	for row in range(puzzle_state.grid_size.y):
-		for col in range(puzzle_state.grid_size.x):
-			var cell_data := puzzle_state.get_cell(row, col)
-			if cell_data.state != PuzzleState.CellState.ACTIVE:
-				cell_data.state = PuzzleState.CellState.ACTIVE
-				cells_cleared += 1
-
-	puzzle_state.deletion_history.clear()
+	var cells_cleared := puzzle_state.get_total_cells() - puzzle_state.get_kept_count()
+	cells_cleared += puzzle_state.get_kept_count()  # Count circled too
+	puzzle_state.reset()
 	_refresh_puzzle_grid(main_scene)
 
 	return {
@@ -1040,9 +1045,10 @@ func _query_get_history() -> Dictionary:
 		return {"error": "no_puzzle", "message": "No active puzzle"}
 
 	return {
-		"deletion_count": puzzle_state.deletion_history.size(),
-		"deletions": _serialize_positions(puzzle_state.deletion_history),
-		"can_undo": not puzzle_state.deletion_history.is_empty()
+		"deletion_count": puzzle_state.get_deleted_count(),
+		"action_count": puzzle_state.get_action_count(),
+		"deletions": _serialize_positions(puzzle_state.get_deletion_history()),
+		"can_undo": puzzle_state.can_undo()
 	}
 
 
@@ -1282,7 +1288,7 @@ func _action_dump_test(params: Dictionary) -> Dictionary:
 
 	# Build steps from deletion history
 	var steps: Array = []
-	for pos in puzzle_state.deletion_history:
+	for pos in puzzle_state.get_deletion_history():
 		steps.append({
 			"action": "delete_cell",
 			"params": {"row": pos.y, "col": pos.x}
@@ -1703,8 +1709,10 @@ func _serialize_puzzle(puzzle_state: PuzzleState) -> Dictionary:
 		},
 		"selection": null,  # No persistent selection in current implementation
 		"history": {
-			"deletion_count": puzzle_state.deletion_history.size(),
-			"deletions": _serialize_positions(puzzle_state.deletion_history)
+			"deletion_count": puzzle_state.get_deleted_count(),
+			"action_count": puzzle_state.get_action_count(),
+			"deletions": _serialize_positions(puzzle_state.get_deletion_history()),
+			"can_undo": puzzle_state.can_undo()
 		},
 		"sums": {
 			"rows": _get_current_row_sums(puzzle_state),

@@ -153,12 +153,22 @@ func _serialize_puzzle() -> Dictionary:
 			})
 		cells.append(row_data)
 
+	# Serialize action history (new batched format)
+	var action_history_data: Array = []
+	for batch in puzzle.action_history:
+		action_history_data.append({
+			"type": batch.type,
+			"cells": batch.cells.map(func(v): return {"x": v.x, "y": v.y}),
+			"auto": batch.get("auto", false),
+			"operator_id": batch.get("operator_id", "")
+		})
+
 	return {
 		"grid_size": {"x": puzzle.grid_size.x, "y": puzzle.grid_size.y},
 		"cells": cells,
 		"row_targets": Array(puzzle.row_targets),
 		"col_targets": Array(puzzle.col_targets),
-		"deletion_history": puzzle.deletion_history.map(func(v): return {"x": v.x, "y": v.y}),
+		"action_history": action_history_data,
 		"puzzle_seed": puzzle.puzzle_seed,
 	}
 
@@ -178,8 +188,27 @@ func _deserialize_puzzle(data: Dictionary) -> PuzzleState:
 			cell.value = cell_data.value
 			cell.state = cell_data.state
 
-	ps.deletion_history.clear()
-	for pos in data.get("deletion_history", []):
-		ps.deletion_history.append(Vector2i(pos.x, pos.y))
+	# Deserialize action history (new batched format)
+	ps.action_history.clear()
+	if data.has("action_history"):
+		for batch_data in data.action_history:
+			var cells: Array[Vector2i] = []
+			for pos in batch_data.get("cells", []):
+				cells.append(Vector2i(pos.x, pos.y))
+			ps.action_history.append({
+				"type": batch_data.get("type", "delete"),
+				"cells": cells,
+				"auto": batch_data.get("auto", false),
+				"operator_id": batch_data.get("operator_id", "")
+			})
+	elif data.has("deletion_history"):
+		# Backward compat: convert old deletion_history to action_history
+		for pos in data.deletion_history:
+			ps.action_history.append({
+				"type": "delete",
+				"cells": [Vector2i(pos.x, pos.y)] as Array[Vector2i],
+				"auto": false,
+				"operator_id": ""
+			})
 
 	return ps

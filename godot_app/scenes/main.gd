@@ -244,6 +244,15 @@ func _update_status(text: String) -> void:
 	status_label.text = text
 
 
+func _pulse_undo_button() -> void:
+	## Visual feedback when auto-action happens - draws attention to undo
+	if not undo_button:
+		return
+	var tween = create_tween()
+	tween.tween_property(undo_button, "modulate", Color(1.5, 1.5, 0.5), 0.15)
+	tween.tween_property(undo_button, "modulate", Color.WHITE, 0.3)
+
+
 func refresh_from_state() -> void:
 	## Refresh UI after GameState has been modified externally (e.g., deserialization)
 	if GameState.puzzle == null:
@@ -337,10 +346,15 @@ func _on_undo_pressed() -> void:
 	if not GameState.puzzle:
 		return
 
-	var pos = GameState.puzzle.undo_last_deletion()
-	if pos.x >= 0:
+	var result = GameState.puzzle.undo_last_action()
+	if not result.is_empty() and not result.cells.is_empty():
 		puzzle_grid.refresh()
-		_update_status("Undid deletion at (%d, %d)" % [pos.x + 1, pos.y + 1])
+		var count = result.cells.size()
+		if count == 1:
+			var pos = result.cells[0]
+			_update_status("Undid %s at (%d, %d)" % [result.type, pos.x + 1, pos.y + 1])
+		else:
+			_update_status("Undid %d %ss" % [count, result.type])
 
 
 func _on_circle_mode_changed(active: bool) -> void:
@@ -430,29 +444,40 @@ func _check_operator_auto_actions() -> void:
 
 func _execute_auto_action(action: Dictionary) -> void:
 	## Execute an operator auto-action immediately.
+	## All cells in the action are batched into one undo-able action.
 	_executing_auto_action = true
 
-	# Emit trigger signal for visual feedback (operator card pulse)
 	var operator_id: String = action.get("operator_id", "")
+
+	# Emit trigger signal for visual feedback (operator card pulse)
 	if operator_id:
 		EventBus.operator_triggered.emit(operator_id, 0)
 
 	# Single cell auto-delete (Gimme)
 	if action.has("auto_delete"):
 		var pos: Vector2i = action.auto_delete
+		GameState.puzzle.begin_action_batch("delete", true, operator_id)
 		puzzle_grid.simulate_click(pos.y, pos.x)
+		GameState.puzzle.end_action_batch()
+		_pulse_undo_button()
 
 	# Batch auto-circle (Click Clique)
 	elif action.has("auto_circle_cells"):
+		GameState.puzzle.begin_action_batch("circle", true, operator_id)
 		for pos in action.auto_circle_cells:
 			if not puzzle_solved:
 				puzzle_grid.simulate_circle(pos.y, pos.x)
+		GameState.puzzle.end_action_batch()
+		_pulse_undo_button()
 
 	# Batch auto-delete (Garbage Collector)
 	elif action.has("auto_delete_cells"):
+		GameState.puzzle.begin_action_batch("delete", true, operator_id)
 		for pos in action.auto_delete_cells:
 			if not puzzle_solved:
 				puzzle_grid.simulate_click(pos.y, pos.x)
+		GameState.puzzle.end_action_batch()
+		_pulse_undo_button()
 
 	_executing_auto_action = false
 

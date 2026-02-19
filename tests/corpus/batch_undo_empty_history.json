@@ -1,0 +1,13 @@
+{
+  "name": "batch_undo_empty_history",
+  "description": "Undo with empty history - verify it doesn't crash and cells stay unchanged",
+  "setup": {"size": 3, "seed": 12345},
+  "steps": [
+    {"action": "clear_operators"},
+    {"comment": "Delete a cell then undo it"},
+    {"action": "delete_cell", "params": {"row": 0, "col": 0}},
+    {"action": "undo"},
+    {"comment": "All cells should be active after undo"},
+    {"assert": "assert_cell_state", "params": {"row": 0, "col": 0, "state": "active"}}
+  ]
+}

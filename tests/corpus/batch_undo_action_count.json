@@ -1,0 +1,44 @@
+{
+  "name": "batch_undo_action_count",
+  "description": "Verify undo correctly restores cells through multiple batches",
+  "setup": {
+    "start_board": {
+      "size": 3,
+      "seed": 300,
+      "row_targets": [5, 20, 20],
+      "col_targets": [20, 20, 20],
+      "cells": [
+        [{"value": 2}, {"value": 3}, {"value": 9}],
+        [{"value": 4}, {"value": 5}, {"value": 3}],
+        [{"value": 8}, {"value": 2}, {"value": 4}]
+      ]
+    }
+  },
+  "steps": [
+    {"action": "clear_operators"},
+    {"action": "add_operator", "params": {"id": "click_clique"}},
+    {"comment": "Board: row0=14, row1=12, row2=14. Targets: row0=5 (only achievable), others=20 (never)"},
+    {"comment": "Manual delete at (1,0) - no trigger (no sums match targets)"},
+    {"action": "delete_cell", "params": {"row": 1, "col": 0}},
+    {"action": "wait_idle"},
+    {"assert": "assert_cell_state", "params": {"row": 1, "col": 0, "state": "deleted"}},
+    {"comment": "Delete (0,2) triggers Click Clique: row0 sum 2+3=5=target"},
+    {"action": "delete_cell", "params": {"row": 0, "col": 2}},
+    {"action": "wait_idle"},
+    {"action": "wait_idle"},
+    {"assert": "assert_cell_state", "params": {"row": 0, "col": 2, "state": "deleted"}},
+    {"assert": "assert_cell_state", "params": {"row": 0, "col": 0, "state": "circled"}},
+    {"assert": "assert_cell_state", "params": {"row": 0, "col": 1, "state": "circled"}},
+    {"comment": "Undo 1: revert auto-circles"},
+    {"action": "undo"},
+    {"assert": "assert_cell_state", "params": {"row": 0, "col": 0, "state": "active"}},
+    {"assert": "assert_cell_state", "params": {"row": 0, "col": 1, "state": "active"}},
+    {"comment": "Undo 2: revert manual delete of (0,2)"},
+    {"action": "undo"},
+    {"assert": "assert_cell_state", "params": {"row": 0, "col": 2, "state": "active"}},
+    {"comment": "Undo 3: revert manual delete of (1,0)"},
+    {"action": "undo"},
+    {"assert": "assert_cell_state", "params": {"row": 1, "col": 0, "state": "active"}},
+    {"action": "clear_operators"}
+  ]
+}

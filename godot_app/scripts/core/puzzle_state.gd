@@ -48,8 +48,12 @@ var row_targets: Array[int] = []
 ## Target sums for each column
 var col_targets: Array[int] = []
 
-## History of deleted cell positions (for undo)
-var deletion_history: Array[Vector2i] = []
+## History of actions for batch undo
+## Each entry: {type: "delete"|"circle", cells: Array[Vector2i], auto: bool, operator_id: String}
+var action_history: Array[Dictionary] = []
+
+## Pending batch being built (for auto-actions that affect multiple cells)
+var _pending_batch: Dictionary = {}
 
 ## Puzzle seed for reproducibility
 var puzzle_seed: int = 0
@@ -143,7 +147,7 @@ func delete_cell(row: int, col: int) -> bool:
 		return false  # Can only delete active cells
 
 	cell.state = CellState.DELETED
-	deletion_history.append(Vector2i(col, row))
+	_record_action("delete", Vector2i(col, row))
 	return true
 
 
@@ -157,11 +161,17 @@ func restore_cell(row: int, col: int) -> bool:
 
 	cell.state = CellState.ACTIVE
 	misstep_count += 1  # Restoring = player changed their mind
-	# Remove from history
+	# Remove from history (search backwards through batches)
 	var pos = Vector2i(col, row)
-	var idx = deletion_history.rfind(pos)
-	if idx >= 0:
-		deletion_history.remove_at(idx)
+	for i in range(action_history.size() - 1, -1, -1):
+		var batch = action_history[i]
+		if batch.type == "delete":
+			var idx = batch.cells.find(pos)
+			if idx >= 0:
+				batch.cells.remove_at(idx)
+				if batch.cells.is_empty():
+					action_history.remove_at(i)
+				break
 	return true
 
 
@@ -175,6 +185,7 @@ func circle_cell(row: int, col: int) -> bool:
 		return false  # Can only circle active cells
 
 	cell.state = CellState.CIRCLED
+	_record_action("circle", Vector2i(col, row))
 	return true
 
 
@@ -189,23 +200,88 @@ func uncircle_cell(row: int, col: int) -> bool:
 
 	cell.state = CellState.ACTIVE
 	misstep_count += 1  # Uncircling = player changed their mind
+	# Remove from history (search backwards through batches)
+	var pos = Vector2i(col, row)
+	for i in range(action_history.size() - 1, -1, -1):
+		var batch = action_history[i]
+		if batch.type == "circle":
+			var idx = batch.cells.find(pos)
+			if idx >= 0:
+				batch.cells.remove_at(idx)
+				if batch.cells.is_empty():
+					action_history.remove_at(i)
+				break
 	return true
 
 
+func undo_last_action() -> Dictionary:
+	## Undo the last action batch (may contain multiple cells).
+	## Returns {type, cells, auto, operator_id} or empty dict if nothing to undo.
+	if action_history.is_empty():
+		return {}
+
+	var batch = action_history.pop_back()
+	var cells_undone: Array[Vector2i] = []
+
+	for pos in batch.cells:
+		var row = pos.y
+		var col = pos.x
+		var cell = get_cell(row, col)
+		if cell:
+			cell.state = CellState.ACTIVE
+			cells_undone.append(pos)
+
+	misstep_count += 1  # Undo = player changed their mind (once per batch)
+
+	return {
+		"type": batch.type,
+		"cells": cells_undone,
+		"auto": batch.get("auto", false),
+		"operator_id": batch.get("operator_id", "")
+	}
+
+
 func undo_last_deletion() -> Vector2i:
-	if deletion_history.is_empty():
+	## DEPRECATED: Use undo_last_action() for batch undo.
+	## Kept for backward compatibility - undoes one action batch, returns first cell.
+	var result = undo_last_action()
+	if result.is_empty() or result.cells.is_empty():
 		return Vector2i(-1, -1)
+	return result.cells[0]
 
-	var last_pos = deletion_history.pop_back()
-	var row = last_pos.y
-	var col = last_pos.x
 
-	var cell = get_cell(row, col)
-	if cell:
-		cell.state = CellState.ACTIVE
-		misstep_count += 1  # Undo = player changed their mind
+func begin_action_batch(type: String, auto: bool = false, operator_id: String = "") -> void:
+	## Start batching multiple cell actions into one undo-able action.
+	## Call end_action_batch() when done.
+	_pending_batch = {
+		"type": type,
+		"cells": [] as Array[Vector2i],
+		"auto": auto,
+		"operator_id": operator_id
+	}
 
-	return Vector2i(col, row)
+
+func end_action_batch() -> void:
+	## Commit the pending batch to history (if it has any cells).
+	if not _pending_batch.is_empty() and not _pending_batch.cells.is_empty():
+		action_history.append(_pending_batch)
+	_pending_batch = {}
+
+
+func _record_action(type: String, pos: Vector2i) -> void:
+	## Record a cell action. If batching, add to batch. Otherwise create single-cell batch.
+	if not _pending_batch.is_empty():
+		# Add to existing batch (must match type)
+		if _pending_batch.type == type:
+			_pending_batch.cells.append(pos)
+	else:
+		# Create single-cell batch for manual action
+		action_history.append({
+			"type": type,
+			"cells": [pos] as Array[Vector2i],
+			"auto": false,
+			"operator_id": ""
+		})
 
 # =============================================================================
 # SUM CALCULATIONS
@@ -370,7 +446,30 @@ func get_kept_count() -> int:
 
 
 func get_deleted_count() -> int:
-	return deletion_history.size()
+	var count = 0
+	for batch in action_history:
+		if batch.type == "delete":
+			count += batch.cells.size()
+	return count
+
+
+func can_undo() -> bool:
+	return not action_history.is_empty()
+
+
+func get_action_count() -> int:
+	## Returns number of undo-able batches (not individual cells)
+	return action_history.size()
+
+
+func get_deletion_history() -> Array[Vector2i]:
+	## Returns flat list of all deleted cell positions (for debug/serialization compat)
+	var result: Array[Vector2i] = []
+	for batch in action_history:
+		if batch.type == "delete":
+			for pos in batch.cells:
+				result.append(pos)
+	return result
 
 
 func get_total_cells() -> int:
@@ -398,7 +497,7 @@ func duplicate_state() -> PuzzleState:
 	copy.puzzle_seed = puzzle_seed
 	copy.row_targets = row_targets.duplicate()
 	copy.col_targets = col_targets.duplicate()
-	copy.deletion_history = deletion_history.duplicate()
+	copy.action_history = action_history.duplicate(true)  # Deep copy
 	copy.misstep_count = misstep_count
 
 	for row in range(grid_size.y):
@@ -412,5 +511,6 @@ func reset() -> void:
 	for row in range(grid_size.y):
 		for col in range(grid_size.x):
 			cells[row][col].state = CellState.ACTIVE
-	deletion_history.clear()
+	action_history.clear()
+	_pending_batch = {}
 	misstep_count = 0

@@ -1,0 +1,18 @@
+{
+  "name": "batch_undo_uncircle_removes",
+  "description": "Uncircling a cell removes it from undo history",
+  "setup": {"size": 3, "seed": 12345},
+  "steps": [
+    {"action": "clear_operators"},
+    {"action": "circle_cell", "params": {"row": 0, "col": 0}},
+    {"action": "circle_cell", "params": {"row": 0, "col": 1}},
+    {"assert": "assert_cell_state", "params": {"row": 0, "col": 0, "state": "circled"}},
+    {"assert": "assert_cell_state", "params": {"row": 0, "col": 1, "state": "circled"}},
+    {"comment": "Uncircle the first cell"},
+    {"action": "uncircle_cell", "params": {"row": 0, "col": 0}},
+    {"assert": "assert_cell_state", "params": {"row": 0, "col": 0, "state": "active"}},
+    {"comment": "Undo should only affect (0,1)"},
+    {"action": "undo"},
+    {"assert": "assert_cell_state", "params": {"row": 0, "col": 1, "state": "active"}}
+  ]
+}

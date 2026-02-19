@@ -1,0 +1,18 @@
+{
+  "name": "batch_undo_restore_removes",
+  "description": "Restoring a deleted cell removes it from undo history",
+  "setup": {"size": 3, "seed": 12345},
+  "steps": [
+    {"action": "clear_operators"},
+    {"action": "delete_cell", "params": {"row": 0, "col": 0}},
+    {"action": "delete_cell", "params": {"row": 0, "col": 1}},
+    {"assert": "assert_cell_state", "params": {"row": 0, "col": 0, "state": "deleted"}},
+    {"assert": "assert_cell_state", "params": {"row": 0, "col": 1, "state": "deleted"}},
+    {"comment": "Restore the first deleted cell by clicking it again"},
+    {"action": "restore_cell", "params": {"row": 0, "col": 0}},
+    {"assert": "assert_cell_state", "params": {"row": 0, "col": 0, "state": "active"}},
+    {"comment": "Undo should now only affect (0,1)"},
+    {"action": "undo"},
+    {"assert": "assert_cell_state", "params": {"row": 0, "col": 1, "state": "active"}}
+  ]
+}

@@ -53,7 +53,7 @@ func _connect_signals() -> void:
 func _on_continue_pressed() -> void:
 	# Load saved run and continue
 	if SaveManager.load_run():
-		RunManager.current_state = RunManager.State.PLAYING
+		RunManager.current_state = RunManager.State.PUZZLE_ACTIVE
 		get_tree().change_scene_to_packed(MainScene)
 	else:
 		# Save failed to load, hide button

@@ -1,0 +1,35 @@
+{
+  "name": "batch_undo_garbage_collector",
+  "description": "Garbage Collector auto-deletes are batched - one undo reverts all",
+  "setup": {
+    "start_board": {
+      "size": 3,
+      "seed": 400,
+      "row_targets": [5, 9, 9],
+      "col_targets": [9, 9, 5],
+      "cells": [
+        [{"value": 2}, {"value": 3}, {"value": 9}],
+        [{"value": 3}, {"value": 3}, {"value": 3}],
+        [{"value": 9}, {"value": 3}, {"value": 2}]
+      ]
+    }
+  },
+  "steps": [
+    {"action": "clear_operators"},
+    {"action": "add_operator", "params": {"id": "garbage_collector"}},
+    {"comment": "Circle cells to trigger Garbage Collector on row 0"},
+    {"comment": "Row 0: circle (0,0)=2 and (0,1)=3, sum=5=target, should auto-delete (0,2)"},
+    {"action": "circle_cell", "params": {"row": 0, "col": 0}},
+    {"action": "circle_cell", "params": {"row": 0, "col": 1}},
+    {"action": "wait_idle"},
+    {"action": "wait_idle"},
+    {"assert": "assert_cell_state", "params": {"row": 0, "col": 2, "state": "deleted"}},
+    {"comment": "Now undo - should revert the auto-deleted cell in one action"},
+    {"action": "undo"},
+    {"assert": "assert_cell_state", "params": {"row": 0, "col": 2, "state": "active"}},
+    {"comment": "Circles should still be there (undo only reverted deletes)"},
+    {"assert": "assert_cell_state", "params": {"row": 0, "col": 0, "state": "circled"}},
+    {"assert": "assert_cell_state", "params": {"row": 0, "col": 1, "state": "circled"}},
+    {"action": "clear_operators"}
+  ]
+}
