@@ -82,7 +82,7 @@ static var INTEREST_THRESHOLD := 5
 # Money = round(rating³ / 1000) × streak_mult
 
 ## Divisor for money calculation (higher = less money)
-static var MONEY_DIVISOR := 1000.0
+static var MONEY_DIVISOR := 500.0
 
 ## Base value for pace calculation (rating = this - seconds_per_cell)
 static var RATING_BASE := 12.0
@@ -176,7 +176,6 @@ static func reset_to_defaults() -> void:
 	INTEREST_THRESHOLD = 5
 	TIME_POOL_CAP = 180.0
 	TIME_PURCHASE_AMOUNT = 15
-	MONEY_DIVISOR = 1000.0
 	# Pace rating
 	RATING_BASE = 12.0
 	MISSTEP_PENALTY = 0.5
