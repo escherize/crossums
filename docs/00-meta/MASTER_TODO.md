@@ -550,8 +550,6 @@ acceptance criteria is a test that only circles values and solves a puzzle
 
 # next todos:
 
-- $15(? it is very good) operator to auto-circle all active row/col cells when the active (including circled) cells sum to their target
+- can get kinda stuck when you have garbage collector / click clique enabled, if you make a misstep. not sure how to fix that. maybe that's the downside of them lol. idk. they are also very powerful (which is cool!) -- they should cost more too.
 
-- $15(? it is very good) operator to auto-delete all active row/col cells when the circled cells sum to their target 
-
-- ""circling"" a cell should be clearer than just a light blue outline. Let's make it clearer that this is a cell we want to save.
+- New operator which does this when u load a level: for each target + it's possible cells, when no negative numbers are present, deletes all cells with number > target. [3] 4 1 2 5 -> auto-deactivates 4 and 5. find a good name for it

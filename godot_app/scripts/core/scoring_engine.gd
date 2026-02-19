@@ -29,7 +29,7 @@ class RatingBreakdown:
 	var grade: String = "D"
 
 	# Money calculation
-	var base_money: int = 0  # rating³ / 100
+	var base_money: int = 0  # rating³ / MONEY_DIVISOR
 	var streak: int = 0
 	var streak_mult: float = 1.0
 	var final_money: int = 0
@@ -131,8 +131,8 @@ static func calculate_rating(
 	# Grade from rating
 	breakdown.grade = GameConfig.get_grade_from_rating(breakdown.total_rating)
 
-	# Money calculation: rating³ / 100
-	breakdown.base_money = int(round(pow(maxf(0.0, breakdown.total_rating), 3) / 100.0))
+	# Money calculation: rating³ / MONEY_DIVISOR
+	breakdown.base_money = int(round(pow(maxf(0.0, breakdown.total_rating), 3) / GameConfig.MONEY_DIVISOR))
 
 	# Streak multiplier (only applied if solve was clean enough)
 	breakdown.streak = streak

@@ -204,14 +204,17 @@ func _load_puzzle_grid() -> void:
 	await get_tree().process_frame
 	await puzzle_grid.load_puzzle(GameState.puzzle)
 
-	# Add this puzzle's time allocation to the shared pool
+	# Add this puzzle's time allocation to the shared pool (capped)
 	var stage := 1
 	var puzzle_index := 0
 	if GameState.run:
 		stage = GameState.run.stage
 		puzzle_index = GameState.run.puzzle_index
 		var puzzle_time := GameConfig.get_time_limit(stage, puzzle_index)
-		GameState.run.time_pool += puzzle_time
+		GameState.run.time_pool = minf(
+			GameState.run.time_pool + puzzle_time,
+			GameConfig.TIME_POOL_CAP
+		)
 
 	# Track state for time multiplier calculation
 	puzzle_start_time = Time.get_ticks_msec()

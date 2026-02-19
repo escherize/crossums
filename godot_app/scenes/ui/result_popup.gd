@@ -442,7 +442,7 @@ func _build_rating_steps(b) -> Array:
 	steps.append({"text": "───────────", "color": Color(0.5, 0.5, 0.5)})
 
 	# 5. Money calculation
-	var money_formula: String = "round(%.1f³ / 100) = $%d" % [b.total_rating, b.base_money]
+	var money_formula: String = "round(%.1f³ / %d) = $%d" % [b.total_rating, int(GameConfig.MONEY_DIVISOR), b.base_money]
 	steps.append({"text": money_formula, "color": Color(0.4, 0.9, 0.4)})
 
 	return steps

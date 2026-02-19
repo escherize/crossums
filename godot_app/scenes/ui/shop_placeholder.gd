@@ -224,9 +224,12 @@ func _buy_time_for_pool() -> bool:
 	if GameState.run.money < price:
 		return false
 
-	# Deduct money and add to pool
+	# Deduct money and add to pool (capped)
 	GameState.run.spend_money(price)
-	GameState.run.time_pool += float(GameConfig.TIME_PURCHASE_AMOUNT)
+	GameState.run.time_pool = minf(
+		GameState.run.time_pool + float(GameConfig.TIME_PURCHASE_AMOUNT),
+		GameConfig.TIME_POOL_CAP
+	)
 	GameState.run.time_purchases += 1
 
 	SoundManager.play("coin_spend")

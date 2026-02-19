@@ -79,7 +79,10 @@ static var INTEREST_THRESHOLD := 5
 # PACE RATING SYSTEM
 # =============================================================================
 # Formula: rating = (RATING_BASE - pace) + clean_bonus + operator_bonus
-# Money = round(rating³ / 100) × streak_mult
+# Money = round(rating³ / 1000) × streak_mult
+
+## Divisor for money calculation (higher = less money)
+static var MONEY_DIVISOR := 1000.0
 
 ## Base value for pace calculation (rating = this - seconds_per_cell)
 static var RATING_BASE := 12.0
@@ -141,6 +144,9 @@ static func get_grade_from_rating(rating: float) -> String:
 # TIME POOL (shop purchase)
 # =============================================================================
 
+## Maximum time pool (prevents infinite accumulation)
+static var TIME_POOL_CAP := 180.0  # 3 minutes max
+
 ## Seconds added per time purchase
 static var TIME_PURCHASE_AMOUNT := 15
 
@@ -168,7 +174,9 @@ static func reset_to_defaults() -> void:
 	INTEREST_RATE = 1
 	INTEREST_CAP = 5
 	INTEREST_THRESHOLD = 5
+	TIME_POOL_CAP = 180.0
 	TIME_PURCHASE_AMOUNT = 15
+	MONEY_DIVISOR = 1000.0
 	# Pace rating
 	RATING_BASE = 12.0
 	MISSTEP_PENALTY = 0.5
