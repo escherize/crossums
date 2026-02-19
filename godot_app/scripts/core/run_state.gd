@@ -31,7 +31,7 @@ const SEED_VERSION := 1
 # PROGRESSION
 # =============================================================================
 
-var stage: int = 1              # 1-8
+var stage: int = 1              # 1-9
 var puzzle_index: int = 0       # 0-2 within stage
 var run_seed: int = 0           # 0 = random, else deterministic
 
@@ -66,7 +66,7 @@ var puzzles_completed: int:
 	get: return (stage - 1) * 3 + puzzle_index
 
 var is_final_stage: bool:
-	get: return stage >= 8
+	get: return stage >= 9
 
 # =============================================================================
 # METHODS

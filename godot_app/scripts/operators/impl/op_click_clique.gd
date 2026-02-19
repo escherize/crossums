@@ -7,7 +7,7 @@ func _init() -> void:
 	display_name = "Click Clique"
 	description = "When active cells hit a target, auto-circle them"
 	rarity = 2
-	price = 15
+	price = 20
 
 
 func get_auto_action(puzzle: PuzzleState) -> Dictionary:

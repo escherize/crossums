@@ -1,5 +1,5 @@
 extends Control
-## Victory screen shown when player completes all 8 stages.
+## Victory screen shown when player completes all 9 stages.
 
 signal play_again_pressed
 

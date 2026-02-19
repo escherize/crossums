@@ -47,7 +47,7 @@ horizontal_alignment = 1
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
 theme_override_colors/font_color = Color(0.6, 0.8, 0.7, 1)
-text = "You conquered all 8 stages!"
+text = "You conquered all 9 stages!"
 horizontal_alignment = 1
 
 [node name="Spacer1" type="Control" parent="VBoxContainer"]

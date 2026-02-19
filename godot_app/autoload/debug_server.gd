@@ -237,6 +237,8 @@ func _execute_action(action: String, params: Dictionary):
 			return await _action_wait_frames(params)
 		"wait_idle":
 			return await _action_wait_idle(params)
+		"check_auto_actions":
+			return _action_check_auto_actions(params)
 
 		# Test recording
 		"dump_test":
@@ -1251,6 +1253,18 @@ func _action_wait_idle(_params: Dictionary) -> Dictionary:
 	await get_tree().create_timer(0.1).timeout  # Brief pause for animations
 
 	return {"message": "Idle"}
+
+
+func _action_check_auto_actions(_params: Dictionary) -> Dictionary:
+	## Manually trigger operator auto-action check (for testing)
+	var main_scene := _get_main_scene()
+	if main_scene == null:
+		return {"error": "no_game", "message": "Game not running"}
+
+	if main_scene.has_method("_check_operator_auto_actions"):
+		main_scene._check_operator_auto_actions()
+		return {"message": "Auto-actions checked"}
+	return {"error": "not_supported", "message": "Main scene lacks auto-action method"}
 
 
 func _action_dump_test(params: Dictionary) -> Dictionary:

@@ -7,23 +7,24 @@ extends RefCounted
 # CONSTANTS
 # =============================================================================
 
-## Score targets per stage (1-8) - cumulative across 3 puzzles
-const SCORE_TARGETS := [400, 600, 900, 1200, 1800, 2500, 3500, 5000]
+## Score targets per stage (1-9) - cumulative across 3 puzzles
+const SCORE_TARGETS := [400, 600, 900, 1200, 1800, 2500, 3500, 5000, 7000]
 
-## Grid sizes per stage: 3,3,4,4,5,5,6,6
-const GRID_SIZES := [3, 3, 4, 4, 5, 5, 6, 6]
+## Grid sizes per stage: 3,3,4,5,6, then reset for negatives: 3,4,5,6
+const GRID_SIZES := [3, 3, 4, 5, 6, 3, 4, 5, 6]
 
-## Cell value ranges per stage [min, max] - difficulty ramps up
-## Early: small positive numbers. Late: wider range including negatives.
+## Cell value ranges per stage [min, max, exclude_zero]
+## Stages 6-9 exclude 0 from the range
 const VALUE_RANGES := [
-	[1, 3],   # Stage 1: very simple
-	[1, 4],   # Stage 2: still easy
-	[1, 5],   # Stage 3
-	[1, 6],   # Stage 4
-	[1, 7],   # Stage 5
-	[1, 9],   # Stage 6: full positive range
-	[-2, 9],  # Stage 7: introduce negatives
-	[-5, 9],  # Stage 8: full range
+	[1, 3, false],   # Stage 1: 1-3
+	[1, 5, false],   # Stage 2: 1-5
+	[1, 7, false],   # Stage 3: 1-7
+	[1, 9, false],   # Stage 4: 1-9
+	[1, 9, false],   # Stage 5: 1-9
+	[-1, 9, true],   # Stage 6: -1 to 9, no 0
+	[-2, 9, true],   # Stage 7: -2 to 9, no 0
+	[-3, 9, true],   # Stage 8: -3 to 9, no 0
+	[-3, 9, true],   # Stage 9: -3 to 9, no 0
 ]
 
 # =============================================================================
@@ -36,6 +37,7 @@ var grid_size: int
 var score_target: int
 var min_cell_value: int
 var max_cell_value: int
+var exclude_zero: bool
 
 # =============================================================================
 # FACTORY
@@ -58,6 +60,7 @@ static func get_config(p_stage: int, p_puzzle_index: int):
 	var value_idx := clampi(p_stage - 1, 0, VALUE_RANGES.size() - 1)
 	config.min_cell_value = VALUE_RANGES[value_idx][0]
 	config.max_cell_value = VALUE_RANGES[value_idx][1]
+	config.exclude_zero = VALUE_RANGES[value_idx][2]
 
 	return config
 
@@ -72,6 +75,7 @@ func to_puzzle_config() -> PuzzleLogic.PuzzleConfig:
 	pc.grid_size = Vector2i(grid_size, grid_size)
 	pc.min_cell_value = min_cell_value
 	pc.max_cell_value = max_cell_value
+	pc.exclude_zero = exclude_zero
 	return pc
 
 

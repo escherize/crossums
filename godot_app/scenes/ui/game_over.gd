@@ -15,7 +15,7 @@ func _ready() -> void:
 
 func show_game_over(total_score: int, stages_cleared: int) -> void:
 	score_label.text = "Final Score: %d" % total_score
-	stages_label.text = "Stages Cleared: %d / 8" % stages_cleared
+	stages_label.text = "Stages Cleared: %d / 9" % stages_cleared
 	visible = true
 
 

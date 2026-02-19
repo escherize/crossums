@@ -65,7 +65,7 @@ Win when all targets turn GREEN!
 
 Scoring: Fast solves + more kept cells = higher score
 
-8 stages × 3 puzzles. Beat the score target to advance!"
+9 stages × 3 puzzles. Beat the score target to advance!"
 horizontal_alignment = 1
 
 [node name="Spacer" type="Control" parent="Panel/MarginContainer/VBoxContainer"]

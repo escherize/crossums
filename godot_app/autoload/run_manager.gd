@@ -128,7 +128,7 @@ func on_puzzle_complete_rating(time_used: float) -> void:
 	GameState.run.advance_puzzle()
 
 	# Check for victory (completed all stages)
-	if GameState.run.stage > 8:
+	if GameState.run.stage > 9:
 		_end_run(true)
 		return
 
@@ -182,7 +182,7 @@ func on_puzzle_complete(breakdown_or_score) -> void:
 	var was_boss: bool = GameState.run.puzzle_index == 2
 	GameState.run.advance_puzzle()
 
-	if GameState.run.stage > 8:
+	if GameState.run.stage > 9:
 		_end_run(true)
 		return
 

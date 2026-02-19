@@ -15,6 +15,7 @@ const OPERATORS := {
 	"safety_net": preload("res://scripts/operators/impl/op_safety_net.gd"),
 	"click_clique": preload("res://scripts/operators/impl/op_click_clique.gd"),
 	"garbage_collector": preload("res://scripts/operators/impl/op_garbage_collector.gd"),
+	"trimmer": preload("res://scripts/operators/impl/op_trimmer.gd"),
 }
 
 

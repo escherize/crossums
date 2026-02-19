@@ -15,6 +15,7 @@
     }
   },
   "steps": [
+    {"action": "clear_operators"},
     {"comment": "Delete all non-solution cells first"},
     {"action": "delete_cell", "params": {"row": 0, "col": 0}},
     {"action": "delete_cell", "params": {"row": 1, "col": 0}},

@@ -8,14 +8,14 @@
     {
       "action": "set_stage",
       "params": {
-        "stage": 8,
+        "stage": 9,
         "puzzle_index": 2
       }
     },
     {
       "action": "get_run_info",
       "expect_nested": {
-        "run.stage": 8,
+        "run.stage": 9,
         "run.puzzle_index": 2
       }
     },

@@ -12,6 +12,7 @@ const ResultPopupScene = preload("res://scenes/ui/result_popup.tscn")
 const ShopPlaceholderScene = preload("res://scenes/ui/shop_placeholder.tscn")
 const GameOverScene = preload("res://scenes/ui/game_over.tscn")
 const VictoryScene = preload("res://scenes/ui/victory.tscn")
+const PauseOverlayScene = preload("res://scenes/ui/pause_overlay.tscn")
 
 # =============================================================================
 # STATE
@@ -25,6 +26,10 @@ var _timer_fill_style: StyleBoxFlat
 var _current_overlay: Control = null
 var _time_at_puzzle_start: float = 0.0  # Pool value when puzzle started (for time mult calc)
 var _executing_auto_action: bool = false  # Prevents recursive auto-action checks
+var _is_paused: bool = false
+var _pause_overlay: Control = null
+var _pause_time_offset: int = 0  # Accumulated pause time to subtract from elapsed
+var _pause_start_time: int = 0  # When current pause started
 
 # =============================================================================
 # NODE REFERENCES
@@ -44,6 +49,7 @@ var _executing_auto_action: bool = false  # Prevents recursive auto-action check
 @onready var target_label: Label = %TargetLabel
 @onready var circle_mode_button: Button = %CircleModeButton
 @onready var buy_time_button: Button = %BuyTimeButton
+@onready var pause_button: Button = %PauseButton
 
 # =============================================================================
 # LIFECYCLE
@@ -75,11 +81,15 @@ func _setup_ui() -> void:
 
 func _connect_signals() -> void:
 	undo_button.pressed.connect(_on_undo_pressed)
+	pause_button.pressed.connect(_on_pause_pressed)
 	# Note: buy_time_button is now just a status display, not clickable
 
 	# Circle mode button (touchscreen only - hidden on desktop)
 	if circle_mode_button.visible:
 		circle_mode_button.circle_mode_changed.connect(_on_circle_mode_changed)
+
+	# Auto-pause when app loses focus
+	get_tree().root.focus_exited.connect(_on_focus_lost)
 
 	# EventBus connections
 	EventBus.cell_deleted.connect(_on_cell_deleted)
@@ -99,7 +109,7 @@ func _connect_signals() -> void:
 
 
 func _process(_delta: float) -> void:
-	if GameState.puzzle and not puzzle_solved:
+	if GameState.puzzle and not puzzle_solved and not _is_paused:
 		_update_time_multiplier()
 		_update_timer_display()
 
@@ -111,7 +121,7 @@ func _update_time_multiplier() -> void:
 	if GameState.puzzle == null or _time_at_puzzle_start <= 0.0:
 		return
 
-	var elapsed_sec := (Time.get_ticks_msec() - puzzle_start_time) / 1000.0
+	var elapsed_sec := (Time.get_ticks_msec() - puzzle_start_time - _pause_time_offset) / 1000.0
 
 	# Decrease time pool by elapsed time (but not below 0)
 	GameState.run.time_pool = maxf(_time_at_puzzle_start - elapsed_sec, 0.0)
@@ -184,6 +194,9 @@ func _refresh_hud() -> void:
 	# Hide buy time button (only available in shop)
 	buy_time_button.visible = false
 
+	# Enable pause button during puzzle play
+	pause_button.disabled = _is_paused or puzzle_solved
+
 # =============================================================================
 # PUZZLE MANAGEMENT
 # =============================================================================
@@ -221,6 +234,7 @@ func _load_puzzle_grid() -> void:
 	_time_at_puzzle_start = GameState.run.time_pool if GameState.run else 75.0
 	time_multiplier = GameConfig.TIME_MULT_START
 	puzzle_solved = false
+	_pause_time_offset = 0  # Reset pause tracking for new puzzle
 	_update_timer_display()
 
 	_update_status("Delete cells to match row/column targets.")
@@ -447,8 +461,8 @@ func _complete_puzzle() -> void:
 	## Called when puzzle is solved (auto-win or submit)
 	puzzle_solved = true
 
-	# Calculate time used for pace rating
-	var time_used: float = (Time.get_ticks_msec() - puzzle_start_time) / 1000.0
+	# Calculate time used for pace rating (excluding pause time)
+	var time_used: float = (Time.get_ticks_msec() - puzzle_start_time - _pause_time_offset) / 1000.0
 
 	# Update status with pace info
 	var cell_count: int = GameState.puzzle.grid_size.x * GameState.puzzle.grid_size.y
@@ -457,3 +471,62 @@ func _complete_puzzle() -> void:
 
 	# Notify RunManager with time used (calculates rating internally)
 	RunManager.on_puzzle_complete_rating(time_used)
+
+# =============================================================================
+# PAUSE
+# =============================================================================
+
+func _on_pause_pressed() -> void:
+	if puzzle_solved or _current_overlay != null:
+		return
+	_pause_game()
+
+
+func _on_focus_lost() -> void:
+	## Auto-pause when app loses focus (mobile background, window unfocused)
+	if puzzle_solved or _is_paused or _current_overlay != null:
+		return
+	_pause_game()
+
+
+func _pause_game() -> void:
+	if _is_paused:
+		return
+	_is_paused = true
+	_pause_start_time = Time.get_ticks_msec()
+
+	# Hide the puzzle grid to prevent "pause to think" exploit
+	if puzzle_grid:
+		puzzle_grid.visible = false
+
+	# Show pause overlay
+	_pause_overlay = PauseOverlayScene.instantiate()
+	var resume_btn = _pause_overlay.get_node("%ResumeButton")
+	if resume_btn:
+		resume_btn.pressed.connect(_resume_game)
+	overlay_container.add_child(_pause_overlay)
+
+	# Disable pause button while paused
+	pause_button.disabled = true
+
+
+func _resume_game() -> void:
+	if not _is_paused:
+		return
+
+	# Accumulate pause duration
+	_pause_time_offset += Time.get_ticks_msec() - _pause_start_time
+
+	_is_paused = false
+
+	# Show the puzzle grid again
+	if puzzle_grid:
+		puzzle_grid.visible = true
+
+	# Remove pause overlay
+	if _pause_overlay:
+		_pause_overlay.queue_free()
+		_pause_overlay = null
+
+	# Re-enable pause button
+	pause_button.disabled = false

@@ -10,8 +10,9 @@ const PuzzleGeneratorScript = preload("res://scripts/core/puzzle_generator.gd")
 
 class PuzzleConfig:
 	var grid_size: Vector2i = Vector2i(3, 3)
-	var min_cell_value: int = 1  ## No zeros - they don't make sense in the game
+	var min_cell_value: int = 1
 	var max_cell_value: int = 9
+	var exclude_zero: bool = false  ## Note: 0 is always excluded by _random_nonzero
 	var cells_to_delete_ratio: float = 0.4  ## Used by fallback generator only
 	var puzzle_seed: int = 0  ## 0 = random seed
 
