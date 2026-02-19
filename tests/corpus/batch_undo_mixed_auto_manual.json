@@ -1,6 +1,6 @@
 {
   "name": "batch_undo_mixed_auto_manual",
-  "description": "Mix of manual and auto actions maintain correct undo order",
+  "description": "Multiple user actions with auto-triggers undo correctly",
   "setup": {
     "start_board": {
       "size": 3,
@@ -17,10 +17,10 @@
   "steps": [
     {"action": "clear_operators"},
     {"action": "add_operator", "params": {"id": "click_clique"}},
-    {"comment": "Manual delete 1 - no trigger (targets 20 never reached)"},
+    {"comment": "Manual delete 1 - no trigger"},
     {"action": "delete_cell", "params": {"row": 1, "col": 0}},
     {"action": "wait_idle"},
-    {"comment": "Manual delete 2 - triggers Click Clique on row 0 (2+3=5=target)"},
+    {"comment": "Manual delete 2 - triggers Click Clique"},
     {"action": "delete_cell", "params": {"row": 0, "col": 2}},
     {"action": "wait_idle"},
     {"action": "wait_idle"},
@@ -29,16 +29,13 @@
     {"assert": "assert_cell_state", "params": {"row": 0, "col": 2, "state": "deleted"}},
     {"assert": "assert_cell_state", "params": {"row": 0, "col": 0, "state": "circled"}},
     {"assert": "assert_cell_state", "params": {"row": 0, "col": 1, "state": "circled"}},
-    {"comment": "Undo 1: revert auto-circles"},
+    {"comment": "Undo 1: reverts delete (0,2) + triggered auto-circles"},
     {"action": "undo"},
     {"assert": "assert_cell_state", "params": {"row": 0, "col": 0, "state": "active"}},
     {"assert": "assert_cell_state", "params": {"row": 0, "col": 1, "state": "active"}},
-    {"assert": "assert_cell_state", "params": {"row": 0, "col": 2, "state": "deleted"}},
-    {"comment": "Undo 2: revert manual delete of (0,2)"},
-    {"action": "undo"},
     {"assert": "assert_cell_state", "params": {"row": 0, "col": 2, "state": "active"}},
     {"assert": "assert_cell_state", "params": {"row": 1, "col": 0, "state": "deleted"}},
-    {"comment": "Undo 3: revert manual delete of (1,0)"},
+    {"comment": "Undo 2: revert first manual delete"},
     {"action": "undo"},
     {"assert": "assert_cell_state", "params": {"row": 1, "col": 0, "state": "active"}},
     {"action": "clear_operators"}

@@ -486,16 +486,11 @@ func _action_undo(_params: Dictionary) -> Dictionary:
 		return {"error": "nothing_to_undo", "message": "No actions to undo"}
 
 	var result := puzzle_state.undo_last_action()
-	if not result.is_empty() and not result.cells.is_empty():
+	if not result.is_empty() and result.total_cells > 0:
 		_refresh_puzzle_grid(main_scene)
-		# Return info about first cell in batch (for backward compat)
-		var first_pos: Vector2i = result.cells[0]
-		var cell_data := puzzle_state.get_cell(first_pos.y, first_pos.x)
 		return {
-			"undone": {"row": first_pos.y, "col": first_pos.x, "value": cell_data.value},
-			"cells_undone": result.cells.size(),
-			"batch_type": result.type,
-			"was_auto": result.auto,
+			"cells_undone": result.total_cells,
+			"batches_undone": result.batches_undone,
 			"remaining_undo_count": puzzle_state.get_action_count()
 		}
 	return {"error": "undo_failed", "message": "Failed to undo"}

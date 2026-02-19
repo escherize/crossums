@@ -6,8 +6,8 @@ func _init() -> void:
 	id = "trimmer"
 	display_name = "Trimmer"
 	description = "Auto-deletes cells too big for their targets"
-	rarity = 1
-	price = 8
+	rarity = 2
+	price = 20
 
 
 func get_auto_action(puzzle: PuzzleState) -> Dictionary:

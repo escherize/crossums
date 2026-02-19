@@ -239,6 +239,9 @@ func _load_puzzle_grid() -> void:
 
 	_update_status("Delete cells to match row/column targets.")
 
+	# Check for auto-actions on puzzle load (e.g., Trimmer deletes oversized cells)
+	_check_operator_auto_actions()
+
 
 func _update_status(text: String) -> void:
 	status_label.text = text
@@ -347,14 +350,12 @@ func _on_undo_pressed() -> void:
 		return
 
 	var result = GameState.puzzle.undo_last_action()
-	if not result.is_empty() and not result.cells.is_empty():
+	if not result.is_empty() and result.total_cells > 0:
 		puzzle_grid.refresh()
-		var count = result.cells.size()
-		if count == 1:
-			var pos = result.cells[0]
-			_update_status("Undid %s at (%d, %d)" % [result.type, pos.x + 1, pos.y + 1])
+		if result.batches_undone == 1:
+			_update_status("Undid %d cell(s)" % result.total_cells)
 		else:
-			_update_status("Undid %d %ss" % [count, result.type])
+			_update_status("Undid %d cell(s) across %d actions" % [result.total_cells, result.batches_undone])
 
 
 func _on_circle_mode_changed(active: bool) -> void:

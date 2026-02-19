@@ -1,6 +1,6 @@
 {
   "name": "batch_undo_click_clique",
-  "description": "Click Clique auto-circles are batched - one undo reverts all circles",
+  "description": "Click Clique auto-circles + triggering delete are undone together",
   "setup": {
     "start_board": {
       "size": 3,
@@ -24,14 +24,11 @@
     {"action": "wait_idle"},
     {"assert": "assert_cell_state", "params": {"row": 0, "col": 0, "state": "circled"}},
     {"assert": "assert_cell_state", "params": {"row": 0, "col": 1, "state": "circled"}},
-    {"comment": "Undo once - should revert both auto-circles"},
+    {"assert": "assert_cell_state", "params": {"row": 0, "col": 2, "state": "deleted"}},
+    {"comment": "ONE undo reverts everything: auto-circles AND the triggering delete"},
     {"action": "undo"},
     {"assert": "assert_cell_state", "params": {"row": 0, "col": 0, "state": "active"}},
     {"assert": "assert_cell_state", "params": {"row": 0, "col": 1, "state": "active"}},
-    {"comment": "The manual delete should still be undone"},
-    {"assert": "assert_cell_state", "params": {"row": 0, "col": 2, "state": "deleted"}},
-    {"comment": "Undo again - now the manual delete is reverted"},
-    {"action": "undo"},
     {"assert": "assert_cell_state", "params": {"row": 0, "col": 2, "state": "active"}},
     {"action": "clear_operators"}
   ]

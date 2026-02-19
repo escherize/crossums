@@ -215,29 +215,35 @@ func uncircle_cell(row: int, col: int) -> bool:
 
 
 func undo_last_action() -> Dictionary:
-	## Undo the last action batch (may contain multiple cells).
-	## Returns {type, cells, auto, operator_id} or empty dict if nothing to undo.
+	## Undo the last user action and any auto-actions it triggered.
+	## Returns {batches_undone, total_cells} or empty dict if nothing to undo.
 	if action_history.is_empty():
 		return {}
 
-	var batch = action_history.pop_back()
-	var cells_undone: Array[Vector2i] = []
+	var batches_undone: int = 0
+	var total_cells: int = 0
 
-	for pos in batch.cells:
-		var row = pos.y
-		var col = pos.x
-		var cell = get_cell(row, col)
-		if cell:
-			cell.state = CellState.ACTIVE
-			cells_undone.append(pos)
+	# Keep undoing until we revert a manual (non-auto) action
+	# This groups the manual action with all auto-actions it triggered
+	while not action_history.is_empty():
+		var batch = action_history.pop_back()
+		batches_undone += 1
 
-	misstep_count += 1  # Undo = player changed their mind (once per batch)
+		for pos in batch.cells:
+			var cell = get_cell(pos.y, pos.x)
+			if cell:
+				cell.state = CellState.ACTIVE
+				total_cells += 1
+
+		# Stop after reverting a manual action (the trigger)
+		if not batch.get("auto", false):
+			break
+
+	misstep_count += 1  # Undo = player changed their mind (once per user action)
 
 	return {
-		"type": batch.type,
-		"cells": cells_undone,
-		"auto": batch.get("auto", false),
-		"operator_id": batch.get("operator_id", "")
+		"batches_undone": batches_undone,
+		"total_cells": total_cells
 	}
 
 
