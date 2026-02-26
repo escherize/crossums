@@ -24,6 +24,11 @@ DebugServer="*res://autoload/debug_server.gd"
 SoundManager="*res://autoload/sound_manager.gd"
 SaveManager="*res://autoload/save_manager.gd"
 
+[input_devices]
+
+pointing/emulate_touch_from_mouse=true
+pointing/emulate_mouse_from_touch=true
+
 [display]
 
 window/size/viewport_width=1280

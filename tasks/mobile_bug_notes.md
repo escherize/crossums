@@ -1,6 +1,6 @@
 # Mobile Touch Bug Investigation
 
-## Status: Under Investigation (Code Analysis)
+## Status: Fix Applied (Pending Testing)
 
 ## Export Settings Review
 
@@ -83,5 +83,20 @@ This ensures touch events are properly emulated as mouse events on web, which pr
 
 - [x] `godot_app/scenes/puzzle/grid_cell.gd` - Has explicit touch handling
 - [x] `godot_app/scenes/puzzle/puzzle_grid.gd` - Has multitouch handling
-- [x] `godot_app/project.godot` - Missing input device settings
+- [x] `godot_app/project.godot` - Input device settings added
 - [ ] `godot_app/export_presets.cfg` - Web preset looks standard
+
+## Fix Applied
+
+**Date:** 2025-02-25
+
+Added explicit input device settings to `project.godot`:
+
+```ini
+[input_devices]
+
+pointing/emulate_touch_from_mouse=true
+pointing/emulate_mouse_from_touch=true
+```
+
+This ensures touch events are properly emulated as mouse events on web export, providing reliable touch-to-mouse mapping for all platforms.
