@@ -160,21 +160,7 @@ function showGame(): void {
 
   const toTitle = () => {
     game.returnToTitle()
-    /** Debug hook for tooling and tests: window.crossums.game, window.crossums.solve(). */
-Object.assign(window, {
-  crossums: {
-    game,
-    /** Delete every cell outside the solution of the live puzzle. */
-    solve(): void {
-      const p = game.puzzle
-      if (!p) return
-      const keep = new Set(findSolutions(p, 1)[0]?.map((q) => `${q.row},${q.col}`) ?? [])
-      for (let r = 0; r < p.rows; r++) for (let c = 0; c < p.cols; c++) if (!keep.has(`${r},${c}`) && p.state(r, c) === 'active') game.tap(r, c)
-    },
-  },
-})
-
-showTitle()
+    showTitle()
   }
 
   const syncOverlay = () => {
@@ -218,21 +204,8 @@ showTitle()
         overlayHost.appendChild(victoryOverlay(game.run?.totalScore ?? 0, () => game.startRun(), toTitle))
         break
       case 'idle':
-        /** Debug hook for tooling and tests: window.crossums.game, window.crossums.solve(). */
-Object.assign(window, {
-  crossums: {
-    game,
-    /** Delete every cell outside the solution of the live puzzle. */
-    solve(): void {
-      const p = game.puzzle
-      if (!p) return
-      const keep = new Set(findSolutions(p, 1)[0]?.map((q) => `${q.row},${q.col}`) ?? [])
-      for (let r = 0; r < p.rows; r++) for (let c = 0; c < p.cols; c++) if (!keep.has(`${r},${c}`) && p.state(r, c) === 'active') game.tap(r, c)
-    },
-  },
-})
-
-showTitle()
+        showTitle()
+        break
     }
   }
 

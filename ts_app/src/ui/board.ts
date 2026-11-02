@@ -9,7 +9,8 @@ export interface BoardHandlers {
 
 const LONG_PRESS_MS = 400
 const MIN_CELL = 44
-const MAX_CELL = 120
+const MAX_CELL = 180
+const GAP = 8
 
 /**
  * Renders the targets and cells for the live puzzle and turns pointer input into
@@ -22,6 +23,7 @@ export class Board {
   private cells: HTMLElement[][] = []
   private rowTargets: HTMLElement[] = []
   private colTargets: HTMLElement[] = []
+  private observer: ResizeObserver | null = null
 
   constructor(
     private game: Game,
@@ -29,11 +31,15 @@ export class Board {
   ) {
     this.el = el('div.board')
     this.el.addEventListener('contextmenu', (e) => e.preventDefault())
-    window.addEventListener('resize', () => this.fit())
   }
 
   /** Rebuild the DOM when the puzzle object changes; otherwise refresh classes. */
   update(): void {
+    const host = this.el.parentElement
+    if (host && !this.observer) {
+      this.observer = new ResizeObserver(() => this.fit())
+      this.observer.observe(host)
+    }
     const p = this.game.puzzle
     if (p !== this.puzzle) {
       this.puzzle = p
@@ -42,15 +48,31 @@ export class Board {
     this.refresh()
   }
 
+  /**
+   * Size cells to fill the host. The grid is (cols+1) x (rows+1) units including
+   * the targets. Horizontally, when there is room for one more unit, the board gets
+   * an offset margin so the number cells, not the whole grid, are centred.
+   */
   private fit(): void {
     const p = this.puzzle
-    if (!p) return
-    const n = Math.max(p.rows, p.cols) + 1
-    const w = window.innerWidth - 32
-    const h = window.innerHeight * 0.62
-    const gap = 8
-    const size = Math.floor((Math.min(w, h) - gap * (n - 1)) / n)
-    this.el.style.setProperty('--cell', `${Math.max(MIN_CELL, Math.min(MAX_CELL, size))}px`)
+    const host = this.el.parentElement
+    if (!p || !host) return
+    // The host grows with the board, so measure the room the rest of the screen
+    // leaves in the viewport instead of the host's own height.
+    const screen = host.parentElement ?? host
+    const other = screen.getBoundingClientRect().height - host.getBoundingClientRect().height
+    const w = host.clientWidth
+    const h = Math.max(0, window.innerHeight - other)
+    const unit = (px: number, units: number) => Math.floor((px - GAP * (units - 1)) / units)
+    const clamp = (n: number) => Math.max(MIN_CELL, Math.min(MAX_CELL, n))
+    const tall = unit(h, p.rows + 1)
+    const plain = Math.min(unit(w, p.cols + 1), tall)
+    const offset = Math.min(unit(w, p.cols + 2), tall)
+    // Centre the cells only when the extra unit still fits and costs less than a
+    // quarter of the cell size.
+    const useOffset = offset >= MIN_CELL && offset >= plain * 0.75
+    this.el.classList.toggle('offset-x', useOffset)
+    this.el.style.setProperty('--cell', `${clamp(useOffset ? offset : plain)}px`)
   }
 
   private build(): void {
