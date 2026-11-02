@@ -6,6 +6,7 @@ import { Board } from './ui/board'
 import { clear, clock, el, money } from './ui/dom'
 import { ShopOverlay, gameOverOverlay, howToPlayOverlay, pauseOverlay, resultOverlay, victoryOverlay } from './ui/overlays'
 import { sound } from './ui/sound'
+import { celebrate, victoryShower } from './ui/confetti'
 import { findSolutions } from './engine/solver'
 
 const root = document.getElementById('app')!
@@ -136,6 +137,7 @@ function showGame(): void {
   let shownPhase: Phase | null = null
   let shownPaused = false
   let shop: ShopOverlay | null = null
+  let stopShower: (() => void) | null = null
 
   const refreshHud = () => {
     const run = game.run
@@ -181,6 +183,8 @@ showTitle()
     shownPhase = phase
     shownPaused = game.paused
     shop = null
+    stopShower?.()
+    stopShower = null
     clear(overlayHost)
     board.el.classList.toggle('hidden', game.paused)
     switch (phase) {
@@ -190,6 +194,7 @@ showTitle()
         break
       case 'result':
         sound.play('fanfare')
+        celebrate(game.lastBreakdown!.grade)
         overlayHost.appendChild(resultOverlay(game.lastBreakdown!, () => game.continueFromResult()))
         break
       case 'shop':
@@ -209,6 +214,7 @@ showTitle()
         break
       case 'victory':
         sound.play('fanfare')
+        stopShower = victoryShower()
         overlayHost.appendChild(victoryOverlay(game.run?.totalScore ?? 0, () => game.startRun(), toTitle))
         break
       case 'idle':
