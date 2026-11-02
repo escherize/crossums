@@ -1,21 +1,22 @@
-[gd_scene load_steps=7 format=3 uid="uid://main001"]
+[gd_scene load_steps=8 format=3 uid="uid://main001"]
 
 [ext_resource type="Script" path="res://scenes/main.gd" id="1_main"]
 [ext_resource type="PackedScene" uid="uid://operator_display" path="res://scenes/ui/operator_display.tscn" id="2_opdisplay"]
 [ext_resource type="Script" path="res://scenes/ui/circle_mode_button.gd" id="3_circlemode"]
+[ext_resource type="Texture2D" path="res://assets/textures/wood_background.png" id="4_woodbg"]
 
 [sub_resource type="SystemFont" id="SystemFont_mono"]
 font_names = PackedStringArray("SF Mono", "Menlo", "Monaco", "Consolas", "DejaVu Sans Mono", "monospace")
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bg"]
-bg_color = Color(0.2, 0.22, 0.28, 1)
+bg_color = Color(0.35, 0.28, 0.2, 1)
 corner_radius_top_left = 4
 corner_radius_top_right = 4
 corner_radius_bottom_right = 4
 corner_radius_bottom_left = 4
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_fill"]
-bg_color = Color(0.4, 0.8, 0.9, 1)
+bg_color = Color(0.3, 0.6, 0.5, 1)
 corner_radius_top_left = 4
 corner_radius_top_right = 4
 corner_radius_bottom_right = 4
@@ -30,14 +31,16 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_main")
 
-[node name="Background" type="ColorRect" parent="."]
+[node name="Background" type="TextureRect" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.12, 0.14, 0.18, 1)
+texture = ExtResource("4_woodbg")
+expand_mode = 1
+stretch_mode = 6
 
 [node name="SafeArea" type="MarginContainer" parent="."]
 layout_mode = 1
@@ -67,41 +70,42 @@ theme_override_constants/separation = 8
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_font_sizes/font_size = 20
+theme_override_colors/font_color = Color(0.25, 0.15, 0.08, 1)
 text = "CROSSSUMS"
 
 [node name="StageLabel" type="Label" parent="SafeArea/MainLayout/LeftPanel"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
-theme_override_colors/font_color = Color(0.9, 0.85, 0.6, 1)
+theme_override_colors/font_color = Color(0.55, 0.4, 0.15, 1)
 text = "Stage 1"
 
 [node name="PuzzleLabel" type="Label" parent="SafeArea/MainLayout/LeftPanel"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
-theme_override_colors/font_color = Color(0.7, 0.75, 0.8, 1)
+theme_override_colors/font_color = Color(0.4, 0.35, 0.3, 1)
 text = "Puzzle 1/3"
 
 [node name="MoneyLabel" type="Label" parent="SafeArea/MainLayout/LeftPanel"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
-theme_override_colors/font_color = Color(0.4, 0.8, 0.4, 1)
+theme_override_colors/font_color = Color(0.2, 0.5, 0.2, 1)
 text = "$0"
 
 [node name="ScoreLabel" type="Label" parent="SafeArea/MainLayout/LeftPanel"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
-theme_override_colors/font_color = Color(0.8, 0.8, 0.9, 1)
+theme_override_colors/font_color = Color(0.3, 0.25, 0.2, 1)
 text = "Score: 0"
 
 [node name="TargetLabel" type="Label" parent="SafeArea/MainLayout/LeftPanel"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
-theme_override_colors/font_color = Color(0.5, 0.8, 0.9, 1)
+theme_override_colors/font_color = Color(0.15, 0.4, 0.5, 1)
 text = "Target: 300"
 
 [node name="OperatorSpacer" type="Control" parent="SafeArea/MainLayout/LeftPanel"]

@@ -5,6 +5,45 @@
 
 ---
 
+## 2026-02-20
+
+### Session Summary
+Attempted shader-based tile state system for NORMAL/DELETED/CIRCLED visual states. Abandoned after ~2 hours of debugging UV/border issues.
+
+---
+
+### Failed Experiment: Tile State Shader
+
+**Goal:** Replace multiple tile images with a single shader that handles all visual states (normal, deleted, circled) with juicy transitions.
+
+**Files created (now deleted):**
+- `assets/shaders/tile_state.gdshader` - Canvas item shader with state uniforms
+- `scripts/vfx/tile_state_material.gd` - Helper class for material management
+- `scenes/test/tile_shader_test.tscn` - 3x3 test grid scene
+- `scenes/test/tile_shader_test.gd` - Click-to-cycle test script
+- `assets/textures/tile.png` - 1024→256 resized birch wood tile
+
+**What worked:**
+- Basic shader applied correctly (solid blue test worked)
+- UV gradient visualization worked (proved UVs are 0-1)
+- 40% border with `step()` function worked
+
+**What didn't work:**
+- `smoothstep()` for borders never rendered (unknown reason)
+- Borders below ~27% width invisible (UV scaling issue?)
+- Borders not centered (stretch_mode = 5 caused offset)
+- Lighting-based "selected" effect looked washed out/ugly
+
+**Key learnings:**
+1. Godot shaders don't support `return` in fragment() - causes silent compile failure
+2. TextureRect `stretch_mode` affects UV mapping unpredictably
+3. `smoothstep()` conditionals don't work the same as `step()` in this context
+4. Wood grain texture scaling during tile animations looks unnatural
+
+**Decision:** Abandon shader approach. Will use separate images or simpler visual distinction for circled state.
+
+---
+
 ## 2026-02-14
 
 ### Session Summary

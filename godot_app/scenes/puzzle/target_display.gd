@@ -1,6 +1,7 @@
 class_name TargetDisplay
 extends PanelContainer
-## Displays a row or column target sum, with visual feedback on current progress.
+## Displays a row or column target sum. No background — the bar texture
+## is rendered by PuzzleGrid behind the entire target row/column.
 
 # =============================================================================
 # CONSTANTS
@@ -12,13 +13,12 @@ const ORIENTATION_COLUMN := 1
 const STATUS_WRONG := 0   # Under OR over - doesn't match
 const STATUS_EXACT := 1   # Matches target
 
-const COLOR_WRONG := Color(0.7, 0.25, 0.25)     # Red (doesn't match)
-const COLOR_EXACT := Color(0.2, 0.6, 0.3)       # Green (matches!)
-const TEXT_COLOR := Color(0.95, 0.95, 0.95)
-const DEFAULT_SIZE := Vector2(96, 96)  # Default, can be overridden
+const TEXT_COLOR_WRONG := Color(0.75, 0.15, 0.1)    # Bold red
+const TEXT_COLOR_EXACT := Color(0.05, 0.55, 0.15)   # Bold green
+const DEFAULT_SIZE := Vector2(96, 96)
 const FONT_SIZE := 32
-const CIRC_FONT_SIZE := 16  # Half of main font size
-const CIRC_TEXT_COLOR := Color(0.6, 0.9, 0.95)  # Cyan to match circled cells
+const CIRC_FONT_SIZE := 16
+const CIRC_TEXT_COLOR := Color(0.15, 0.4, 0.5)     # Dark teal
 
 # =============================================================================
 # PROPERTIES
@@ -38,20 +38,21 @@ var circ_label: Label  ## Shows sum of circled cells
 # =============================================================================
 
 func _ready() -> void:
-	# Don't override custom_minimum_size - let puzzle_grid set it dynamically
-	# Only set default if not already specified
 	if custom_minimum_size == Vector2.ZERO:
 		custom_minimum_size = DEFAULT_SIZE
 
-	# Set pivot to center for scale animations (use actual size)
 	pivot_offset = custom_minimum_size / 2
+
+	# Transparent background (bar is drawn by PuzzleGrid)
+	var empty_style = StyleBoxEmpty.new()
+	add_theme_stylebox_override("panel", empty_style)
 
 	# Create main target label (centered)
 	label = Label.new()
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.add_theme_font_size_override("font_size", FONT_SIZE)
-	label.add_theme_color_override("font_color", TEXT_COLOR)
+	label.add_theme_color_override("font_color", TEXT_COLOR_WRONG)
 	add_child(label)
 
 	# Create circled sum label (NE corner - top right)
@@ -67,7 +68,6 @@ func _ready() -> void:
 	circ_label.offset_bottom = 18
 	add_child(circ_label)
 
-	# Now we're in the tree, apply initial appearance
 	_update_status()
 	_update_appearance()
 
@@ -111,35 +111,21 @@ func _update_status() -> void:
 
 
 func _update_appearance() -> void:
-	# Update label text
 	if label:
 		label.text = str(target)
 
-	# Only apply style if we're in the tree
 	if not is_inside_tree():
 		return
 
-	# Determine background color based on status
-	var bg_color: Color
+	# Color the text based on status (no background)
+	var text_color: Color
 	if status == STATUS_EXACT:
-		bg_color = COLOR_EXACT
+		text_color = TEXT_COLOR_EXACT
 	else:
-		bg_color = COLOR_WRONG
+		text_color = TEXT_COLOR_WRONG
 
-	# Apply style
-	var style = StyleBoxFlat.new()
-	style.bg_color = bg_color
-	style.corner_radius_top_left = 4
-	style.corner_radius_top_right = 4
-	style.corner_radius_bottom_left = 4
-	style.corner_radius_bottom_right = 4
-	style.content_margin_left = 4
-	style.content_margin_right = 4
-	style.content_margin_top = 4
-	style.content_margin_bottom = 4
-
-	add_theme_stylebox_override("panel", style)
-	queue_redraw()  # Force visual update
+	if label:
+		label.add_theme_color_override("font_color", text_color)
 
 
 func play_success_animation() -> void:

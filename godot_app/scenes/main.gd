@@ -71,7 +71,7 @@ func _ready() -> void:
 func _setup_ui() -> void:
 	# Create owned StyleBox for timer bar (best practice: don't modify shared resources)
 	_timer_fill_style = StyleBoxFlat.new()
-	_timer_fill_style.bg_color = Color(0.4, 0.8, 0.9, 1.0)  # Cyan
+	_timer_fill_style.bg_color = Color(0.3, 0.6, 0.5, 1.0)  # Forest green
 	_timer_fill_style.corner_radius_top_left = 4
 	_timer_fill_style.corner_radius_top_right = 4
 	_timer_fill_style.corner_radius_bottom_left = 4
@@ -141,7 +141,7 @@ func _update_timer_display() -> void:
 	# In test mode, freeze timer display for deterministic visual tests
 	if GameConfig.is_test_mode():
 		timer_bar.value = 1.0
-		_timer_fill_style.bg_color = Color(0.4, 0.8, 0.9, 1.0)  # Cyan
+		_timer_fill_style.bg_color = Color(0.3, 0.6, 0.5, 1.0)  # Forest green
 		timer_label.text = "1:15"
 		return
 
@@ -157,9 +157,9 @@ func _update_timer_display() -> void:
 	# Update bar value
 	timer_bar.value = progress
 
-	# Update bar fill color: cyan (lots of time) → red (low time)
-	var cyan := Color(0.4, 0.8, 0.9, 1.0)
-	var red := Color(0.9, 0.3, 0.3, 1.0)
+	# Update bar fill color: green (lots of time) → red (low time)
+	var cyan := Color(0.3, 0.6, 0.5, 1.0)  # Forest green
+	var red := Color(0.7, 0.2, 0.15, 1.0)   # Dark warm red
 	var fill_color: Color
 	if progress > 0.3:
 		# Cyan → White transition (100% → 30%)

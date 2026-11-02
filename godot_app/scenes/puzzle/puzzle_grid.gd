@@ -9,6 +9,8 @@ extends Control
 
 const GridCellScene = preload("res://scenes/puzzle/grid_cell.tscn")
 const TargetDisplayScene = preload("res://scenes/puzzle/target_display.tscn")
+const BAR_COLOR := Color(0.92, 0.88, 0.82, 0.85)  # Warm cream, slightly transparent
+const BAR_CORNER_RADIUS := 8
 
 const MIN_CELL_SIZE := 80
 const MAX_CELL_SIZE := 250
@@ -39,10 +41,14 @@ var _multitouch_cells: Dictionary = {}  ## touch_index -> GridCell (for index > 
 
 var main_container: HBoxContainer
 var grid_area: VBoxContainer
+var col_target_wrapper: Control  # Holds bar bg + target labels
 var col_target_container: HBoxContainer
+var col_bar_bg: Panel
 var col_spacer: Control
 var grid_with_row_targets: HBoxContainer
+var row_target_wrapper: Control  # Holds bar bg + target labels
 var row_target_container: VBoxContainer
+var row_bar_bg: Panel
 var cell_grid_container: GridContainer
 
 # =============================================================================
@@ -133,13 +139,25 @@ func _build_layout() -> void:
 	grid_area.add_theme_constant_override("separation", CELL_GAP)
 	main_container.add_child(grid_area)
 
-	# Column targets row (with spacer for alignment)
+	# Column targets row — wrapper with bar background
+	col_target_wrapper = Control.new()
+	grid_area.add_child(col_target_wrapper)
+
+	# Bar background (horizontal) — behind all column targets
+	col_bar_bg = Panel.new()
+	col_bar_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var col_style = StyleBoxFlat.new()
+	col_style.bg_color = BAR_COLOR
+	col_style.set_corner_radius_all(BAR_CORNER_RADIUS)
+	col_bar_bg.add_theme_stylebox_override("panel", col_style)
+	col_target_wrapper.add_child(col_bar_bg)
+
+	# Column target labels on top of bar
 	col_target_container = HBoxContainer.new()
 	col_target_container.add_theme_constant_override("separation", CELL_GAP)
-	grid_area.add_child(col_target_container)
+	col_target_wrapper.add_child(col_target_container)
 
 	# Spacer to align column targets with cells (accounts for row target width)
-	# Size will be updated in _build_grid when we know the actual cell size
 	col_spacer = Control.new()
 	col_spacer.custom_minimum_size = Vector2(MAX_CELL_SIZE, MAX_CELL_SIZE)
 	col_target_container.add_child(col_spacer)
@@ -149,10 +167,23 @@ func _build_layout() -> void:
 	grid_with_row_targets.add_theme_constant_override("separation", CELL_GAP)
 	grid_area.add_child(grid_with_row_targets)
 
-	# Row targets column
+	# Row targets column — wrapper with bar background
+	row_target_wrapper = Control.new()
+	grid_with_row_targets.add_child(row_target_wrapper)
+
+	# Bar background (vertical) — behind all row targets
+	row_bar_bg = Panel.new()
+	row_bar_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var row_style = StyleBoxFlat.new()
+	row_style.bg_color = BAR_COLOR
+	row_style.set_corner_radius_all(BAR_CORNER_RADIUS)
+	row_bar_bg.add_theme_stylebox_override("panel", row_style)
+	row_target_wrapper.add_child(row_bar_bg)
+
+	# Row target labels on top of bar
 	row_target_container = VBoxContainer.new()
 	row_target_container.add_theme_constant_override("separation", CELL_GAP)
-	grid_with_row_targets.add_child(row_target_container)
+	row_target_wrapper.add_child(row_target_container)
 
 	# Cell grid
 	cell_grid_container = GridContainer.new()
@@ -243,6 +274,20 @@ func _build_grid() -> void:
 			row_cells.append(cell)
 
 		grid_cells.append(row_cells)
+
+	# Size the bar backgrounds
+	var col_bar_width = (cell_size * grid_size_vec.x) + (CELL_GAP * (grid_size_vec.x - 1))
+	var col_bar_height = target_size
+	# Position: offset by spacer width + gap
+	col_target_wrapper.custom_minimum_size = Vector2(target_size + CELL_GAP + col_bar_width, col_bar_height)
+	col_bar_bg.position = Vector2(target_size + CELL_GAP, 0)
+	col_bar_bg.size = Vector2(col_bar_width, col_bar_height)
+
+	var row_bar_width = target_size
+	var row_bar_height = (cell_size * grid_size_vec.y) + (CELL_GAP * (grid_size_vec.y - 1))
+	row_target_wrapper.custom_minimum_size = Vector2(row_bar_width, row_bar_height)
+	row_bar_bg.position = Vector2.ZERO
+	row_bar_bg.size = Vector2(row_bar_width, row_bar_height)
 
 	# Set minimum size so CenterContainer can center us
 	var total_width = target_size + CELL_GAP + (cell_size * grid_size_vec.x) + (CELL_GAP * (grid_size_vec.x - 1))

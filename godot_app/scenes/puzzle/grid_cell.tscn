@@ -2,6 +2,6 @@
 
 [ext_resource type="Script" path="res://scenes/puzzle/grid_cell.gd" id="1_cell"]
 
-[node name="GridCell" type="Button"]
+[node name="GridCell" type="TextureButton"]
 custom_minimum_size = Vector2(64, 64)
 script = ExtResource("1_cell")

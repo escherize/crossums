@@ -1,0 +1,29 @@
+A single square puzzle tile, perfectly centered.
+Exact orthographic top-down flat-lay view.
+
+Scandinavian minimalist design, IKEA instruction manual aesthetic.
+Light birch wood tile with subtle natural grain.
+Soft rounded edges, slight bevel, modest thickness suggesting 3-4mm depth.
+Wood grain runs horizontally, consistent scale throughout.
+
+Tile appears inactive, removed from play.
+Uniform opacity approximately 62%, slightly desaturated (saturation reduced 10-15%).
+A subtle recessed shadow or faint imprint directly beneath the tile footprint,
+implying the tile was recently removed or pressed down.
+
+Matte materials only, no gloss.
+No text, symbols, icons, or overlays.
+Transparent background.
+
+---
+NEGATIVE PROMPT:
+No perspective view, no tilt, no camera angle deviation.
+No color shifts, no warm or cool tinting beyond base lighting.
+No outlines, no borders, no glows, no highlights, no bloom.
+No text, letters, numbers, symbols, icons, UI glyphs, or markings.
+No damage, cracks, chips, scratches, wear, or distressing.
+No glossy, reflective, plastic, metallic, or polished surfaces.
+No dramatic lighting, rim light, spotlighting, or vignette.
+No shadows cast outside the tile footprint.
+No background texture, gradients, noise, or patterns.
+No stylization beyond Scandinavian minimalist aesthetic.

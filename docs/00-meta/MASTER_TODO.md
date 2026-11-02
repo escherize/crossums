@@ -1,112 +1,89 @@
 # Master Todo List
 
-> Consolidated from: user_todos.md, next_steps.md, priorities.md, mvp.md, implementation_status.md, GAME_DESIGN_IDEAS.md, crosssums-design-doc.md, OPERATORS.md, GTM_STRATEGY.md, visual_identity.md
-> Last updated: 2026-02-14
+> Last updated: 2026-03-14
 
 ---
 
 ## MVP Ship Criteria
 
-**The game is ready to ship when:**
-- [ ] Sound effects exist (even basic)
-- [ ] 10+ operators available
-- [ ] Save/Load works from UI
-- [ ] Score shows breakdown animation
-- [ ] Operators visible during puzzle play
-- [ ] Web build works on itch.io
+**All MVP blockers are DONE:**
+- [x] Sound effects exist
+- [x] 10+ operators available (12: Counter, Row Master, Column Master, Circlicious, Elite Delete, Purist, Gimme, Sum Sight, Safety Net, Click Clique, Garbage Collector, Trimmer)
+- [x] Save/Load works from UI
+- [x] Score shows breakdown animation
+- [x] Operators visible during puzzle play
+- [x] Web build works on itch.io
+- [x] 9-stage difficulty curve with negatives
+- [x] Mistake feedback (screen shake, red flash, error sound)
+- [x] Circle misstep feedback
+- [x] Mobile touch input working
 
 ---
 
-## Priority 1: MVP Blockers
+## Priority 1: Visual Reskin (CURRENT)
 
-### 1.1 Sound Effects
-**Status:** ✅ Done
+### 1.1 Asset Integration
+**Status:** 🚧 Starting
+**Impact:** HIGH | **Effort:** MEDIUM
 
-SoundManager implemented with configurable mappings. Audio files gitignored.
+The game currently uses **zero custom visual assets** — all UI is procedural StyleBoxFlat/ColorRect. We have assets ready to integrate. See asset inventory below.
 
-**Acceptance Criteria:**
-- [x] Cell delete/restore produces a click sound
-- [x] Row/column turning green produces a "ding" sound
-- [x] Puzzle complete triggers a fanfare
-- [x] Money gain/loss has coin sounds
-- [x] Sounds don't overlap or cause audio issues
-- [x] Volume is balanced (no sound is jarring)
+**Asset Categories Needed:**
 
----
+#### Backgrounds & Surfaces
+- [ ] Title screen background (replace `main_background.png`)
+- [ ] Game screen background (currently a flat ColorRect)
+- [ ] Panel/card background texture (for overlays, shop, result popup)
+- [ ] Shop background
 
-### 1.2 Operator Display During Gameplay
-**Status:** ✅ Done
-**Notes:** Operators are already shown during gameplay.
+#### Grid & Cells
+- [ ] Cell texture — ACTIVE state (currently flat dark blue `StyleBoxFlat`)
+- [ ] Cell texture — DELETED state (currently flat dark gray)
+- [ ] Cell texture — CIRCLED state (currently teal + cyan border)
+- [ ] Cell texture — PROTECTED state (Safety Net green tint)
+- [ ] Target cell texture — WRONG (currently flat red)
+- [ ] Target cell texture — SOLVED (currently flat green)
 
----
+#### UI Elements
+- [ ] Button texture/style (all buttons are default Godot theme)
+- [ ] Operator card background (currently plain `PanelContainer`)
+- [ ] Rarity strip / border treatments (Common, Uncommon, Rare, Legendary)
+- [ ] Timer bar fill texture (currently flat cyan→red gradient)
+- [ ] Timer bar background
+- [ ] Life/heart icons (if applicable)
+- [ ] Money/coin icon
 
-### 1.3 Save/Load UI
-**Status:** 🚧 Code exists, no UI
-**Impact:** MEDIUM | **Effort:** LOW
+#### Typography
+- [ ] Primary font (title, headers)
+- [ ] Body font (labels, descriptions)
+- [ ] Number font (cell values, scores — needs to be very legible)
+- [ ] Monospace font (timer display)
 
-Run state can be serialized, but players can't access it.
+#### Overlays & Screens
+- [ ] Pause overlay style
+- [ ] Result popup panel
+- [ ] Game Over screen treatment
+- [ ] Victory screen treatment
+- [ ] Grade badge visuals (D, C, B, A, S, SS)
 
-**Acceptance Criteria:**
-- [ ] Auto-save triggers after each stage completion
-- [ ] "Continue Run" button appears on title screen when save exists
-- [ ] Loading a save restores full run state (stage, score, lives, operators, money)
-- [ ] Starting a new run clears/overwrites the save
-- [ ] Graceful handling of corrupted saves
-
----
-
-### 1.4 Score Animation (Balatro-Style)
-**Status:** ✅ Done
-**Impact:** MEDIUM-HIGH | **Effort:** MEDIUM
-
-Implemented step-by-step score breakdown reveal.
-
-**Acceptance Criteria:**
-- [x] Base points appear first
-- [x] +Kept cell bonus counts up
-- [x] ×Line multiplier applies with visual effect
-- [x] +Operator bonuses show one by one
-- [x] ×Time multiplier applies
-- [x] Final score reveals with emphasis
-- [ ] Each step has sound effect (needs sound system first)
-- [x] Total animation takes ~3 seconds (configurable)
-- [x] Skip button available (shows "Skip", becomes "Continue" after animation)
-
----
-
-### 1.5 More Operators (10 minimum)
-**Status:** 🚧 Have 9, need 1 more
-**Impact:** HIGH | **Effort:** LOW
-
-Need 1 more operator to hit MVP target of 10. Several operators were removed because they conflicted with single-solution puzzle design.
-
-**Acceptance Criteria:**
-- [ ] At least 10 distinct operators in registry
-- [x] Mix of rarities (Common, Uncommon, Rare)
-- [x] Mix of trigger types (cell_kept, row_complete, puzzle_end)
-- [ ] All operators have tests
-- [x] Shop shows variety in typical run
-
-**Current operators (9):**
-1. Counter (+10 per kept)
-2. Row Master (+50 per row)
-3. Column Master (+50 per col)
-4. Circlicious (+$2 circled/-$1 deleted)
-5. Elite Delete (+$2 deleted/-$1 circled)
-6. Purist (+300 if no circles)
-7. Gimme (auto-solve last cell)
-8. Sum Sight (show running sums on targets)
-9. Safety Net (solved rows/cols glow green)
+#### Color Palette
+- [ ] Define new color palette to replace hardcoded colors throughout:
+  - Cell states (active/deleted/circled/protected)
+  - Target states (wrong/solved)
+  - UI accents (money green, timer cyan→red, stage gold)
+  - Rarity colors (common gray, uncommon green, rare blue, legendary gold)
+  - Grade colors (D gray, C white, B green, A blue, S gold, SS pink)
+  - Score breakdown colors (base white, kept blue, operator purple, speed cyan)
 
 ---
 
 ## Priority 2: Polish & Feel
 
 ### 2.1 Mistake Feedback Enhancement
-**Status:** ❌ Not started
+**Status:** ✅ Done
 **Impact:** MEDIUM | **Effort:** LOW
 
-Mistakes (delete critical cell / circle wrong cell) need stronger feedback.
+Mistakes (delete critical cell / circle wrong cell) have screen shake + red flash + error sound.
 
 **Acceptance Criteria:**
 - [ ] Screen shake on mistake
@@ -134,33 +111,16 @@ General polish to make game feel professional.
 ---
 
 ### 2.3 Circle Misstep Feedback
-**Status:** ✅ Done (visual only)
-**Impact:** LOW | **Effort:** LOW
-
-From user_todos: circling a non-critical cell should feel like a mistake.
-
-**Acceptance Criteria:**
-- [x] Circling non-critical cell triggers red throbbing animation
-- [x] Same visual treatment as deleting a critical cell
-- [ ] Sound effect matches mistake sound (needs sound system first)
+**Status:** ✅ Done
+**Notes:** Visual + sound effect both working.
 
 ---
 
 ## Priority 3: Content & Variety
 
 ### 3.1 Negative Numbers
-**Status:** ❌ Config exists, not enabled
-**Impact:** MEDIUM-HIGH | **Effort:** LOW
-
-Design doc emphasizes this. Infrastructure exists.
-
-**Acceptance Criteria:**
-- [ ] `allow_negatives` enabled from stage 4+
-- [ ] Puzzle generation includes values -1 to -5
-- [ ] Negative numbers display clearly (red text or minus sign)
-- [ ] Sum calculations handle negatives correctly (already should)
-- [ ] At least one operator synergizes with negatives
-- [ ] Tests cover negative number puzzles
+**Status:** ✅ Done
+**Notes:** Enabled in stages 6-9 per the 9-stage difficulty curve. Includes -1, -2, -3 ranges.
 
 ---
 
@@ -474,82 +434,21 @@ These docs have overlapping content and should be consolidated:
 
 ## Summary: What To Work On
 
-### This Week (MVP Push)
-1. **Sound effects** - Biggest bang for buck
-2. **Operator display during play** - Quick win
-3. **Save/Load UI** - Code exists, just needs UI
+### Now: Visual Reskin
+The game is feature-complete for MVP. All gameplay, operators, save/load, web build, and difficulty curve are working. Next step is integrating visual assets to replace the procedural StyleBoxFlat look.
 
-### Next Week
-4. **Score animation** - The satisfaction moment
-5. **Mistake feedback** - Polish
+### After Reskin
+1. **Operator trigger visual feedback** - Glow/pulse when operators fire
+2. **More operators (20+ total)** - Content variety for replayability
+3. **Consumable functions** - First consumable to prove the system
+4. **Boss puzzle modifiers** - Make puzzle 3 of each stage special
+5. **Trailer** - Marketing asset for itch.io / Steam
 
-### Before Public Demo
-6. **Web build working** - itch.io deployment
-7. **Trailer** - Marketing asset
+### Known Issues
+- Garbage Collector / Click Clique can softlock after misstep (may just be their tradeoff — consider raising their cost)
+- Options menu button is a stub
 
 ---
 
 *This document is the single source of truth for what to work on. Other planning docs should be considered archived.*
 
-# User Feedback (2-15-26)
-
-## need more operators
-
-game design
-
-The philosophy is: give the user operators that make their choices matter.
-
-acceptnace criteria: 25 new operator ideas. each one has a rationale about why it is fun, and how it will affect user choices
-
-## New operator idea:
-
-game design
-
-operators can help users understand the board and make better decisions.
-
-acceptnace criteria: 25 new operator ideas that augment a player's ability to read the board. each one has a rationale about how it feels like a super power, and how it will help players make better choices during gameplay
-
-### move the current ""circle shows target sum" into an opaerator 
-We should make the circle -> <show circled sums on the target cells> into an operator instead of just using itch
-
-Also the sum on the target cells should go in the top right corner (North East) - currently it is on the east part of a cell, aka right hand side
-
-acceptnace criteria: a new oprerator + tests
-
-### saftey net operator
-We should add an operator that does a light green highlight (or makes them unclickable, and stone effect?) for solved rows and columns (all cells below a top row target cell, and all cells in the same row as a left hand side target
-
-acceptnace criteria: a new oprerator + tests
-
-
-### We need to figure out how missing a target works
-
-acceptnace criteria: a document exploring 5 options for what happens when we miss a target
-
-### UX: circling cells
-
-the hold is OK but not discoverable. how can we explain it to users better?
-
-on web build (mouse / trackpad) we can do right click 
-
-explore the idea of having a touchscreen button, kind of like shift, where while you hold the button down you get "circle mode" instead of deleting a cell. This would make it quicker to actually circle cells. (Time is of the essense and holding to circle feels a little awkward).
-
-acceptnace criteria: UX analysis about the "hold to circle" button.
-
-# MVP analysis
-
-What do we need to be able to actually make this into an app on the appstore?
-
-acceptnace criteria: actionable steps we need to take. there is some existing. synthesize our new analysis with what is in the docs directory
-
-# User Feedback (start here)
-
-One mechanic that we havn't implemented, it should be built-in from the get go, is: if there is a row or column and the set of circled cells for it sums to that row/col target, we should consider the target as being Solved. (green, and possible to pass the level this way). 
-
-acceptance criteria is a test that only circles values and solves a puzzle
-
-# next todos:
-
-- can get kinda stuck when you have garbage collector / click clique enabled, if you make a misstep. not sure how to fix that. maybe that's the downside of them lol. idk. they are also very powerful (which is cool!) -- they should cost more too.
-
-- New operator which does this when u load a level: for each target + it's possible cells, when no negative numbers are present, deletes all cells with number > target. [3] 4 1 2 5 -> auto-deactivates 4 and 5. find a good name for it
