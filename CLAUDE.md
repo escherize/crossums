@@ -4,7 +4,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Crossums is a Balatro-inspired roguelike number puzzle game built in Godot 4.5. Players delete numbers from a grid so each row and column sums to its target, with higher scores for keeping more numbers.
+Crossums is a Balatro-inspired roguelike number puzzle game. Players delete numbers from a grid so each row and column sums to its target, with higher scores for keeping more numbers.
+
+Two implementations live here:
+
+- `godot_app/` - the Godot 4.5 original (GDScript). Everything below this section describes it.
+- `ts_app/` - the TypeScript web port (Vite, no framework, vitest). Its own `ts_app/CLAUDE.md` and `ts_app/README.md` cover it. The game logic is in `ts_app/src/engine/` and is unit-tested; the UI is plain DOM.
 
 ## Development Commands
 
