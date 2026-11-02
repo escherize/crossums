@@ -39,8 +39,11 @@ interface Plan {
   allPositive: boolean
 }
 
-/** Per-row candidate subsets over the non-deleted cells, or null if some row has none. */
-function plan(p: PuzzleState): Plan | null {
+/**
+ * Per-row candidate subsets over the non-deleted cells, or null if some row has none.
+ * With `keepCircled`, only subsets that keep every circled cell in the row count.
+ */
+function plan(p: PuzzleState, keepCircled: boolean): Plan | null {
   const subsets: number[][][] = []
   let allPositive = true
   for (let r = 0; r < p.rows; r++) {
@@ -51,7 +54,12 @@ function plan(p: PuzzleState): Plan | null {
       cells.push({ col: c, value: cell.value })
       if (cell.value <= 0) allPositive = false
     }
-    const s = subsetsWithSum(cells, p.rowTargets[r])
+    let s = subsetsWithSum(cells, p.rowTargets[r])
+    if (keepCircled) {
+      const circled: number[] = []
+      for (let c = 0; c < p.cols; c++) if (p.cells[r][c].state === 'circled') circled.push(c)
+      if (circled.length) s = s.filter((sub) => circled.every((c) => sub.includes(c)))
+    }
     if (s.length === 0) return null
     subsets.push(s)
   }
@@ -62,8 +70,8 @@ function plan(p: PuzzleState): Plan | null {
  * Walk every combination of row subsets, calling `onSolution` with the kept positions
  * each time the column targets match too. Stops once it returns true.
  */
-function search(p: PuzzleState, onSolution: (kept: Pos[]) => boolean): void {
-  const pl = plan(p)
+function search(p: PuzzleState, onSolution: (kept: Pos[]) => boolean, keepCircled = false): void {
+  const pl = plan(p, keepCircled)
   if (!pl) return
   const colSums = new Array<number>(p.cols).fill(0)
   const chosen: number[][] = []
@@ -94,9 +102,9 @@ function search(p: PuzzleState, onSolution: (kept: Pos[]) => boolean): void {
 }
 
 /** Number of ways to finish from the current state, counting up to `max`. */
-export function countSolutions(p: PuzzleState, max = 50): number {
+export function countSolutions(p: PuzzleState, max = 50, keepCircled = false): number {
   let n = 0
-  search(p, () => ++n >= max)
+  search(p, () => ++n >= max, keepCircled)
   return n
 }
 
@@ -109,4 +117,9 @@ export function findSolutions(p: PuzzleState, max = 10): Pos[][] {
 
 export function hasAnySolution(p: PuzzleState): boolean {
   return countSolutions(p, 1) > 0
+}
+
+/** Can the puzzle still be finished while keeping every circled cell? */
+export function solvableWithCircles(p: PuzzleState): boolean {
+  return countSolutions(p, 1, true) > 0
 }

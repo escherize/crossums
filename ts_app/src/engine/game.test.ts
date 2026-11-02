@@ -283,3 +283,59 @@ describe('operator auto-actions', () => {
     expect(g.addOperator(createOperator('sum_sight'))).toBe(false)
   })
 })
+
+describe('mistakes', () => {
+  function firstOutside(game: Game): { row: number; col: number } {
+    const p = game.puzzle!
+    const keep = new Set(findSolutions(p, 1)[0].map((q) => `${q.row},${q.col}`))
+    for (let r = 0; r < p.rows; r++) for (let c = 0; c < p.cols; c++) if (!keep.has(`${r},${c}`)) return { row: r, col: c }
+    throw new Error('no decoy cell')
+  }
+  function firstInside(game: Game): { row: number; col: number } {
+    const [q] = findSolutions(game.puzzle!, 1)[0]
+    return { row: q.row, col: q.col }
+  }
+
+  it('deleting a solution cell emits mistake once and undo clears it', () => {
+    const { game } = harness()
+    game.startRun(42)
+    const seen: string[] = []
+    game.on('mistake', (m) => seen.push(`${m.kind}@${m.row},${m.col}`))
+    const needed = firstInside(game)
+    const decoy = firstOutside(game)
+    game.tap(needed.row, needed.col)
+    expect(seen).toEqual([`delete@${needed.row},${needed.col}`])
+    expect(game.solvable).toBe(false)
+    // Further damage while already unsolvable is not a new mistake.
+    game.tap(decoy.row, decoy.col)
+    expect(seen).toHaveLength(1)
+    game.undo()
+    game.undo()
+    expect(game.solvable).toBe(true)
+  })
+
+  it('circling a decoy emits a circle mistake; circling a solution cell does not', () => {
+    const { game } = harness()
+    game.startRun(42)
+    const seen: string[] = []
+    game.on('mistake', (m) => seen.push(m.kind))
+    const needed = firstInside(game)
+    game.circle(needed.row, needed.col)
+    expect(seen).toEqual([])
+    const decoy = firstOutside(game)
+    game.circle(decoy.row, decoy.col)
+    expect(seen).toEqual(['circle'])
+    game.circle(decoy.row, decoy.col) // uncircle repairs it
+    expect(game.solvable).toBe(true)
+  })
+
+  it('deleting a decoy is never a mistake', () => {
+    const { game } = harness()
+    game.startRun(7)
+    let n = 0
+    game.on('mistake', () => n++)
+    solve(game)
+    expect(n).toBe(0)
+    expect(game.phase).toBe('result')
+  })
+})

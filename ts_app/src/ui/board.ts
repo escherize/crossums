@@ -11,6 +11,8 @@ const LONG_PRESS_MS = 400
 const MIN_CELL = 44
 const MAX_CELL = 180
 const GAP = 8
+/** Board padding plus border, per axis. */
+const FRAME = 27
 
 /**
  * Renders the targets and cells for the live puzzle and turns pointer input into
@@ -61,8 +63,8 @@ export class Board {
     // leaves in the viewport instead of the host's own height.
     const screen = host.parentElement ?? host
     const other = screen.getBoundingClientRect().height - host.getBoundingClientRect().height
-    const w = host.clientWidth
-    const h = Math.max(0, window.innerHeight - other)
+    const w = host.clientWidth - FRAME
+    const h = Math.max(0, window.innerHeight - other - FRAME)
     const unit = (px: number, units: number) => Math.floor((px - GAP * (units - 1)) / units)
     const clamp = (n: number) => Math.max(MIN_CELL, Math.min(MAX_CELL, n))
     const tall = unit(h, p.rows + 1)
@@ -73,6 +75,24 @@ export class Board {
     const useOffset = offset >= MIN_CELL && offset >= plain * 0.75
     this.el.classList.toggle('offset-x', useOffset)
     this.el.style.setProperty('--cell', `${clamp(useOffset ? offset : plain)}px`)
+  }
+
+  /** Red flash on one cell, for a mistake. */
+  flashWrong(row: number, col: number): void {
+    const node = this.cells[row]?.[col]
+    if (!node) return
+    node.classList.remove('wrong')
+    void node.offsetWidth
+    node.classList.add('wrong')
+  }
+
+  /** Shake the whole board once. */
+  shake(): void {
+    const host = this.el.parentElement
+    if (!host) return
+    host.classList.remove('shake')
+    void host.offsetWidth
+    host.classList.add('shake')
   }
 
   private build(): void {

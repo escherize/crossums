@@ -11,6 +11,7 @@ const FILES = {
   multiplier: 'multiplier',
   button: 'button',
   menu: 'menu_open',
+  tick: 'score_tick',
 } as const
 
 export type SoundName = keyof typeof FILES

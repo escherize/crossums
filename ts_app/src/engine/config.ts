@@ -1,5 +1,5 @@
 /** Tunable game parameters. Everything a designer might change lives here. */
-export const VERSION = '0.3.0'
+export const VERSION = '0.4.0'
 
 export const config = {
   /** Seconds granted to the time pool when a puzzle starts, by stage. */

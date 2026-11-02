@@ -55,7 +55,7 @@ function collect(p: PuzzleState, rowTest: (r: number) => boolean, colTest: (c: n
 
 const counter = (): Operator => ({
   id: 'counter',
-  name: 'Counter',
+  name: 'RÄKNA',
   description: '+10 points for each kept cell',
   rarity: 0,
   price: 5,
@@ -64,7 +64,7 @@ const counter = (): Operator => ({
 
 const rowMaster = (): Operator => ({
   id: 'row_master',
-  name: 'Row Master',
+  name: 'RAD',
   description: '+50 points for each completed row',
   rarity: 0,
   price: 5,
@@ -73,7 +73,7 @@ const rowMaster = (): Operator => ({
 
 const columnMaster = (): Operator => ({
   id: 'column_master',
-  name: 'Column Master',
+  name: 'KOLONN',
   description: '+50 points for each completed column',
   rarity: 0,
   price: 5,
@@ -82,7 +82,7 @@ const columnMaster = (): Operator => ({
 
 const circlicious = (): Operator => ({
   id: 'circlicious',
-  name: 'Circlicious',
+  name: 'RUNDLIG',
   description: '+$2 per circled, -$1 per deleted',
   rarity: 1,
   price: 6,
@@ -91,7 +91,7 @@ const circlicious = (): Operator => ({
 
 const eliteDelete = (): Operator => ({
   id: 'elite_delete',
-  name: 'Elite Delete',
+  name: 'PRECIS',
   description: '+$2 per deleted, -$1 per circled',
   rarity: 1,
   price: 6,
@@ -100,7 +100,7 @@ const eliteDelete = (): Operator => ({
 
 const purist = (): Operator => ({
   id: 'purist',
-  name: 'Purist',
+  name: 'RENHET',
   description: '+300 points if no circles used',
   rarity: 1,
   price: 7,
@@ -110,7 +110,7 @@ const purist = (): Operator => ({
 /** Deletes the one cell left when exactly one row and one column are still wrong. */
 const gimme = (): Operator => ({
   id: 'gimme',
-  name: 'Gimme',
+  name: 'GRATIS',
   description: 'Auto-solves when 1 row and 1 column remain',
   rarity: 1,
   price: 6,
@@ -128,7 +128,7 @@ const gimme = (): Operator => ({
 
 const sumSight = (): Operator => ({
   id: 'sum_sight',
-  name: 'Sum Sight',
+  name: 'SUMMA',
   description: 'Circled cells show their sum on targets',
   rarity: 0,
   price: 4,
@@ -136,7 +136,7 @@ const sumSight = (): Operator => ({
 
 const safetyNet = (): Operator => ({
   id: 'safety_net',
-  name: 'Safety Net',
+  name: 'SKYDD',
   description: 'Cells in solved rows/cols glow green',
   rarity: 1,
   price: 5,
@@ -145,7 +145,7 @@ const safetyNet = (): Operator => ({
 /** Circles the active cells of any row or column whose kept cells already hit the target. */
 const clickClique = (): Operator => ({
   id: 'click_clique',
-  name: 'Click Clique',
+  name: 'KLICK',
   description: 'When active cells hit a target, auto-circle them',
   rarity: 2,
   price: 20,
@@ -158,7 +158,7 @@ const clickClique = (): Operator => ({
 /** Deletes the active cells of any row or column whose circled cells alone hit the target. */
 const garbageCollector = (): Operator => ({
   id: 'garbage_collector',
-  name: 'Garbage Collector',
+  name: 'STÄDA',
   description: 'When circled cells hit a target, auto-delete the rest',
   rarity: 2,
   price: 20,
@@ -171,7 +171,7 @@ const garbageCollector = (): Operator => ({
 /** Deletes cells larger than their row or column target. Skips anything involving negatives. */
 const trimmer = (): Operator => ({
   id: 'trimmer',
-  name: 'Trimmer',
+  name: 'SÅG',
   description: 'Auto-deletes cells too big for their targets',
   rarity: 2,
   price: 20,

@@ -2,7 +2,7 @@ import confetti from 'canvas-confetti'
 import type { Grade } from '../engine/config'
 
 const SCALE: Record<Grade, number> = { D: 0.3, C: 0.5, B: 0.8, A: 1, S: 1.4, SS: 2 }
-const COLORS = ['#f1c27a', '#d99a1e', '#137a2d', '#1f6d80', '#f3e9d6']
+const COLORS = ['#004f9f', '#ffc61e', '#f5f5f0', '#d4a574', '#4a7c4e']
 
 /** One burst from the bottom of the screen, bigger for better grades. */
 export function celebrate(grade: Grade): void {

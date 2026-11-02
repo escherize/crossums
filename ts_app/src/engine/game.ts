@@ -5,6 +5,7 @@ import { PuzzleState } from './puzzle'
 import { seededRng } from './rng'
 import { RunState, type RunJSON } from './run'
 import { calculateRating, type RatingBreakdown } from './scoring'
+import { solvableWithCircles } from './solver'
 import { stageConfig, type StageConfig } from './stage'
 
 export type Phase = 'idle' | 'puzzle' | 'result' | 'shop' | 'gameOver' | 'victory'
@@ -15,8 +16,17 @@ export interface GameEvents {
   /** An operator just changed cells on the player's behalf. */
   autoAction: AutoAction
   operatorTriggered: { id: string; bonus: number }
+  /** The player's last delete or circle made the puzzle unfinishable. */
+  mistake: Mistake
   solved: RatingBreakdown
   timeUp: undefined
+}
+
+export interface Mistake {
+  row: number
+  col: number
+  /** 'delete': the cell was needed. 'circle': no solution keeps it. */
+  kind: 'delete' | 'circle'
 }
 
 type Listener<K extends keyof GameEvents> = (payload: GameEvents[K]) => void
@@ -85,6 +95,8 @@ export class Game {
   operators: Operator[] = []
   stage: StageConfig | null = null
   lastBreakdown: RatingBreakdown | null = null
+  /** False once a player action has made the puzzle unfinishable, until it is fixed. */
+  solvable = true
   shop: ShopState = { slots: [], rerollCost: REROLL_BASE_COST, rerollCount: 0 }
   /** While true, taps circle instead of delete (the held "shift" button on touch). */
   circleMode = false
@@ -177,6 +189,7 @@ export class Game {
     if (!run) throw new Error('loadPuzzle needs an active run')
     this.stage ??= stageConfig(run.stage, run.puzzleIndex)
     this.puzzle = puzzle
+    this.solvable = true
     this.lastBreakdown = null
     this.puzzleSolved = false
     this.paused = false
@@ -244,7 +257,7 @@ export class Game {
     const p = this.puzzle!
     const s = p.state(row, col)
     const did = s === 'active' ? p.deleteCell(row, col) : s === 'deleted' ? p.restoreCell(row, col) : p.uncircleCell(row, col)
-    if (did) this.afterAction()
+    if (did) this.afterAction(s === 'active' ? { row, col, kind: 'delete' } : undefined)
   }
 
   /** Long press or right-click: toggle the circle mark on a kept cell. */
@@ -253,17 +266,28 @@ export class Game {
     const p = this.puzzle!
     const s = p.state(row, col)
     const did = s === 'active' ? p.circleCell(row, col) : s === 'circled' ? p.uncircleCell(row, col) : false
-    if (did) this.afterAction()
+    if (did) this.afterAction(s === 'active' ? { row, col, kind: 'circle' } : undefined)
   }
 
   undo(): { batchesUndone: number; totalCells: number } | null {
     if (!this.canAct) return null
     const r = this.puzzle!.undoLastAction()
-    if (r) this.changed()
+    if (r) {
+      this.solvable = solvableWithCircles(this.puzzle!)
+      this.changed()
+    }
     return r
   }
 
-  private afterAction(): void {
+  /** `candidate` is the delete or circle that may have broken the puzzle. */
+  private afterAction(candidate?: Mistake): void {
+    const p = this.puzzle!
+    if (p.isSolved() || p.isSolvedByCircles()) this.solvable = true
+    else {
+      const was = this.solvable
+      this.solvable = solvableWithCircles(p)
+      if (was && !this.solvable && candidate) this.emit('mistake', candidate)
+    }
     this.changed()
     if (!this.checkAutoWin()) this.checkAutoActions()
   }

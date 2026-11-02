@@ -1,6 +1,8 @@
-# Crossums (TypeScript)
+# Sum Assembly Required (TypeScript)
 
-Browser build of Crossums: delete numbers from a grid until every row and column sums to its target, then spend what you earn on operators. Static web app: Vite + TypeScript, no framework, no server. Installs to an iPad home screen as a full-screen app.
+Browser build of Crossums, shipping as *Sum Assembly Required*: remove numbered parts from a grid until every row and column sums to its target, then spend what you earn on operators. Static web app: Vite + TypeScript, no framework, no server. Installs to an iPad home screen as a full-screen app. Live at https://escherize.com/crossums/.
+
+The look follows `../docs/20-product/theme_sum_assembly_required.md`: a flat-pack instruction manual. Cardboard background, laminate panels with thin rules, birch tiles, Swedish blue and yellow accents, stick-figure art, STEG and POÄNG labels, and Swedish operator names (ids are unchanged, so saves survive the rename).
 
 The Godot 4 original lives in `../godot_app/`. This port keeps its rules, numbers and operators; see "Differences" for the few places it does not.
 
@@ -23,19 +25,27 @@ src/engine/   pure game logic, no DOM, fully unit-tested
   solver.ts     subset search; countSolutions / findSolutions, correct with negative values
   generator.ts  single-solution puzzles (no line satisfied at start), fallback generator
   scoring.ts    pace rating → grade → money; operator hooks
-  operators.ts  the 12 operators and the shop draw
+  operators.ts  the 12 operators (Swedish names, English effects) and the shop draw
   stage.ts      grid size, value range and score target per stage
   run.ts        RunState: progression, money, time pool, streak, seeds
   config.ts     every tunable number
-  game.ts       Game: phases, timer, auto-actions, shop, save/load. The UI only calls this.
+  game.ts       Game: phases, timer, auto-actions, mistakes, shop, save/load. The UI only calls this.
 src/ui/       DOM rendering and input
   board.ts      grid, targets, tap vs long-press vs right-click
-  overlays.ts   result, shop, pause, game over, victory, how to play
+  overlays.ts   result (animated breakdown), shop, pause, game over, victory, instructions
+  art.ts        stick figure and step-number circle
+  confetti.ts   bursts on solve, shower on victory
   sound.ts      effects from public/sfx
 src/main.ts   title and game screens, frame loop, keyboard
 ```
 
-`window.crossums` exposes `game` and `solve()` for tooling and manual testing.
+`window.crossums` exposes `game`, `solve()` and `addOperator(id)` for tooling and manual testing.
+
+## Feedback while playing
+
+- Owned operators sit under the HUD as chips. A chip flashes with a floating label when its operator auto-acts, and again for each scoring bonus before the result page opens.
+- A mistake (removing a part every solution needs, or circling one no solution keeps) shakes the board, flashes the part red, plays the error sound, and says so in the status line. The engine emits it as the `mistake` event; it fires once per break, not for every move made while the puzzle is already unfinishable.
+- The result page reveals its lines one by one and counts the money up with ticks. Reduced-motion settings skip the animation.
 
 ## Input
 
