@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { Game, memoryStorage } from './game'
-import { createOperator } from './operators'
+import { createOperator, type Operator } from './operators'
 import { PuzzleState } from './puzzle'
 import { findSolutions } from './solver'
 
@@ -257,7 +257,7 @@ describe('operator auto-actions', () => {
       [
         [1, 2, 5],
         [3, 2, 1],
-        [1, 7, 2],
+        [1, 7, 3],
       ],
       [3, 6, 4],
       [5, 4, 4],
@@ -270,6 +270,83 @@ describe('operator auto-actions', () => {
     expect(p.state(1, 1)).toBe('active')
     expect(p.actionHistory).toHaveLength(1)
     expect(p.actionHistory[0].auto).toBe(true)
+  })
+
+  it('Gimme stays quiet when deleting the corner cell would not finish the puzzle', () => {
+    // Row 0 and column 0 are the only wrong lines, but the fix is removing the 2 / -2 / 2
+    // triangle, not the 5 at their crossing. The 5 is part of the solution.
+    const g = start(
+      [
+        [5, 2, 1],
+        [2, -2, 1],
+        [1, 1, 1],
+      ],
+      [6, 1, 3],
+      [6, 1, 3],
+      ['gimme'],
+    )
+    expect(g.puzzle!.state(0, 0)).toBe('active')
+    expect(g.solvable).toBe(true)
+    expect(createOperator('gimme').autoAction!(g.puzzle!)).toBeNull()
+  })
+
+  it('Click Clique and Garbage Collector leave lines holding a negative alone', () => {
+    // Row 0 already sums to its target, yet the 3 and -3 both have to go.
+    const p = PuzzleState.fromValues(
+      [
+        [3, -3, 2],
+        [1, 4, 1],
+        [1, 1, 2],
+      ],
+      [2, 5, 2],
+      [2, 5, 2],
+    )
+    expect(createOperator('click_clique').autoAction!(p)).toBeNull()
+    p.circleCell(0, 2)
+    expect(p.isRowSolvedByCircles(0)).toBe(true)
+    // Column 2 is all positive and also solved by that circle, so only its cells go; row 0 keeps its 3 and -3.
+    expect(createOperator('garbage_collector').autoAction!(p)).toMatchObject({ type: 'delete', cells: [{ row: 1, col: 2 }, { row: 2, col: 2 }] })
+    // Row 1 is all positive, so it still gets circled once it matches.
+    p.reset()
+    p.deleteCell(1, 2)
+    expect(createOperator('click_clique').autoAction!(p)).toMatchObject({ type: 'circle', cells: [{ row: 1, col: 0 }, { row: 1, col: 1 }] })
+  })
+
+  it('Trimmer only trims against all-positive lines', () => {
+    // 9 > 6 but it is needed, because -3 sits in the same row.
+    const p = PuzzleState.fromValues(
+      [
+        [9, -3, 2],
+        [1, 1, 1],
+        [1, 7, 1],
+      ],
+      [6, 2, 2],
+      [10, -2, 2],
+    )
+    expect(createOperator('trimmer').autoAction!(p)).toMatchObject({ type: 'delete', cells: [{ row: 2, col: 1 }] })
+  })
+
+  it('an auto-action that would make the puzzle unfinishable is dropped', () => {
+    const { game } = harness()
+    game.startRun(1)
+    const breaker: Operator = {
+      id: 'breaker',
+      name: 'X',
+      description: '',
+      rarity: 0,
+      price: 0,
+      autoAction: (p) => (p.state(0, 0) === 'active' ? { type: 'delete', cells: [{ row: 0, col: 0 }], operatorId: 'breaker' } : null),
+    }
+    game.addOperator(breaker)
+    const fired: string[] = []
+    game.on('autoAction', (a) => fired.push(a.operatorId))
+    game.loadPuzzle(PuzzleState.fromValues([[1, 2], [3, 4]], [1, 3], [1, 2]))
+    expect(game.puzzle!.state(0, 0)).toBe('active')
+    expect(fired).toEqual([])
+    // Once (0,0) is a decoy the same action goes through.
+    game.loadPuzzle(PuzzleState.fromValues([[1, 2], [3, 4]], [2, 7], [3, 6]))
+    expect(game.puzzle!.state(0, 0)).toBe('deleted')
+    expect(fired).toEqual(['breaker'])
   })
 
   it('circle mode turns taps into circles; operator limit is five', () => {

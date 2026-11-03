@@ -57,6 +57,7 @@ src/main.ts   title and game screens, frame loop, keyboard
 
 - Operator money (Circlicious, Elite Delete) is paid. The Godot rating path computed it and dropped it.
 - The solver enumerates fully when a line holds a negative value. Godot pruned on "sum exceeds target", which miscounts solutions once negatives appear in stage 6.
+- Auto-acting operators (GRATIS, KLICK, STÄDA, SÅG) reason only from lines whose kept values are all positive, and `Game` drops any auto-action that would leave a finishable board unfinishable. In Godot, SÅG deleted a needed 9 next to a -3 and the stage 6+ puzzle became impossible.
 - Saves happen at every puzzle and shop transition, before the next puzzle's time is granted, so quitting mid-puzzle resumes at that puzzle's start with the same pool. Godot saved only on entering the shop.
 - Puzzle seeds use mulberry32, so a run seed does not reproduce the Godot puzzles for that seed. `SEED_VERSION` is 2.
 - Final money never goes below zero.

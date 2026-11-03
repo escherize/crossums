@@ -222,14 +222,15 @@ export class PuzzleState {
     return true
   }
 
+  /** The row's circled cells (at least one) add up to its target. */
   isRowSolvedByCircles(row: number): boolean {
-    const s = this.circledRowSum(row)
-    return s > 0 && s === this.rowTargets[row]
+    return this.cells[row].some((c) => c.state === 'circled') && this.circledRowSum(row) === this.rowTargets[row]
   }
 
   isColSolvedByCircles(col: number): boolean {
-    const s = this.circledColSum(col)
-    return s > 0 && s === this.colTargets[col]
+    let any = false
+    for (let r = 0; r < this.rows; r++) if (this.cells[r][col].state === 'circled') any = true
+    return any && this.circledColSum(col) === this.colTargets[col]
   }
 
   /** The circled cells alone form a solution. Needs at least one circle. */

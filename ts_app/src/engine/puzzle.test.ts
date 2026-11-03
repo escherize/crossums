@@ -84,6 +84,18 @@ describe('PuzzleState', () => {
     expect(p.actionHistory).toEqual([{ type: 'delete', cells: [{ row: 0, col: 1 }], auto: false, operatorId: '' }])
   })
 
+  it('circles can solve a line whose target is zero or negative', () => {
+    const p = PuzzleState.fromValues([[3, -3, 2], [1, -4, 1]], [0, -3], [4, -7, 3])
+    expect(p.isRowSolvedByCircles(0)).toBe(false)
+    p.circleCell(0, 0)
+    p.circleCell(0, 1)
+    expect(p.isRowSolvedByCircles(0)).toBe(true)
+    p.circleCell(1, 1)
+    expect(p.isColSolvedByCircles(1)).toBe(true)
+    p.circleCell(1, 0)
+    expect(p.isRowSolvedByCircles(1)).toBe(true)
+  })
+
   it('circled cells alone can solve', () => {
     const p = board()
     expect(p.isSolvedByCircles()).toBe(false)

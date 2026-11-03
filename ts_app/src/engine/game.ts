@@ -313,7 +313,19 @@ export class Game {
     }
   }
 
+  /**
+   * Operators only ever help: an auto-action that would leave a finishable puzzle
+   * unfinishable is dropped. The operators guard against this themselves; this is the net.
+   */
+  private autoActionIsSafe(a: AutoAction): boolean {
+    if (!this.solvable) return true
+    const trial = this.puzzle!.clone()
+    for (const pos of a.cells) a.type === 'delete' ? trial.deleteCell(pos.row, pos.col) : trial.circleCell(pos.row, pos.col)
+    return trial.isSolved() || trial.isSolvedByCircles() || solvableWithCircles(trial)
+  }
+
   private executeAutoAction(a: AutoAction): void {
+    if (!this.autoActionIsSafe(a)) return
     const p = this.puzzle!
     this.executingAuto = true
     this.emit('operatorTriggered', { id: a.operatorId, bonus: 0 })
